@@ -67,4 +67,4 @@ class ServiceClient:
         json_result = resp.json()
         if RESULT not in json_result:
             raise ServerError("Unknown", 0, "An unknown server error occurred")
-        return resp[RESULT]
+        return json_result[RESULT]
