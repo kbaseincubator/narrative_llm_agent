@@ -47,23 +47,15 @@ class WorkspaceObjectInfo:
         return f"{self.upa}\t{self.name}\n{self.raw}"
 
 
-class Workspace:
+class Workspace(ServiceClient):
     default_endpoint: str = "https://kbase.us/services/ws"
     _service = "Workspace"
 
     def __init__(self: "Workspace", token: str, endpoint: str=default_endpoint) -> "Workspace":
-        self._token = token
-        self._endpoint = endpoint
-        self._client = ServiceClient(endpoint, self._service, token)
-
-    def _call(self: "Workspace", method: str, params: Any) -> Any:
-        """
-        raises a requests.HTTPError if a failure happens.
-        """
-        return self._client.make_kbase_jsonrpc_1_call(method, [params])[0]
+        super().__init__(endpoint, self._service, token)
 
     def list_workspace_objects(self: "Workspace", ws_id: int, object_type: str=None, as_dict: bool=False) -> list[list]:
-        ws_info = self._call("get_workspace_info", {"id": ws_id})
+        ws_info = self.simple_call("get_workspace_info", {"id": ws_id})
         max_obj_id = ws_info[4]
         chunk_size = 10000
         current_max = 0
@@ -75,7 +67,7 @@ class Workspace:
                 "maxObjectID": current_max + chunk_size,
                 "type": object_type
             }
-            objects += self._call("list_objects", list_obj_params)
+            objects += self.simple_call("list_objects", list_obj_params)
             current_max += chunk_size + 1
         if not as_dict:
             return objects
@@ -91,7 +83,7 @@ class Workspace:
             base_params["included"] = data_paths
 
         params_list = [dict(deepcopy(base_params)) | {"ref": upa} for upa in upas]
-        return self._call("get_objects2", {"objects": params_list})["data"]
+        return self.simple_call("get_objects2", {"objects": params_list})["data"]
 
     @classmethod
     def obj_info_to_json(cls, obj_info: list[Any]) -> dict[str, Any]:

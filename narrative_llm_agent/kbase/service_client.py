@@ -29,6 +29,8 @@ class ServiceClient:
             self._headers["Authorization"] = token
         self._timeout = timeout
 
+    def simple_call(self: "ServiceClient", method: str, params: Any) -> Any:
+        return self.make_kbase_jsonrpc_1_call(method, [params])[0]
 
     def make_kbase_jsonrpc_1_call(
             self: "ServiceClient",
