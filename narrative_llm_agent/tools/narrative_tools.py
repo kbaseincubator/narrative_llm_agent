@@ -15,7 +15,7 @@ class UpaInput(BaseModel):
 @tool(args_schema=NarrativeInput, return_direct=False)
 def list_objects(narrative_id: int) -> int:
     """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted list of all objects in
-    a narrative."""
+    a narrative. The narrative_id input must be an integer. Do not pass in a dictionary or a string."""
     ws = Workspace(None, endpoint="https://ci.kbase.us/services/ws")
     return json.dumps(ws.list_workspace_objects(narrative_id))
 
