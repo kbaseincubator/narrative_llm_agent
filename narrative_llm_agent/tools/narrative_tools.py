@@ -4,7 +4,7 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 import json
 
 class NarrativeInput(BaseModel):
-    narrative_id: str = Field(description="The narrative id. Should be numeric.")
+    narrative_id: str = Field(description="The narrative id. Must be numeric. This must be only a number and not a string.")
 
 class UpaInput(BaseModel):
     upa: str = Field(description="""An object UPA (unique permanent address)
