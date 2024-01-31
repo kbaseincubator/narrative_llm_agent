@@ -8,10 +8,10 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 
 
 class NarrativeInput(BaseModel):
-    narrative_id: str = Field(description="The narrative id. Should be numeric.")
+    narrative_id: int = Field(description="The narrative id. Should be numeric.")
 
 class UpaInput(BaseModel):
-    upa: str = Field(description="""An object UPA (unique permanent address)
+    upa: int = Field(description="""An object UPA (unique permanent address)
                      representing the location of a Workspace data object.
                      Should be a string of the format ws_id/obj_id/ver.
                      For example, '11/22/33'.""")
@@ -29,30 +29,37 @@ class NarrativeAgent(KBaseAgent):
         self.__init_agent()
 
     def __init_agent(self: "NarrativeAgent"):
+
+        @tool(args_schema=NarrativeInput, return_direct=False)
+        def list_objects(narrative_id: int) -> int:
+            """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted list of all objects in
+            a narrative. The narrative_id input must be an integer. Do not pass in a dictionary or a string."""
+            return self._list_objects(narrative_id)
+
+        @tool(args_schema=UpaInput, return_direct=False)
+        def get_object(object_id: int) -> str:
+            """Fetch a particular object from a KBase Narrative. This returns a JSON-formatted data object
+            from the Workspace service. Its format is dependent on the data type."""
+            return self._get_object_impl(object_id)
+
         self._agent = Agent(
             role = self.role,
             goal = self.goal,
             backstory = self.backstory,
             verbose = True,
             tools = [
-                self.list_objects.__get__(self, NarrativeAgent),
-                self.get_object.__get__(self, NarrativeAgent)
+                list_objects,
+                get_object
             ],
             llm=self._llm,
             allow_delegation=False
         )
 
-    @tool(args_schema=NarrativeInput, return_direct=False)
-    def list_objects(self: "NarrativeAgent", narrative_id: int) -> int:
-        """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted list of all objects in
-        a narrative. The narrative_id input must be an integer. Do not pass in a dictionary or a string."""
+    def _list_objects(self: "NarrativeAgent", narrative_id: int) -> str:
         ws = Workspace(self._token, endpoint=self._service_endpoint + "ws")
         return json.dumps(ws.list_workspace_objects(narrative_id))
 
-    @tool(args_schema=UpaInput, return_direct=False)
-    def get_object(self: "NarrativeAgent", upa: str) -> dict:
-        """Fetch a particular object from a KBase Narrative. This returns a JSON-formatted data object
-        from the Workspace service. Its format is dependent on the data type."""
+    def _get_object(self: "NarrativeAgent", upa: str) -> str:
         ws = Workspace(self._token, endpoint=self._service_endpoint + "ws")
         return json.dumps(ws.get_objects([upa]))
 
