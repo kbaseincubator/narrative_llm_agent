@@ -35,8 +35,8 @@ class NarrativeAgent(KBaseAgent):
             backstory = self.backstory,
             verbose = True,
             tools = [
-                self.list_objects,
-                self.get_object
+                self.list_objects.__get__(self, NarrativeAgent),
+                self.get_object.__get__(self, NarrativeAgent)
             ],
             llm=self._llm,
             allow_delegation=False
