@@ -2,7 +2,7 @@ from crewai import Agent
 from langchain_core.language_models.llms import LLM
 
 class KBaseAgent:
-    _agent: Agent
+    agent: Agent
     _token: str
     _llm: LLM
     #TODO Make config, env variable, or other.
