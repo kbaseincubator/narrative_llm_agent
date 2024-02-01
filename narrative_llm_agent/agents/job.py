@@ -8,7 +8,7 @@ from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 
 
 class JobInput(BaseModel):
-    job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine.")
+    job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string.")
 
 class JobAgent(KBaseAgent):
     role: str = "Job Manager"
@@ -28,7 +28,8 @@ class JobAgent(KBaseAgent):
         def job_status(job_id: str) -> str:
             """Looks up and returns the status of a KBase job. Returns the status as a
             JSON-formatted string. If the job does not exist, or the user doesn't have
-            permission to see the job, this raises a JobError.
+            permission to see the job, this raises a JobError. job_id must be a 24 character
+            hexadecimal string. Do not pass in a dictionary.
             """
             return self._job_status(job_id)
 
