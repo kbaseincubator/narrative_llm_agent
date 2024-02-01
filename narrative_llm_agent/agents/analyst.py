@@ -3,7 +3,7 @@ from crewai import Agent
 from langchain_core.language_models.llms import LLM
 
 class AnalystAgent(KBaseAgent):
-    role="Computational Biologist and Geneticist",
+    role="Computational Biologist and Geneticist"
     goal="Analyze and interpret datasets, and make suggestions into next analysis steps."
     backstory="""You are an expert academic computational biologist with decades of
     experience working in microbial genetics. You have published several genome announcement
