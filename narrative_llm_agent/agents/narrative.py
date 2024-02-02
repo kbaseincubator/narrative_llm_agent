@@ -18,11 +18,12 @@ class UpaInput(BaseModel):
 
 
 class NarrativeAgent(KBaseAgent):
-    role: str = "Bioinformaticist and Data Scientist"
-    goal: str = "Retrieve data from the KBase system. Filter and interpret datasets as necessary to achieve team goals."
+    role: str = "Workspace Manager"
+    goal: str = "Retrieve data from the KBase Narrative. Filter and interpret datasets as necessary to achieve team goals."
     backstory: str = """You are an expert in bioinformatics and data science, with years of experience working with the DoE KBase system.
-    You are responsible for interacting with the KBase Narrative interface on behalf of your crew.
-    These interactions will include uploading and downloading data, running analyses, and retrieving results."""
+    You are responsible for interacting with the KBase system on behalf of your crew.
+    These interactions will include uploading and downloading data, running analyses, and retrieving results.
+    You are closely familiar with the Workspace service and all of its functionality."""
     ws_endpoint: str = KBaseAgent._service_endpoint + "ws"
 
     def __init__(self: "NarrativeAgent", token: str, llm: LLM) -> "NarrativeAgent":
