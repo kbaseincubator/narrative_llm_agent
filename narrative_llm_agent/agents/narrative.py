@@ -11,7 +11,7 @@ class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
 
 class UpaInput(BaseModel):
-    upa: int = Field(description="""An object UPA (unique permanent address)
+    upa: str = Field(description="""An object UPA (unique permanent address)
                      representing the location of a Workspace data object.
                      Should be a string of the format ws_id/obj_id/ver.
                      For example, '11/22/33'.""")
@@ -38,10 +38,11 @@ class NarrativeAgent(KBaseAgent):
             return self._list_objects(narrative_id)
 
         @tool(args_schema=UpaInput, return_direct=False)
-        def get_object(object_id: int) -> str:
+        def get_object(upa: str) -> str:
             """Fetch a particular object from a KBase Narrative. This returns a JSON-formatted data object
-            from the Workspace service. Its format is dependent on the data type."""
-            return self._get_object(object_id)
+            from the Workspace service. Its format is dependent on the data type. The upa input must be a
+            string with format number/number/number. Do not input a dictionary or a JSON-formatted string."""
+            return self._get_object(upa)
 
         self.agent = Agent(
             role = self.role,
