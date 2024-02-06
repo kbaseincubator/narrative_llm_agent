@@ -29,7 +29,7 @@ class JobAgent(KBaseAgent):
             """Looks up and returns the status of a KBase job. Returns the status as a
             JSON-formatted string. If the job does not exist, or the user doesn't have
             permission to see the job, this raises a JobError. job_id must be a 24 character
-            hexadecimal string. Do not pass in a dictionary.
+            hexadecimal string. Do not pass in a dictionary or a JSON-formatted string.
             """
             return self._job_status(job_id)
 

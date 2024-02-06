@@ -33,9 +33,19 @@ class NarrativeAgent(KBaseAgent):
     def __init_agent(self: "NarrativeAgent"):
         @tool(args_schema=NarrativeInput, return_direct=False)
         def list_objects(narrative_id: int) -> str:
-            """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted list of all objects in
-            a narrative. The narrative_id input must be an integer. Do not pass in a dictionary or a string."""
+            """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted
+            list of all objects in a narrative. The narrative_id input must be an integer. Do not
+            pass in a dictionary or a JSON-formatted string."""
             return self._list_objects(narrative_id)
+
+        @tool(args_schema=UpaInput, return_direct=False)
+        def get_report(upa: str) -> str:
+            """Fetch a report object from a KBase Narrative. This returns a JSON-formatted data object
+            from the Workspace service. It contains both the text of the report, and in the case of an
+            HTML report, the HTML data. The text is under the key "report-text" and the HTML data is
+            under the key "HTML-report". The upa input must be a string with format number/number/number.
+            Do not input a dictionary or a JSON-formatted string."""
+            return self._get_report(upa)
 
         @tool(args_schema=UpaInput, return_direct=False)
         def get_object(upa: str) -> str:
@@ -58,9 +68,25 @@ class NarrativeAgent(KBaseAgent):
         )
 
     def _list_objects(self: "NarrativeAgent", narrative_id: int) -> str:
+        """
+        Fetches the list of objects in a narrative. Returns the object
+        list as stringified JSON.
+        narrative_id - int - the id of the narrative (workspace)
+        """
         ws = Workspace(self._token, endpoint=self.ws_endpoint)
         return json.dumps(ws.list_workspace_objects(narrative_id))
 
-    def _get_object(self: "NarrativeAgent", upa: str) -> str:
+    def _get_object(self: "NarrativeAgent", upa: str) -> dict:
+        """
+        Fetches a single object from the workspace service. Returns it
+        as a dictionary, structured as per the object type.
+        """
         ws = Workspace(self._token, endpoint=self.ws_endpoint)
-        return json.dumps(ws.get_objects([upa]))
+        return ws.get_objects([upa])[0]
+
+    def _get_report(self: "NarrativeAgent", upa: str) -> dict:
+        """
+        Fetches a report object from the workspace service. If it is not
+        a report, this raises a ValueError.
+        """
+        obj = self._get_object(upa)
