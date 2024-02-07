@@ -21,3 +21,6 @@ requests-mock = "^1.11.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib --cov=narrative_llm_agent -s --verbose"
