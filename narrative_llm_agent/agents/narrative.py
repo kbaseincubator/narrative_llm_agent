@@ -5,6 +5,7 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
+from util.workspace import WorkspaceUtil
 
 
 class NarrativeInput(BaseModel):
@@ -41,10 +42,14 @@ class NarrativeAgent(KBaseAgent):
         @tool(args_schema=UpaInput, return_direct=False)
         def get_report(upa: str) -> str:
             """Fetch a report object from a KBase Narrative. This returns a JSON-formatted data object
-            from the Workspace service. It contains both the text of the report, and in the case of an
-            HTML report, the HTML data. The text is under the key "report-text" and the HTML data is
-            under the key "HTML-report". The upa input must be a string with format number/number/number.
-            Do not input a dictionary or a JSON-formatted string."""
+            from the Workspace service. This will be structured in one of two ways. First, it might be
+            structured so that the keys are filenames and the values are strings that are the reports
+            from those files. These reports will be plain-text and contain an informational summary of
+            the data. The second structure will contains both the text of the report, and in the case
+            of an HTML report, the HTML data and a URL link to the HTML report. The text is under the
+            key "report-text" and the HTML data is under the key "HTML-report". The upa input must be
+            a string with format number/number/number. Do not input a dictionary or a JSON-formatted
+            string."""
             return self._get_report(upa)
 
         @tool(args_schema=UpaInput, return_direct=False)
@@ -61,7 +66,8 @@ class NarrativeAgent(KBaseAgent):
             verbose = True,
             tools = [
                 list_objects,
-                get_object
+                get_object,
+                get_report
             ],
             llm=self._llm,
             allow_delegation=False
@@ -89,4 +95,5 @@ class NarrativeAgent(KBaseAgent):
         Fetches a report object from the workspace service. If it is not
         a report, this raises a ValueError.
         """
-        obj = self._get_object(upa)
+        ws_util = WorkspaceUtil(self._token, endpoint=KBaseAgent._service_endpoint)
+        return ws_util.get_report(upa)
