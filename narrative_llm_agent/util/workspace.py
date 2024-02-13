@@ -76,7 +76,7 @@ class WorkspaceUtil:
         obj = self._ws.get_objects([upa])[0]
         if "info" not in obj or len(obj["info"]) < 10:
             raise ValueError(f"Object with UPA {upa} does not appear to be properly formatted.")
-        if not self.is_report(obj["info"][2]):
+        if not self._is_report(obj["info"][2]):
             raise ValueError(f"Object with UPA {upa} is not a report but a {obj['info'][2]}.")
         # check report source from provenance and process based on its service and method
         report_source = self._get_report_source(obj)
