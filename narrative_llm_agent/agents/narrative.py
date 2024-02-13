@@ -6,6 +6,7 @@ from langchain.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.util.workspace import WorkspaceUtil
+from narrative_llm_agent.util.tool import process_tool_input
 
 
 class NarrativeInput(BaseModel):
@@ -37,7 +38,7 @@ class NarrativeAgent(KBaseAgent):
             """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted
             list of all objects in a narrative. The narrative_id input must be an integer. Do not
             pass in a dictionary or a JSON-formatted string."""
-            return self._list_objects(narrative_id)
+            return self._list_objects(process_tool_input(narrative_id, "narrative_id"))
 
         @tool(args_schema=UpaInput, return_direct=False)
         def get_report(upa: str) -> str:
@@ -50,14 +51,14 @@ class NarrativeAgent(KBaseAgent):
             key "report-text" and the HTML data is under the key "HTML-report". The upa input must be
             a string with format number/number/number. Do not input a dictionary or a JSON-formatted
             string."""
-            return self._get_report(upa)
+            return self._get_report(process_tool_input(upa, "upa"))
 
         @tool(args_schema=UpaInput, return_direct=False)
         def get_object(upa: str) -> str:
             """Fetch a particular object from a KBase Narrative. This returns a JSON-formatted data object
             from the Workspace service. Its format is dependent on the data type. The upa input must be a
             string with format number/number/number. Do not input a dictionary or a JSON-formatted string."""
-            return self._get_object(upa)
+            return self._get_object(process_tool_input(upa, "upa"))
 
         self.agent = Agent(
             role = self.role,
