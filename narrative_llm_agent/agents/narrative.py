@@ -96,5 +96,5 @@ class NarrativeAgent(KBaseAgent):
         Fetches a report object from the workspace service. If it is not
         a report, this raises a ValueError.
         """
-        ws_util = WorkspaceUtil(self._token, endpoint=KBaseAgent._service_endpoint)
+        ws_util = WorkspaceUtil(self._token, KBaseAgent._service_endpoint)
         return ws_util.get_report(upa)
