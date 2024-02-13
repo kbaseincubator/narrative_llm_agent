@@ -79,7 +79,7 @@ class WorkspaceUtil:
         if not self._is_report(obj["info"][2]):
             raise ValueError(f"Object with UPA {upa} is not a report but a {obj['info'][2]}.")
         # check report source from provenance and process based on its service and method
-        report_source = self._get_report_source(obj)
+        report_source = self._get_report_source(obj["provenance"])
         if report_source == "fastqc":
             return json.dumps(self.translate_fastqc_report(KBaseReport(obj["data"])))
         else:
@@ -93,7 +93,7 @@ class WorkspaceUtil:
         report_data = {report_file.name: None for report_file in report.file_links}
         target_file_name = "fastqc_data.txt"
         for report_file in report.file_links:
-            resp = self._download_report_file(report_file)
+            resp = self._download_report_file(report_file, self._token)
             comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
             foi = None
             for data_file in comp_file.filelist:
