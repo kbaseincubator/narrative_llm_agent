@@ -5,7 +5,7 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from util.workspace import WorkspaceUtil
+from narrative_llm_agent.util.workspace import WorkspaceUtil
 
 
 class NarrativeInput(BaseModel):
