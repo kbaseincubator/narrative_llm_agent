@@ -19,7 +19,7 @@ class UpaInput(BaseModel):
                      For example, '11/22/33'.""")
 
 
-class NarrativeAgent(KBaseAgent):
+class WorkspaceAgent(KBaseAgent):
     role: str = "Workspace Manager"
     goal: str = "Retrieve data from the KBase Narrative. Filter and interpret datasets as necessary to achieve team goals."
     backstory: str = """You are an expert in bioinformatics and data science, with years of experience working with the DoE KBase system.
@@ -28,11 +28,11 @@ class NarrativeAgent(KBaseAgent):
     You are closely familiar with the Workspace service and all of its functionality."""
     ws_endpoint: str = KBaseAgent._service_endpoint + "ws"
 
-    def __init__(self: "NarrativeAgent", token: str, llm: LLM) -> "NarrativeAgent":
+    def __init__(self: "WorkspaceAgent", token: str, llm: LLM) -> "WorkspaceAgent":
         super().__init__(token, llm)
         self.__init_agent()
 
-    def __init_agent(self: "NarrativeAgent"):
+    def __init_agent(self: "WorkspaceAgent"):
         @tool(args_schema=NarrativeInput, return_direct=False)
         def list_objects(narrative_id: int) -> str:
             """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted
@@ -74,7 +74,7 @@ class NarrativeAgent(KBaseAgent):
             allow_delegation=False
         )
 
-    def _list_objects(self: "NarrativeAgent", narrative_id: int) -> str:
+    def _list_objects(self: "WorkspaceAgent", narrative_id: int) -> str:
         """
         Fetches the list of objects in a narrative. Returns the object
         list as stringified JSON.
@@ -83,7 +83,7 @@ class NarrativeAgent(KBaseAgent):
         ws = Workspace(self._token, endpoint=self.ws_endpoint)
         return json.dumps(ws.list_workspace_objects(narrative_id))
 
-    def _get_object(self: "NarrativeAgent", upa: str) -> dict:
+    def _get_object(self: "WorkspaceAgent", upa: str) -> dict:
         """
         Fetches a single object from the workspace service. Returns it
         as a dictionary, structured as per the object type.
@@ -91,7 +91,7 @@ class NarrativeAgent(KBaseAgent):
         ws = Workspace(self._token, endpoint=self.ws_endpoint)
         return ws.get_objects([upa])[0]
 
-    def _get_report(self: "NarrativeAgent", upa: str) -> dict:
+    def _get_report(self: "WorkspaceAgent", upa: str) -> dict:
         """
         Fetches a report object from the workspace service. If it is not
         a report, this raises a ValueError.
