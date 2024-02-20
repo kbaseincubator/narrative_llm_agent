@@ -65,5 +65,6 @@ class NarrativeAgent(KBaseAgent):
         )
 
     def _get_narrative(self, narrative_id: int) -> str:
-        ws = Workspace(self._token, endpoint=self.ws_endpoint)
-        ws.get_workspace_info(narrative_id)
+        ws_util = WorkspaceUtil(self._token, KBaseAgent._service_endpoint)
+        narr = ws_util.get_narrative_from_wsid(narrative_id)
+        return str(narr)
