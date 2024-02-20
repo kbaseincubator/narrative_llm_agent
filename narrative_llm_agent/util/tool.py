@@ -37,3 +37,17 @@ def process_tool_input(input_val, expected_key: str) -> str:
         return None
     except json.JSONDecodeError:
         return str(input_val)
+
+def convert_to_boolean(param: bool | int | float | str) -> bool:
+    if param is None:
+        return False
+    if isinstance(param, bool):
+        return param
+    if isinstance(param, str):
+        lower_str = param.lower()
+        if "false" in lower_str or len(lower_str) == 0:
+            return False
+        return True
+    if param == 0:
+        return False
+    return True

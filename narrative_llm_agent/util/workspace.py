@@ -4,42 +4,16 @@ import requests
 import zipfile
 import io
 from pathlib import Path
-
-class LinkedFile:
-    handle: str
-    description: str
-    name: str
-    label: str
-    url: str
-
-    def __init__(self, file_link: dict):
-        for key in ["handle", "description", "name", "label", "URL"]:
-            self.__setattr__(key.lower(), file_link.get(key, ""))
-
-class KBaseReport:
-    raw: dict
-    html_links: list[LinkedFile]
-    file_links: list[LinkedFile]
-    text_message: str
-    direct_html: str
-    direct_html_link_index: int
-    warnings: list[str]
-
-    def __init__(self, report_obj: dict):
-        # process into an easy-to-handle report object.
-        # could probably also use a NamedTuple or something here.
-        # but this should suffice to start
-        self.raw = report_obj
-        self.text_message = report_obj.get("text_message", "")
-        self.direct_html = report_obj.get("direct_html", "")
-        self.direct_html_link_index = report_obj.get("direct_html_link_index", None)
-        self.warnings = report_obj.get("warnings", [])
-
-        self.html_links = [LinkedFile(link) for link in report_obj.get("html_links", [])]
-        self.file_links = [LinkedFile(link) for link in report_obj.get("file_links", [])]
-
-    def __str__(self):
-        return json.dumps(self.raw)
+from narrative_llm_agent.kbase.objects.narrative import (
+    Narrative,
+    is_narrative,
+    NARRATIVE_ID_KEY
+)
+from narrative_llm_agent.kbase.objects.report import (
+    KBaseReport,
+    LinkedFile,
+    is_report
+)
 
 class WorkspaceUtil:
     _ws: Workspace
@@ -50,9 +24,6 @@ class WorkspaceUtil:
         self._token = token
         self._service_endpoint = service_endpoint
         self._ws = Workspace(self._token, self._service_endpoint + "ws")
-
-    def _is_report(self, obj_type: str) -> bool:
-        return "KBaseReport.Report" in obj_type
 
     def _get_report_source(self, provenance: list[dict]) -> str:
         """
@@ -76,7 +47,7 @@ class WorkspaceUtil:
         obj = self._ws.get_objects([upa])[0]
         if "info" not in obj or len(obj["info"]) < 10:
             raise ValueError(f"Object with UPA {upa} does not appear to be properly formatted.")
-        if not self._is_report(obj["info"][2]):
+        if not is_report(obj["info"][2]):
             raise ValueError(f"Object with UPA {upa} is not a report but a {obj['info'][2]}.")
         # check report source from provenance and process based on its service and method
         report_source = self._get_report_source(obj["provenance"])
@@ -124,3 +95,17 @@ class WorkspaceUtil:
             raise ValueError(f"HTTP status code {resp.status_code} for report file at {url} (original url {report_file.url})")
         return resp
 
+    def get_narrative_from_wsid(self, ws_id: int, ver: int=None) -> Narrative:
+        """
+        Returns a Narrative object from the workspace with the given wsid.
+        """
+        ws_info = self._ws.get_workspace_info(ws_id)
+        if NARRATIVE_ID_KEY not in ws_info.meta:
+            raise ValueError(f"No narrative found in workspace {ws_id}")
+
+        narr_ref = f"{ws_id}/{ws_info.meta[NARRATIVE_ID_KEY]}"
+        narr_obj = self._ws.get_objects([narr_ref])[0]
+        if not is_narrative(narr_obj["info"][2]):
+            raise ValueError(f"The object with reference {narr_ref} is not a KBase Narrative.")
+
+        return Narrative(narr_obj["data"])
