@@ -8,7 +8,7 @@ class WorkspaceObjectId:
     obj_id: int
     version: int
 
-    def __init__(self: "WorkspaceObjectId", upa: str):
+    def __init__(self: "WorkspaceObjectId", upa: str) -> None:
         self.upa = upa
         self._process_upa()
 
@@ -38,7 +38,7 @@ class WorkspaceObjectInfo:
     raw: list[Any]
     name: str
 
-    def __init__(self: "WorkspaceObjectInfo", info: list[Any]):
+    def __init__(self: "WorkspaceObjectInfo", info: list[Any]) -> None:
         self.upa = WorkspaceObjectId.from_ids(info[6], info[0], info[4])
         self.raw = info
         self.name = info[1]
@@ -58,7 +58,7 @@ class WorkspaceInfo:
     lock_status: str
     meta: dict[str, str]
 
-    def __init__(self: "WorkspaceInfo", info: list[Any]):
+    def __init__(self: "WorkspaceInfo", info: list[Any]) -> None:
         self.ws_id = info[0]
         self.name = info[1]
         self.owner = info[2]
@@ -87,7 +87,7 @@ class Workspace(ServiceClient):
     default_endpoint: str = "https://kbase.us/services/ws"
     _service = "Workspace"
 
-    def __init__(self: "Workspace", token: str, endpoint: str=default_endpoint) -> "Workspace":
+    def __init__(self: "Workspace", token: str, endpoint: str=default_endpoint) -> None:
         super().__init__(endpoint, self._service, token)
 
     def get_workspace_info(self: "Workspace", ws_id: int) -> WorkspaceInfo:
@@ -123,6 +123,9 @@ class Workspace(ServiceClient):
 
         params_list = [dict(deepcopy(base_params)) | {"ref": ref} for ref in refs]
         return self.simple_call("get_objects2", {"objects": params_list})["data"]
+
+    def save_objects(self: "Workspace", ws_id: int, objects: list[Any]) -> list[list[Any]]:
+        return self.simple_call("save_objects", {"id": ws_id, "objects": objects})
 
     @classmethod
     def obj_info_to_json(cls, obj_info: list[Any]) -> dict[str, Any]:
