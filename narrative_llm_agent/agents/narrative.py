@@ -3,10 +3,8 @@ from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
-import json
-from narrative_llm_agent.kbase.clients.workspace import Workspace
-from narrative_llm_agent.util.workspace import WorkspaceUtil
 from narrative_llm_agent.util.tool import process_tool_input
+from narrative_llm_agent.util.narrative import NarrativeUtil
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
@@ -44,7 +42,7 @@ class NarrativeAgent(KBaseAgent):
             """Add a new markdown cell to an existing Narrative document. This cell gets added to the
             end of the document. The narrative_id must be numeric. The markdown_text must be a string,
             with or without markdown-specific formatting. Do not input a dictionary or JSON-formatted
-            string. If successful, this will return a message saying so. If unsuccessful, or if an
+            string. If successful, this will return a message saying 'success'. If unsuccessful, or if an
             error occurs, an exception will be raised."""
             narrative_id = process_tool_input(narrative_id, "narrative_id")
             markdown_text = process_tool_input(markdown_text, "markdown_text")
@@ -65,6 +63,22 @@ class NarrativeAgent(KBaseAgent):
         )
 
     def _get_narrative(self, narrative_id: int) -> str:
-        ws_util = WorkspaceUtil(self._token, KBaseAgent._service_endpoint)
-        narr = ws_util.get_narrative_from_wsid(narrative_id)
+        """
+        Fetch a Narrative object from the Workspace service with given narrative id.
+        This is returned as a JSON string.
+        """
+        narr_util = NarrativeUtil(self._token, KBaseAgent._service_endpoint)
+        narr = narr_util.get_narrative_from_wsid(narrative_id)
         return str(narr)
+
+    def _add_markdown_cell(self, narrative_id: int, markdown_text: str) -> str:
+        """
+        Add a markdown cell to the Narrative object and save it. This inserts the given
+        markdown_text into ta new markdown cell. If successful, this returns the string
+        'success'.
+        """
+        narr_util = NarrativeUtil(self._token, KBaseAgent._service_endpoint)
+        narr = narr_util.get_narrative_from_wsid(narrative_id)
+        narr.add_markdown_cell(markdown_text)
+        narr_util.save_narrative(narr, narrative_id)
+        return "success"

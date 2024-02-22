@@ -1,7 +1,4 @@
 from narrative_llm_agent.kbase.objects.narrative import (
-    CodeCell,
-    MarkdownCell,
-    AppCell,
     Narrative,
     NARRATIVE_ID_KEY,
     NARRATIVE_TYPE,
