@@ -106,13 +106,15 @@ def mock_kbase_jsonrpc_1_call(requests_mock):
 
 @pytest.fixture
 def mock_kbase_client_call(requests_mock):
-    def kbase_call(client: ServiceClient, resp: dict, status_code: int=200):
+    def kbase_call(client: ServiceClient, resp: dict, service_method: str=None, status_code: int=200):
         def match_kbase_service_call(request):
             packet = request.json()
             if "method" not in packet or not isinstance(packet["method"], str):
                 return False
             method = packet["method"].split(".")
             if len(method) != 2 or method[0] != client._service:
+                return False
+            if service_method is not None and service_method != method[1]:
                 return False
             return match_jsonrpc_1_packet(request)
 
