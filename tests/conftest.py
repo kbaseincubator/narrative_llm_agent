@@ -53,3 +53,52 @@ def mock_kbase_server_error(requests_mock):
     def mock_generic_error(method: str, url: str, err: dict):
         requests_mock.register_uri(method, url, status_code=500, json=err)
     return mock_generic_error
+
+def build_jsonrpc_1_response(result: dict, is_error: bool=False, no_result: bool=False):
+    resp = {
+        "id": "12345",
+        "version": "1.1",
+    }
+    if no_result:
+        return resp
+    if is_error:
+        resp["error"] = result
+    else:
+        resp["result"] = [result]
+    return resp
+
+@pytest.fixture
+def mock_kbase_jsonrpc_1_call(requests_mock):
+    def match_jsonrpc_1_packet(request):
+        """
+        Returns True if this looks like a KBase-ish JSON-RPC 1 packet.
+        Should have the following:
+        * id: string
+        * version: string == 1.1
+        * method: string == XXX.YYY
+        * params: list
+        """
+        packet = request.json()
+        if len(packet) != 4:
+            return False
+        if "params" not in packet or not isinstance(packet["params"], list):
+            return False
+        expected_strs = ["id", "version", "method"]
+        for expected in expected_strs:
+            if expected not in packet or not isinstance(packet[expected], str):
+                return False
+        return True
+
+    def kbase_jsonrpc_1_call(url: str, resp: dict, status_code: int=200, no_result: bool=False):
+        is_error = status_code != 200
+        response_packet = build_jsonrpc_1_response(resp, is_error=is_error, no_result=no_result)
+        requests_mock.register_uri(
+            "POST",
+            url,
+            additional_matcher=match_jsonrpc_1_packet,
+            json=response_packet,
+            headers={"content-type": "application/json"},
+            status_code=status_code
+        )
+        return response_packet
+    return kbase_jsonrpc_1_call
