@@ -1,5 +1,6 @@
 import pytest
 import requests_mock
+from narrative_llm_agent.kbase.service_client import ServiceClient
 
 @pytest.fixture
 def mock_auth_request(requests_mock):
@@ -67,28 +68,28 @@ def build_jsonrpc_1_response(result: dict, is_error: bool=False, no_result: bool
         resp["result"] = [result]
     return resp
 
+def match_jsonrpc_1_packet(request):
+    """
+    Returns True if this looks like a KBase-ish JSON-RPC 1 packet.
+    Should have the following:
+    * id: string
+    * version: string == 1.1
+    * method: string == XXX.YYY
+    * params: list
+    """
+    packet = request.json()
+    if len(packet) != 4:
+        return False
+    if "params" not in packet or not isinstance(packet["params"], list):
+        return False
+    expected_strs = ["id", "version", "method"]
+    for expected in expected_strs:
+        if expected not in packet or not isinstance(packet[expected], str):
+            return False
+    return True
+
 @pytest.fixture
 def mock_kbase_jsonrpc_1_call(requests_mock):
-    def match_jsonrpc_1_packet(request):
-        """
-        Returns True if this looks like a KBase-ish JSON-RPC 1 packet.
-        Should have the following:
-        * id: string
-        * version: string == 1.1
-        * method: string == XXX.YYY
-        * params: list
-        """
-        packet = request.json()
-        if len(packet) != 4:
-            return False
-        if "params" not in packet or not isinstance(packet["params"], list):
-            return False
-        expected_strs = ["id", "version", "method"]
-        for expected in expected_strs:
-            if expected not in packet or not isinstance(packet[expected], str):
-                return False
-        return True
-
     def kbase_jsonrpc_1_call(url: str, resp: dict, status_code: int=200, no_result: bool=False):
         is_error = status_code != 200
         response_packet = build_jsonrpc_1_response(resp, is_error=is_error, no_result=no_result)
@@ -102,3 +103,28 @@ def mock_kbase_jsonrpc_1_call(requests_mock):
         )
         return response_packet
     return kbase_jsonrpc_1_call
+
+@pytest.fixture
+def mock_kbase_client_call(requests_mock):
+    def kbase_call(client: ServiceClient, resp: dict, status_code: int=200):
+        def match_kbase_service_call(request):
+            packet = request.json()
+            if "method" not in packet or not isinstance(packet["method"], str):
+                return False
+            method = packet["method"].split(".")
+            if len(method) != 2 or method[0] != client._service:
+                return False
+            return match_jsonrpc_1_packet(request)
+
+        is_error = status_code != 200
+        response_packet = build_jsonrpc_1_response(resp, is_error=is_error)
+        requests_mock.register_uri(
+            "POST",
+            client._endpoint,
+            additional_matcher=match_kbase_service_call,
+            json=response_packet,
+            headers={"content-type": "application/json"},
+            status_code=status_code
+        )
+        return response_packet
+    return kbase_call

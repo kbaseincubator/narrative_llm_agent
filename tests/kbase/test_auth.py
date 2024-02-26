@@ -21,4 +21,4 @@ def test_check_token_error(mock_kbase_server_error):
     mock_kbase_server_error("GET", test_auth_url, some_err)
     with pytest.raises(ValueError) as err:
         check_token(fake_token, test_auth_url)
-    assert err == json.dumps(some_err)
+    assert str(err.value) == json.dumps(some_err)
