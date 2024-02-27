@@ -129,3 +129,12 @@ def mock_kbase_client_call(requests_mock):
         )
         return response_packet
     return kbase_call
+
+@pytest.fixture
+def sample_narrative_json() -> str:
+    # TODO
+    # make a sample narrative JSON file (just download one)
+    # make sure it has cells:
+    # code, markdown, app, output, data, bulk import
+    # open it and return the raw JSON str
+    pass

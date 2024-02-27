@@ -27,6 +27,10 @@ class Cell:
         self.source = raw_cell.get("source", "")
 
     def get_info_str(self):
+        """
+        The Cell info str returns jupyter.<cell type>.
+        If a different format is required, override this function.
+        """
         return f"jupyter.{self.cell_type}"
 
     def to_dict(self):
@@ -36,7 +40,7 @@ class CodeCell(Cell):
     outputs: List[Any] = []
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
         super().__init__("code", cell_dict)
-        if "outputs" in cell_dict:
+        if "outputs" in cell_dict and cell_dict["outputs"] is not None:
             self.outputs = cell_dict["outputs"]
 
 class RawCell(Cell):
@@ -54,14 +58,21 @@ class KBaseCell(CodeCell):
         super().__init__(cell_dict)
         self.kb_cell_type = kb_cell_type
 
+    def get_info_str(self):
+        return f"kbase.{self.kb_cell_type}"
+
 class AppCell(KBaseCell):
-    app_spec: AppSpec = None
+    app_spec: AppSpec
     app_id: str
     app_name: str
     job_info: JobInfo
 
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
         super().__init__('KBaseApp', cell_dict)
+        self.app_spec = None
+        self.app_id = None
+        self.app_name = None
+        self.job_info = None
 
     def get_info_str(self):
         spec_info = self.raw["metadata"]["kbase"].get("appCell", {}).get("app")
@@ -102,9 +113,9 @@ class NarrativeMetadata:
         self.creator = narr_meta.get("creator", "unknown")
         self.data_dependencies = narr_meta.get("data_dependencies", [])
         self.description = narr_meta.get("description", "")
-        self.format = narr_meta.get("format")
+        self.format = narr_meta.get("format", "ipynb")
         self.name = narr_meta.get("name", "unknown narrative")
-        self.is_temporary = convert_to_boolean(narr_meta["is_temporary"])
+        self.is_temporary = convert_to_boolean(narr_meta.get("is_temporary"))
         self.raw = narr_meta
 
     def to_dict(self):
