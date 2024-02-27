@@ -1,5 +1,4 @@
 import pytest
-import requests_mock
 from narrative_llm_agent.kbase.service_client import ServiceClient
 
 @pytest.fixture
