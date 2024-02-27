@@ -1,5 +1,4 @@
 import json
-from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.util.tool import convert_to_boolean
 from typing import List, Any, Dict
 import time
