@@ -40,5 +40,7 @@ class KBaseReport:
 
 
 def is_report(obj_type: str) -> bool:
+    if not isinstance(obj_type, str):
+        return False
     return REPORT_TYPE in obj_type
 

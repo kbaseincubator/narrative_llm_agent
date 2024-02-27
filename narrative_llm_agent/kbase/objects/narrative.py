@@ -56,7 +56,7 @@ class KBaseCell(CodeCell):
         self.kb_cell_type = kb_cell_type
 
 class AppCell(KBaseCell):
-    app_spec: AppSpec
+    app_spec: AppSpec = None
     app_id: str
     app_name: str
     job_info: JobInfo
@@ -256,5 +256,7 @@ class Narrative:
         return json.dumps(self.to_dict())
 
 def is_narrative(obj_type: str) -> bool:
+    if not isinstance(obj_type, str):
+        return False
     return obj_type.startswith(NARRATIVE_TYPE)
 
