@@ -11,7 +11,10 @@ import pytest
         (None, None),
         (123, "123"),
         ('{"foo": "bar"}', "bar"),
-        ('{"bar": "bar"}', None)
+        ('{"bar": "bar"}', None),
+        ([], None),
+        ({"foo": "bar"}, "bar"),
+        ({"not_foo": "bar"}, None)
     ]
 )
 def test_process_tool_input(test_input, expected):

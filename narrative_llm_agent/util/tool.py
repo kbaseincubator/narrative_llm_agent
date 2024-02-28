@@ -24,7 +24,7 @@ def process_tool_input(input_val, expected_key: str) -> str:
     if input_val is None:
         return None
     if isinstance(input_val, dict):
-        return input_json.get(expected_key, None)
+        return input_val.get(expected_key, None)
     if isinstance(input_val, numbers.Number):
         return str(input_val)
     if not isinstance(input_val, str):
