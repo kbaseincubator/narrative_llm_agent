@@ -12,6 +12,7 @@ from narrative_llm_agent.kbase.objects.narrative import (
     NarrativeMetadata,
     is_narrative
 )
+import json
 import pytest
 
 @pytest.mark.parametrize("type_str,expected", [
@@ -196,4 +197,74 @@ class TestNarrativeMetadata:
         """Test the to_dict method."""
         narr_meta = NarrativeMetadata(sample_narrative_metadata)
         assert narr_meta.to_dict() == sample_narrative_metadata
+
+class TestNarrative:
+    def test_init(self, sample_narrative_json):
+        test_narr = sample_narrative_json
+        narr_dict = json.loads(test_narr)
+        narr = Narrative(narr_dict)
+        assert narr.raw == narr_dict
+        assert narr.nbformat == narr_dict["nbformat"]
+        assert narr.nbformat_minor == narr_dict["nbformat_minor"]
+        for cell in narr.cells:
+            assert isinstance(cell, Cell)
+
+    def test_init_fail(self):
+        with pytest.raises(ValueError) as err:
+            Narrative({})
+        assert "'cells' key not found" in str(err.value)
+
+    def test_to_str(self, sample_narrative_json):
+        narr_dict = json.loads(sample_narrative_json)
+        narr = Narrative(narr_dict)
+        assert str(narr) == json.dumps(narr_dict)
+
+    def test_add_markdown_cell(self, sample_narrative_json):
+        test_markdown = "# This is some test markdown."
+        narr = Narrative(json.loads(sample_narrative_json))
+        num_cells = len(narr.cells)
+        new_cell = narr.add_markdown_cell(test_markdown)
+        assert len(narr.cells) == num_cells + 1
+        assert new_cell == narr.cells[-1]
+        assert isinstance(new_cell, MarkdownCell)
+        assert new_cell.source == test_markdown
+
+    def test_add_code_cell(self, sample_narrative_json):
+        test_source = "print('this is valid code.')"
+        outputs = [{
+            "data": {
+                "text/plain": [
+                    "'this is valid code.'"
+                ]
+            },
+            "execution_count": 5,
+            "metadata": {},
+            "output_type": "execute_result"
+        }]
+        narr = Narrative(json.loads(sample_narrative_json))
+        num_cells = len(narr.cells)
+        new_cell = narr.add_code_cell(test_source, outputs=outputs)
+        assert len(narr.cells) == num_cells + 1
+        assert new_cell == narr.cells[-1]
+        assert isinstance(new_cell, CodeCell)
+        assert new_cell.source == test_source
+        assert new_cell.outputs == outputs
+
+    def test_add_code_cell_no_outputs(self, sample_narrative_json):
+        test_source = "some other source"
+        narr = Narrative(json.loads(sample_narrative_json))
+        num_cells = len(narr.cells)
+        new_cell = narr.add_code_cell(test_source)
+        assert len(narr.cells) == num_cells + 1
+        assert new_cell == narr.cells[-1]
+        assert isinstance(new_cell, CodeCell)
+        assert new_cell.source == test_source
+        assert new_cell.outputs == []
+
+    def test_get_cell_counts(self, sample_narrative_json):
+        narr = Narrative(json.loads(sample_narrative_json))
+        counts = narr.get_cell_counts()
+        assert isinstance(counts, dict)
+        total_cells = sum(list(counts.values()))
+        assert total_cells == len(narr.cells)
 

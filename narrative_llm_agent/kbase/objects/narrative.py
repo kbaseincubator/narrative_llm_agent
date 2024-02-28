@@ -178,21 +178,21 @@ class Narrative:
         self.raw["cells"].append(cell_dict)
         return new_cell
 
-    def add_code_cell(self, source: str) -> CodeCell:
+    def add_code_cell(self, source: str, outputs: list=[]) -> CodeCell:
         """
         Adds a code cell to the Narrative and returns it.
         """
-        cell_dict = self._create_cell_dict("code", "code", source)
+        cell_dict = self._create_cell_dict("code", "code", source, outputs=outputs)
         new_cell = CodeCell(cell_dict)
         self.cells.append(new_cell)
         self.raw["cells"].append(cell_dict)
         return new_cell
 
-    def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str) -> dict[str, Any]:
+    def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str, outputs: list=[]) -> dict[str, Any]:
         return {
             "cell_type": cell_type,
             "source": source,
-            "outputs": [],
+            "outputs": outputs,
             "metadata": {
                 "kbase": self._create_kbase_meta(kbase_cell_type)
             }
