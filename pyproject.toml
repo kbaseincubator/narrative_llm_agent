@@ -23,4 +23,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-addopts = "--import-mode=importlib --cov=narrative_llm_agent -s --verbose"
+addopts = "--import-mode=importlib --cov=narrative_llm_agent -s --verbose --cov-report html --cov-report term"

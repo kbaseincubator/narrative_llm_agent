@@ -7,12 +7,17 @@ APPLICATION_JSON = "application/json"
 RESULT = "result"
 
 class ServerError(Exception):
-    def __init__(self: "ServerError", name: str, code: int, message: str, data: Any=None, error=None):
+    name: str
+    code: int
+    message: str
+    data: Any
+
+    def __init__(self: "ServerError", name: str, code: int, message: str, data: Any=None):
         super(Exception, self).__init__(message)
         self.name = name
         self.code = code
         self.message = '' if message is None else message
-        self.data = data or error or ''
+        self.data = data or ''
         # data = JSON RPC 2.0, error = 1.1
 
     def __str__(self):
@@ -56,14 +61,22 @@ class ServiceClient:
             timeout=self._timeout
         )
         if resp.status_code == 500:
+            print(resp.headers)
+            error_packet = {}
             if resp.headers.get(CONTENT_TYPE) == APPLICATION_JSON:
                 err = resp.json()
                 if "error" in err:
-                    raise ServerError(**err["error"])
-                else:
-                    raise ServerError("Unknown", 0, resp.text)
-            else:
-                raise ServerError("Unknown", 0, resp.text)
+                    error_packet = err["error"]
+                    if not isinstance(error_packet, dict):
+                        error_packet = {
+                            "data": err["error"]
+                        }
+            raise ServerError(
+                error_packet.get("name", "Unknown"),
+                error_packet.get("code", 0),
+                error_packet.get("message", resp.text),
+                error_packet.get("data", error_packet.get("error", ""))
+            )
 
         resp.raise_for_status()
         json_result = resp.json()

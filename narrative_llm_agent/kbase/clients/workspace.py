@@ -1,6 +1,7 @@
 from ..service_client import ServiceClient
 from typing import Any
 from copy import deepcopy
+import json
 
 class WorkspaceObjectId:
     upa: str
@@ -32,21 +33,6 @@ class WorkspaceObjectId:
     def __str__(self: "WorkspaceObjectId") -> str:
         return self.__repr__()
 
-
-class WorkspaceObjectInfo:
-    upa: WorkspaceObjectId
-    raw: list[Any]
-    name: str
-
-    def __init__(self: "WorkspaceObjectInfo", info: list[Any]) -> None:
-        self.upa = WorkspaceObjectId.from_ids(info[6], info[0], info[4])
-        self.raw = info
-        self.name = info[1]
-
-    def __repr__(self: "WorkspaceObjectInfo") -> str:
-        return f"{self.upa}\t{self.name}\n{self.raw}"
-
-
 class WorkspaceInfo:
     ws_id: int
     name: str
@@ -69,8 +55,8 @@ class WorkspaceInfo:
         self.lock_status = info[7]
         self.meta = info[8] or {}
 
-    def __repr__(self: "WorkspaceInfo") -> list[Any]:
-        return [
+    def __str__(self: "WorkspaceInfo") -> str:
+        return json.dumps([
             self.ws_id,
             self.name,
             self.owner,
@@ -80,7 +66,7 @@ class WorkspaceInfo:
             self.global_read,
             self.lock_status,
             self.meta
-        ]
+        ])
 
 
 class Workspace(ServiceClient):

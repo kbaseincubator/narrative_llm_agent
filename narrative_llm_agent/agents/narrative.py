@@ -5,6 +5,7 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.narrative import NarrativeUtil
+from narrative_llm_agent.kbase.clients.workspace import Workspace
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
@@ -67,7 +68,8 @@ class NarrativeAgent(KBaseAgent):
         Fetch a Narrative object from the Workspace service with given narrative id.
         This is returned as a JSON string.
         """
-        narr_util = NarrativeUtil(self._token, KBaseAgent._service_endpoint)
+        ws = Workspace(self._token, self.ws_endpoint)
+        narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         return str(narr)
 
@@ -77,7 +79,8 @@ class NarrativeAgent(KBaseAgent):
         markdown_text into ta new markdown cell. If successful, this returns the string
         'success'.
         """
-        narr_util = NarrativeUtil(self._token, KBaseAgent._service_endpoint)
+        ws = Workspace(self._token, self.ws_endpoint)
+        narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         narr.add_markdown_cell(markdown_text)
         narr_util.save_narrative(narr, narrative_id)
