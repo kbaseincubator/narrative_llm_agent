@@ -1,6 +1,7 @@
 import pytest
 from narrative_llm_agent.kbase.service_client import ServiceClient
 from .test_data.test_data import get_test_narrative
+from langchain_core.language_models.llms import LLM
 
 @pytest.fixture
 def mock_auth_request(requests_mock):
@@ -139,3 +140,14 @@ def sample_narrative_json() -> str:
     # code, markdown, app, output, data, bulk import
     # open it and return the raw JSON str
     return get_test_narrative()
+
+class MockLLM(LLM):
+    def _call():
+        pass
+
+    def _llm_type():
+        pass
+
+@pytest.fixture
+def mock_llm():
+    return MockLLM()

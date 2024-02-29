@@ -23,11 +23,12 @@ class NarrativeAgent(KBaseAgent):
     job information and state, for your team. You are an expert at the Jupyter Notebook and notebook cell structure. You have an array of tools
     for your use to help facilitate this role.
     """
-    ws_endpoint: str = KBaseAgent._service_endpoint + "ws"
+    ws_endpoint: str
 
     def __init__(self: "NarrativeAgent", token: str, llm: LLM) -> "NarrativeAgent":
         super().__init__(token, llm)
         self.__init_agent()
+        self.ws_endpoint = self._service_endpoint + "ws"
 
     def __init_agent(self: "NarrativeAgent"):
         @tool(args_schema=NarrativeInput, return_direct=False)
