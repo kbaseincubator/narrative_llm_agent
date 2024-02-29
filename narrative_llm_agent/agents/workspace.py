@@ -51,7 +51,7 @@ class WorkspaceAgent(KBaseAgent):
             of an HTML report, the HTML data and a URL link to the HTML report. The text is under the
             key "report-text" and the HTML data is under the key "HTML-report". The upa input must be
             a string with format number/number/number. Do not input a dictionary or a JSON-formatted
-            string."""
+            string. This might take a moment to run, as it fetches data from a database."""
             return self._get_report(process_tool_input(upa, "upa"))
 
         @tool(args_schema=UpaInput, return_direct=False)
