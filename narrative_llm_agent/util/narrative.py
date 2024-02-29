@@ -8,14 +8,10 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 import json
 
 class NarrativeUtil:
-    _token: str
-    _service_endpoint: str
     _ws: Workspace
 
-    def __init__(self, token: str, service_endpoint: str):
-        self._token = token
-        self._service_endpoint = service_endpoint
-        self._ws = Workspace(self._token, self._service_endpoint + "ws")
+    def __init__(self, ws_client: Workspace):
+        self._ws = ws_client
 
     def get_narrative_ref_from_wsid(self, ws_id: int) -> str:
         """
@@ -29,7 +25,7 @@ class NarrativeUtil:
 
         return f"{ws_id}/{ws_info.meta[NARRATIVE_ID_KEY]}"
 
-    def get_narrative_from_wsid(self, ws_id: int, ver: int=None) -> Narrative:
+    def get_narrative_from_wsid(self, ws_id: int) -> Narrative:
         """
         Returns a Narrative object from the workspace with the given ws_id.
         """

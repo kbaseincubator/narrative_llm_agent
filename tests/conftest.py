@@ -1,7 +1,6 @@
 import pytest
 from narrative_llm_agent.kbase.service_client import ServiceClient
-import os
-from pathlib import Path
+from .test_data.test_data import get_test_narrative
 
 @pytest.fixture
 def mock_auth_request(requests_mock):
@@ -139,7 +138,4 @@ def sample_narrative_json() -> str:
     # make sure it has cells:
     # code, markdown, app, output, data, bulk import
     # open it and return the raw JSON str
-    test_narr_path = Path(__file__).parent / "test_data" / "test_narrative.json"
-    with open(test_narr_path) as infile:
-        test_narr = infile.read()
-    return test_narr
+    return get_test_narrative()
