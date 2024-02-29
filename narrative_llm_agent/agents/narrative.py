@@ -68,7 +68,7 @@ class NarrativeAgent(KBaseAgent):
         Fetch a Narrative object from the Workspace service with given narrative id.
         This is returned as a JSON string.
         """
-        ws = Workspace(self._token, KBaseAgent._service_endpoint)
+        ws = Workspace(self._token, self.ws_endpoint)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         return str(narr)
@@ -79,7 +79,7 @@ class NarrativeAgent(KBaseAgent):
         markdown_text into ta new markdown cell. If successful, this returns the string
         'success'.
         """
-        ws = Workspace(self._token, KBaseAgent._service_endpoint)
+        ws = Workspace(self._token, self.ws_endpoint)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         narr.add_markdown_cell(markdown_text)
