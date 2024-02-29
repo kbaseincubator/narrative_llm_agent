@@ -18,11 +18,12 @@ class JobAgent(KBaseAgent):
     backstory: str = """You are an expert computer engineer. You are responsible for initializing, running, and monitoring
         KBase applications using the Execution Engine. You work with the rest of your crew to run bioinformatics and
         data science analyses, handle job states, and return results."""
-    ee_endpoint: str = KBaseAgent._service_endpoint + "ee2"
+    ee_endpoint: str
 
     def __init__(self: "JobAgent", token: str, llm: LLM) -> "JobAgent":
         super().__init__(token, llm)
         self.__init_agent()
+        self.ee_endpoint = self._service_endpoint + "ee2"
 
     def __init_agent(self: "JobAgent") -> None:
         @tool(args_schema=JobInput, return_direct=False)

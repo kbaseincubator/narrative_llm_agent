@@ -26,11 +26,12 @@ class WorkspaceAgent(KBaseAgent):
     You are responsible for interacting with the KBase system on behalf of your crew.
     These interactions will include uploading and downloading data, running analyses, and retrieving results.
     You are closely familiar with the Workspace service and all of its functionality."""
-    ws_endpoint: str = KBaseAgent._service_endpoint + "ws"
+    ws_endpoint: str
 
     def __init__(self: "WorkspaceAgent", token: str, llm: LLM) -> "WorkspaceAgent":
         super().__init__(token, llm)
         self.__init_agent()
+        self.ws_endpoint = self._service_endpoint + "ws"
 
     def __init_agent(self: "WorkspaceAgent"):
         @tool(args_schema=NarrativeInput, return_direct=False)
@@ -96,5 +97,5 @@ class WorkspaceAgent(KBaseAgent):
         Fetches a report object from the workspace service. If it is not
         a report, this raises a ValueError.
         """
-        ws_util = WorkspaceUtil(self._token, KBaseAgent._service_endpoint)
+        ws_util = WorkspaceUtil(self._token, self._service_endpoint)
         return ws_util.get_report(upa)
