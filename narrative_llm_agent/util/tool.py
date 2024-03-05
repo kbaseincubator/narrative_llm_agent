@@ -31,7 +31,6 @@ def process_tool_input(input_val, expected_key: str) -> str:
         return None
     try:
         input_json = json.loads(input_val)
-        print(input_json)
         if expected_key in input_json:
             return str(input_json[expected_key])
         return None

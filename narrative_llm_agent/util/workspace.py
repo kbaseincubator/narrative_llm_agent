@@ -47,11 +47,11 @@ class WorkspaceUtil:
         # check report source from provenance and process based on its service and method
         report_source = self._get_report_source(obj["provenance"])
         if report_source == "fastqc":
-            return json.dumps(self.translate_fastqc_report(KBaseReport(obj["data"])))
+            return self.translate_fastqc_report(KBaseReport(obj["data"]))
         else:
             return json.dumps(obj)
 
-    def translate_fastqc_report(self, report: KBaseReport) -> dict:
+    def translate_fastqc_report(self, report: KBaseReport) -> str:
         """
         Downloads the report files, which are zipped.
         Unzips and extracts the relevant report info from "fastqc_data.txt"
@@ -69,7 +69,11 @@ class WorkspaceUtil:
             if foi is not None:
                 with comp_file.open(data_file) as infile:
                     report_data[report_file.name] = infile.read().decode("utf-8")
-        return report_data
+        report_result = []
+        for idx, [name, value] in enumerate(report_data.items()):
+            report_result.append(f"file {idx+1}: {name}:")
+            report_result.append(value)
+        return "\n".join(report_result)
 
     def _download_report_file(self, report_file: LinkedFile, token: str) -> requests.Response:
         url = report_file.url

@@ -61,7 +61,6 @@ class ServiceClient:
             timeout=self._timeout
         )
         if resp.status_code == 500:
-            print(resp.headers)
             error_packet = {}
             if resp.headers.get(CONTENT_TYPE) == APPLICATION_JSON:
                 err = resp.json()
