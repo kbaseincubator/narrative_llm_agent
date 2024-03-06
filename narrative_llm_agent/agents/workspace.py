@@ -41,15 +41,6 @@ class WorkspaceAgent(KBaseAgent):
             pass in a dictionary or a JSON-formatted string."""
             return self._list_objects(process_tool_input(narrative_id, "narrative_id"))
 
-        # """Fetch a report object from a KBase Narrative. This returns a JSON-formatted data object
-        # from the Workspace service. This will be structured in one of two ways. First, it might be
-        # structured so that the keys are filenames and the values are strings that are the reports
-        # from those files. These reports will be plain-text and contain an informational summary of
-        # the data. The second structure will contains both the text of the report, and in the case
-        # of an HTML report, the HTML data and a URL link to the HTML report. The text is under the
-        # key "report-text" and the HTML data is under the key "HTML-report". The upa input must be
-        # a string with format number/number/number. Do not input a dictionary or a JSON-formatted
-        # string. This might take a moment to run, as it fetches data from a database."""
         @tool(args_schema=UpaInput, return_direct=False)
         def get_report(upa: str) -> str:
             """Fetch a report object from a KBase Narrative. This returns the full report in plain text.
@@ -96,7 +87,7 @@ class WorkspaceAgent(KBaseAgent):
         ws = Workspace(self._token, endpoint=self.ws_endpoint)
         return ws.get_objects([upa])[0]
 
-    def _get_report(self: "WorkspaceAgent", upa: str) -> dict:
+    def _get_report(self: "WorkspaceAgent", upa: str) -> str:
         """
         Fetches a report object from the workspace service. If it is not
         a report, this raises a ValueError.
