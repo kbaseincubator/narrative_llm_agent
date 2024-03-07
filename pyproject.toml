@@ -25,3 +25,47 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib --cov=narrative_llm_agent -s --verbose --cov-report html --cov-report term"
+
+[tool.ruff]
+line-length = 100
+
+# E203: whitespace before ‘,’, ‘;’, or ‘:’
+# E501: line length
+lint.ignore = [
+    "E203",
+    "E501"
+]
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    "__pypackages__",
+    "_build",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git-rewrite",
+    ".git",
+    ".github",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "*.pyc",
+    "buck-out",
+    "build",
+    "deps",
+    "dist",
+    "node_modules",
+    "other_schema",
+    "python-coverage",
+    "sample_data",
+    "venv",
+]
+
+[tool.ruff.format]
+quote-style = "double"
