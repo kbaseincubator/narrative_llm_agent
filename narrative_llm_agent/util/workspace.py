@@ -90,6 +90,6 @@ class WorkspaceUtil:
         resp = requests.get(url, headers=headers)
         try:
             resp.raise_for_status()
-        except:
+        except requests.HTTPError:
             raise ValueError(f"HTTP status code {resp.status_code} for report file at {url} (original url {report_file.url})")
         return resp
