@@ -1,11 +1,13 @@
-from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 
+from .kbase_agent import KBaseAgent
+
+
 class AnalystAgent(KBaseAgent):
-    role="Computational Biologist and Geneticist"
-    goal="Analyze and interpret datasets, and make suggestions into next analysis steps."
-    backstory="""You are an expert academic computational biologist with decades of
+    role = "Computational Biologist and Geneticist"
+    goal = "Analyze and interpret datasets, and make suggestions into next analysis steps."
+    backstory = """You are an expert academic computational biologist with decades of
     experience working in microbial genetics. You have published several genome announcement
     papers and have worked extensively with novel sequence data. You understand the most
     common workflows for assembling new genomes from sequence data. You have implemented and
@@ -23,5 +25,5 @@ class AnalystAgent(KBaseAgent):
             backstory=self.backstory,
             verbose=True,
             allow_delegation=True,
-            llm=self._llm
+            llm=self._llm,
         )

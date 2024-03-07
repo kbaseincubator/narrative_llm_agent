@@ -1,16 +1,18 @@
 import json
-from narrative_llm_agent.util.tool import convert_to_boolean
-from typing import List, Any, Dict
 import time
 import uuid
+from typing import Any, Dict, List
 
+from narrative_llm_agent.util.tool import convert_to_boolean
 
 NARRATIVE_ID_KEY: str = "narrative"
 NARRATIVE_NAME_KEY: str = "narrative_nice_name"
 NARRATIVE_TYPE: str = "KBaseNarrative.Narrative"
 
+
 class AppSpec:
     pass
+
 
 class JobInfo:
     pass
@@ -36,20 +38,25 @@ class Cell:
     def to_dict(self):
         return self.raw
 
+
 class CodeCell(Cell):
     outputs: List[Any] = []
+
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
         super().__init__("code", cell_dict)
         if "outputs" in cell_dict and cell_dict["outputs"] is not None:
             self.outputs = cell_dict["outputs"]
 
+
 class RawCell(Cell):
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
         super().__init__("raw", cell_dict)
 
+
 class MarkdownCell(Cell):
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
         super().__init__("markdown", cell_dict)
+
 
 class KBaseCell(CodeCell):
     kb_cell_type: str
@@ -61,6 +68,7 @@ class KBaseCell(CodeCell):
     def get_info_str(self):
         return f"kbase.{self.kb_cell_type}"
 
+
 class AppCell(KBaseCell):
     app_spec: AppSpec
     app_id: str
@@ -68,7 +76,7 @@ class AppCell(KBaseCell):
     job_info: JobInfo
 
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
-        super().__init__('KBaseApp', cell_dict)
+        super().__init__("KBaseApp", cell_dict)
         self.app_spec = None
         self.app_id = None
         self.app_name = None
@@ -78,23 +86,26 @@ class AppCell(KBaseCell):
         spec_info = self.raw["metadata"]["kbase"].get("appCell", {}).get("app")
         return f"method.{spec_info['id']}/{spec_info['gitCommitHash']}"
 
+
 class BulkImportCell(KBaseCell):
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
-        super().__init__('KBaseBulkImport', cell_dict)
+        super().__init__("KBaseBulkImport", cell_dict)
 
     def get_info_str(self):
         return "kbase.bulk_import"
 
+
 class DataCell(KBaseCell):
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
-        super().__init__('KBaseData', cell_dict)
+        super().__init__("KBaseData", cell_dict)
 
     def get_info_str(self):
         return "kbase.data_viewer"
 
+
 class OutputCell(KBaseCell):
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
-        super().__init__('KBaseOutput', cell_dict)
+        super().__init__("KBaseOutput", cell_dict)
 
     def get_info_str(self):
         return "kbase.app_output"
@@ -130,13 +141,13 @@ class Narrative:
 
     def __init__(self, narr_dict: Dict[str, Any]) -> None:
         if "cells" not in narr_dict:
-            raise ValueError("'cells' key not found, this might be a VERY old narrative. Please update it before continuing.")
+            raise ValueError(
+                "'cells' key not found, this might be a VERY old narrative. Please update it before continuing."
+            )
         self.metadata = NarrativeMetadata(narr_dict.get("metadata", {}))
         self.nbformat = narr_dict.get("nbformat")
         self.nbformat_minor = narr_dict.get("nbformat_minor")
-        self.cells = [
-            Narrative.make_cell_from_dict(cell) for cell in narr_dict["cells"]
-        ]
+        self.cells = [Narrative.make_cell_from_dict(cell) for cell in narr_dict["cells"]]
         self.raw = narr_dict
 
     @classmethod
@@ -178,7 +189,7 @@ class Narrative:
         self.raw["cells"].append(cell_dict)
         return new_cell
 
-    def add_code_cell(self, source: str, outputs: list=[]) -> CodeCell:
+    def add_code_cell(self, source: str, outputs: list = []) -> CodeCell:
         """
         Adds a code cell to the Narrative and returns it.
         """
@@ -188,14 +199,14 @@ class Narrative:
         self.raw["cells"].append(cell_dict)
         return new_cell
 
-    def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str, outputs: list=[]) -> dict[str, Any]:
+    def _create_cell_dict(
+        self, cell_type: str, kbase_cell_type: str, source: str, outputs: list = []
+    ) -> dict[str, Any]:
         return {
             "cell_type": cell_type,
             "source": source,
             "outputs": outputs,
-            "metadata": {
-                "kbase": self._create_kbase_meta(kbase_cell_type)
-            }
+            "metadata": {"kbase": self._create_kbase_meta(kbase_cell_type)},
         }
 
     def _create_kbase_meta(self, kbase_cell_type: str) -> dict[str, Any]:
@@ -212,12 +223,11 @@ class Narrative:
                 "created": time.gmtime(),
                 "id": self._get_new_cell_id(),
                 "title": title,
-                "icon": icon
+                "icon": icon,
             },
-            "type": kbase_cell_type
+            "type": kbase_cell_type,
         }
         return meta
-
 
     def _get_new_cell_id(self) -> str:
         new_id = str(uuid.uuid4())
@@ -239,7 +249,7 @@ class Narrative:
             "cells": [cell.to_dict() for cell in self.cells],
             "metadata": self.metadata.to_dict(),
             "nbformat": self.nbformat,
-            "nbformat_minor": self.nbformat_minor
+            "nbformat_minor": self.nbformat_minor,
         }
 
     def get_cell_counts(self):
@@ -265,8 +275,8 @@ class Narrative:
     def __str__(self):
         return json.dumps(self.to_dict())
 
+
 def is_narrative(obj_type: str) -> bool:
     if not isinstance(obj_type, str):
         return False
     return obj_type.startswith(NARRATIVE_TYPE)
-

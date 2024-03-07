@@ -1,10 +1,12 @@
-import requests
 import uuid
 from typing import Any
+
+import requests
 
 CONTENT_TYPE = "content-type"
 APPLICATION_JSON = "application/json"
 RESULT = "result"
+
 
 class ServerError(Exception):
     name: str
@@ -12,20 +14,22 @@ class ServerError(Exception):
     message: str
     data: Any
 
-    def __init__(self: "ServerError", name: str, code: int, message: str, data: Any=None):
+    def __init__(self: "ServerError", name: str, code: int, message: str, data: Any = None):
         super(Exception, self).__init__(message)
         self.name = name
         self.code = code
-        self.message = '' if message is None else message
-        self.data = data or ''
+        self.message = "" if message is None else message
+        self.data = data or ""
         # data = JSON RPC 2.0, error = 1.1
 
     def __str__(self):
-        return self.name + ': ' + str(self.code) + '. ' + self.message + \
-            '\n' + self.data
+        return self.name + ": " + str(self.code) + ". " + self.message + "\n" + self.data
+
 
 class ServiceClient:
-    def __init__(self: "ServiceClient", endpoint: str, service: str, token: str=None, timeout: int=1800):
+    def __init__(
+        self: "ServiceClient", endpoint: str, service: str, token: str = None, timeout: int = 1800
+    ):
         self._endpoint = endpoint
         self._service = service
         self._token = token
@@ -37,10 +41,7 @@ class ServiceClient:
     def simple_call(self: "ServiceClient", method: str, params: Any) -> Any:
         return self.make_kbase_jsonrpc_1_call(method, [params])[0]
 
-    def make_kbase_jsonrpc_1_call(
-            self: "ServiceClient",
-            method: str,
-            params: list[Any]) -> Any:
+    def make_kbase_jsonrpc_1_call(self: "ServiceClient", method: str, params: list[Any]) -> Any:
         """
         A very simple JSON-RPC 1 request maker for KBase services.
 
@@ -52,13 +53,10 @@ class ServiceClient:
             "params": params,
             "method": f"{self._service}.{method}",
             "version": "1.1",
-            "id": call_id
+            "id": call_id,
         }
         resp = requests.post(
-            self._endpoint,
-            json=json_rpc_package,
-            headers=self._headers,
-            timeout=self._timeout
+            self._endpoint, json=json_rpc_package, headers=self._headers, timeout=self._timeout
         )
         if resp.status_code == 500:
             error_packet = {}
@@ -67,14 +65,12 @@ class ServiceClient:
                 if "error" in err:
                     error_packet = err["error"]
                     if not isinstance(error_packet, dict):
-                        error_packet = {
-                            "data": err["error"]
-                        }
+                        error_packet = {"data": err["error"]}
             raise ServerError(
                 error_packet.get("name", "Unknown"),
                 error_packet.get("code", 0),
                 error_packet.get("message", resp.text),
-                error_packet.get("data", error_packet.get("error", ""))
+                error_packet.get("data", error_packet.get("error", "")),
             )
 
         resp.raise_for_status()

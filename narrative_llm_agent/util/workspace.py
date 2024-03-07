@@ -1,14 +1,13 @@
-import json
-from narrative_llm_agent.kbase.clients.workspace import Workspace
-import requests
-import zipfile
 import io
+import json
+import zipfile
 from pathlib import Path
-from narrative_llm_agent.kbase.objects.report import (
-    KBaseReport,
-    LinkedFile,
-    is_report
-)
+
+import requests
+
+from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.objects.report import KBaseReport, LinkedFile, is_report
+
 
 class WorkspaceUtil:
     _ws: Workspace
@@ -29,7 +28,10 @@ class WorkspaceUtil:
         Tuned for fastqc right now. Others to come!
         """
         recent = provenance[0]
-        if recent.get("method", "").lower() == "runfastqc" and recent.get("service", "").lower() == "kb_fastqc":
+        if (
+            recent.get("method", "").lower() == "runfastqc"
+            and recent.get("service", "").lower() == "kb_fastqc"
+        ):
             return "fastqc"
         return "other"
 
@@ -84,12 +86,12 @@ class WorkspaceUtil:
             # https://env.kbase.us/services/data_import_export/download?id=<shock_uuid>&wszip=0&name=<filename>
             node = url.split("/shock-api/node/")[-1]
             url = f"{self._service_endpoint}/data_import_export/download?id={node}&wszip=0&name={report_file.name}"
-        headers = {
-            "Authorization": token
-        }
+        headers = {"Authorization": token}
         resp = requests.get(url, headers=headers)
         try:
             resp.raise_for_status()
         except requests.HTTPError:
-            raise ValueError(f"HTTP status code {resp.status_code} for report file at {url} (original url {report_file.url})")
+            raise ValueError(
+                f"HTTP status code {resp.status_code} for report file at {url} (original url {report_file.url})"
+            )
         return resp

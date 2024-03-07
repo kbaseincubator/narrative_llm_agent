@@ -1,6 +1,7 @@
 import json
 import numbers
 
+
 def process_tool_input(input_val, expected_key: str) -> str:
     """
     Post-processes a tool input. Agents and some LLMs seem to really like sending inputs
@@ -36,6 +37,7 @@ def process_tool_input(input_val, expected_key: str) -> str:
         return None
     except json.JSONDecodeError:
         return str(input_val)
+
 
 def convert_to_boolean(param: bool | int | float | str) -> bool:
     """

@@ -1,15 +1,21 @@
-from .kbase_agent import KBaseAgent
+import json
+
 from crewai import Agent
-from langchain_core.language_models.llms import LLM
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
-import json
+from langchain_core.language_models.llms import LLM
+
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.util.tool import process_tool_input
 
+from .kbase_agent import KBaseAgent
+
 
 class JobInput(BaseModel):
-    job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
+    job_id: str = Field(
+        description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string."
+    )
+
 
 class JobAgent(KBaseAgent):
     role: str = "Job Manager"
@@ -40,9 +46,9 @@ class JobAgent(KBaseAgent):
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools = [ job_status ],
+            tools=[job_status],
             llm=self._llm,
-            allow_delegation=False
+            allow_delegation=False,
         )
 
     def _job_status(self: "JobAgent", job_id: str) -> str:
