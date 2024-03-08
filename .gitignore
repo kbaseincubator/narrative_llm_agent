@@ -162,8 +162,7 @@ cython_debug/
 
 # Private files
 
-config.p
+config.py
 
 #Conda environment
 
-y
