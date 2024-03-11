@@ -1,18 +1,23 @@
-from .kbase_agent import KBaseAgent
 from crewai import Agent
-from langchain_core.language_models.llms import LLM
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
-from narrative_llm_agent.util.tool import process_tool_input
-from narrative_llm_agent.util.narrative import NarrativeUtil
+from langchain_core.language_models.llms import LLM
+
 from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.util.narrative import NarrativeUtil
+from narrative_llm_agent.util.tool import process_tool_input
+
+from .kbase_agent import KBaseAgent
+
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
 
+
 class MarkdownCellInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
     markdown_text: str = Field(description="The markdown text. Must be a string.")
+
 
 class NarrativeAgent(KBaseAgent):
     role: str = "Narrative Manager"
@@ -51,17 +56,17 @@ class NarrativeAgent(KBaseAgent):
             return self._add_markdown_cell(narrative_id, markdown_text)
 
         self.agent = Agent(
-            role = self.role,
-            goal = self.goal,
-            backstory = self.backstory,
-            verbose = True,
-            tools = [
+            role=self.role,
+            goal=self.goal,
+            backstory=self.backstory,
+            verbose=True,
+            tools=[
                 get_narrative,
                 # add_app_cell,
-                add_markdown_cell
+                add_markdown_cell,
             ],
             llm=self._llm,
-            allow_delegation=False
+            allow_delegation=False,
         )
 
     def _get_narrative(self, narrative_id: int) -> str:

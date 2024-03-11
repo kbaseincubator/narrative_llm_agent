@@ -1,22 +1,28 @@
-from .kbase_agent import KBaseAgent
+import json
+
 from crewai import Agent
-from langchain_core.language_models.llms import LLM
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
-import json
+from langchain_core.language_models.llms import LLM
+
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from narrative_llm_agent.util.workspace import WorkspaceUtil
 from narrative_llm_agent.util.tool import process_tool_input
+from narrative_llm_agent.util.workspace import WorkspaceUtil
+
+from .kbase_agent import KBaseAgent
 
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
 
+
 class UpaInput(BaseModel):
-    upa: str = Field(description="""An object UPA (unique permanent address)
+    upa: str = Field(
+        description="""An object UPA (unique permanent address)
                      representing the location of a Workspace data object.
                      Should be a string of the format ws_id/obj_id/ver.
-                     For example, '11/22/33'.""")
+                     For example, '11/22/33'."""
+    )
 
 
 class WorkspaceAgent(KBaseAgent):
@@ -57,17 +63,13 @@ class WorkspaceAgent(KBaseAgent):
             return self._get_object(process_tool_input(upa, "upa"))
 
         self.agent = Agent(
-            role = self.role,
-            goal = self.goal,
-            backstory = self.backstory,
-            verbose = True,
-            tools = [
-                list_objects,
-                get_object,
-                get_report
-            ],
+            role=self.role,
+            goal=self.goal,
+            backstory=self.backstory,
+            verbose=True,
+            tools=[list_objects, get_object, get_report],
             llm=self._llm,
-            allow_delegation=False
+            allow_delegation=False,
         )
 
     def _list_objects(self: "WorkspaceAgent", narrative_id: int) -> str:

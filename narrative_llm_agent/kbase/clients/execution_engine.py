@@ -1,10 +1,13 @@
 from ..service_client import ServiceClient
 
+
 class ExecutionEngine(ServiceClient):
     default_endpoint: str = "https://kbase.us/services/ee2"
     _service = "execution_engine2"
 
-    def __init__(self: "ExecutionEngine", token: str, endpoint: str=default_endpoint) -> "ExecutionEngine":
+    def __init__(
+        self: "ExecutionEngine", token: str, endpoint: str = default_endpoint
+    ) -> "ExecutionEngine":
         super().__init__(endpoint, self._service, token)
 
     def check_job(self: "ExecutionEngine", job_id: str) -> dict:
