@@ -7,6 +7,7 @@ from langchain.vectorstores import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.chains import RetrievalQA
 from langchain.tools import BaseTool, tool
+import os
 
 
 class AnalystInput(BaseModel):
@@ -18,26 +19,36 @@ class AnalystAgent(KBaseAgent):
     backstory="""You are an expert academic computational biologist with decades of
     experience working in microbial genetics. You have published several genome announcement
     papers and have worked extensively with novel sequence data."""
+    _openai_key: str
 
-    def __init__(self: "AnalystAgent", token: str, llm: LLM):
+    def __init__(self: "AnalystAgent", token: str, llm: LLM, openai_api_key=None):
         super().__init__(token, llm)
+        self.__setup_openai_api_key(openai_api_key)
         self.__init_agent()
 
-    def __init_agent(self: "AnalystAgent"):
+    def __setup_openai_api_key(self, openai_api_key: str) -> None:
+        if openai_api_key is not None:
+            self._openai_key = openai_api_key
+        elif os.environ.get("OPENAI_API_KEY") is not None:
+            self._openai_key = os.environ["OPENAI_API_KEY"]
+        else:
+            raise KeyError("Missing environment variable OPENAI_API_KEY")
+
+    def __init_agent(self: "AnalystAgent") -> None:
 
         @tool("Kbase documentation retrieval tool", args_schema = AnalystInput, return_direct=True)
         def kbase_docs_retrieval_tool(input: str):
             """This tool has the KBase documentation. Useful for when you need to answer questions about how to use Kbase applications. Input should be a fully formed question. """
             persist_directory = "./vector_db_kbase_docs"
             return self._create_doc_chain(persist_directory=persist_directory).invoke({"query": input})
-            
+
         @tool("Kbase app catalog retrieval tool", args_schema = AnalystInput, return_direct=True)
         def kbase_appCatalog_retrieval_tool(input: str):
-            """This tool has the KBase app catalog. Useful for when you need to find apps available in KBase. 
+            """This tool has the KBase app catalog. Useful for when you need to find apps available in KBase.
             All apps in the catalog also have name, version tooltip, categories and description to help you to decide which app to use. Input should be a fully formed question. """
             persist_directory = "./vector_db_app_catalog"
             return self._create_doc_chain(persist_directory=persist_directory).invoke({"query": input})
-            
+
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
@@ -50,7 +61,7 @@ class AnalystAgent(KBaseAgent):
 
     def _create_doc_chain(self, persist_directory):
             # Embedding functions to use
-            embeddings = OpenAIEmbeddings(openai_api_key=self._token)
+            embeddings = OpenAIEmbeddings(openai_api_key=self._openai_key)
             # Use the persisted database
             vectordb = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
             retriever = vectordb.as_retriever()
@@ -59,9 +70,8 @@ class AnalystAgent(KBaseAgent):
             memory = ConversationBufferMemory(memory_key="chat_history")
             readonlymemory = ReadOnlySharedMemory(memory=memory)
             chain_type = 'refine'
-            
-            # Retrieval chain 
+
+            # Retrieval chain
             qa_chain = RetrievalQA.from_chain_type(llm=self._llm, chain_type=chain_type, retriever=retriever,memory=readonlymemory)
-            
+
             return qa_chain
-        
