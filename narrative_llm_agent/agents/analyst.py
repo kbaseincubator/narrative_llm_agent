@@ -6,7 +6,7 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.vectorstores import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.chains import RetrievalQA
-from langchain.tools import BaseTool, tool
+from langchain.tools import tool
 import os
 
 
@@ -29,7 +29,7 @@ class AnalystAgent(KBaseAgent):
     def __setup_openai_api_key(self, openai_api_key: str) -> None:
         if openai_api_key is not None:
             self._openai_key = openai_api_key
-        elif os.environ.get("OPENAI_API_KEY") is not None:
+        elif os.environ.get("OPENAI_API_KEY"):
             self._openai_key = os.environ["OPENAI_API_KEY"]
         else:
             raise KeyError("Missing environment variable OPENAI_API_KEY")
