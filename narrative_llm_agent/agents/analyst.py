@@ -119,12 +119,12 @@ class AnalystAgent(KBaseAgent):
             tools=[kbase_appCatalog_retrieval_tool, kbase_docs_retrieval_tool],
         )
 
-    def _create_doc_chain(self, persist_directory):
+    def _create_doc_chain(self, persist_directory: str | Path):
         # Embedding functions to use
         embeddings = OpenAIEmbeddings(openai_api_key=self._openai_key)
         # Use the persisted database
         vectordb = Chroma(
-            persist_directory=persist_directory, embedding_function=embeddings
+            persist_directory=str(persist_directory), embedding_function=embeddings
         )
         retriever = vectordb.as_retriever()
 
