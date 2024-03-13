@@ -16,6 +16,8 @@ class AnalystInput(BaseModel):
         description="query to look up KBase documentation, catalog or tutorials"
     )
 
+DEFAULT_CATALOG_DB_DIR: Path = Path(__file__).parent / "vector_db_app_catalog"
+DEFAULT_DOCS_DB_DIR: Path = Path(__file__).parent / "vector_db_kbase_docs"
 
 class AnalystAgent(KBaseAgent):
     role = "Computational Biologist and Geneticist"
@@ -26,8 +28,8 @@ class AnalystAgent(KBaseAgent):
     experience working in microbial genetics. You have published several genome announcement
     papers and have worked extensively with novel sequence data."""
     _openai_key: str
-    _catalog_db_dir: Path = Path(__file__).parent / "vector_db_app_catalog"
-    _docs_db_dir: Path = Path(__file__).parent / "vector_db_kbase_docs"
+    _catalog_db_dir: Path
+    _docs_db_dir: Path
 
     def __init__(
         self: "AnalystAgent",
@@ -39,10 +41,17 @@ class AnalystAgent(KBaseAgent):
     ):
         super().__init__(token, llm)
         self.__setup_openai_api_key(openai_api_key)
+
         if catalog_db_dir is not None:
             self._catalog_db_dir = Path(catalog_db_dir)
+        else:
+            self._catalog_db_dir = DEFAULT_CATALOG_DB_DIR
+
         if docs_db_dir is not None:
             self._docs_db_dir = Path(docs_db_dir)
+        else:
+            self._docs_db_dir = DEFAULT_DOCS_DB_DIR
+
         for db_path in [self._catalog_db_dir, self._docs_db_dir]:
             self.__check_db_directories(db_path)
         self.__init_agent()
