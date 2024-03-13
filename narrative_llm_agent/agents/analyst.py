@@ -93,8 +93,7 @@ class AnalystAgent(KBaseAgent):
         )
         def kbase_docs_retrieval_tool(input: str):
             """This tool has the KBase documentation. Useful for when you need to answer questions about how to use Kbase applications. Input should be a fully formed question."""
-            persist_directory = "./vector_db_kbase_docs"
-            return self._create_doc_chain(persist_directory=persist_directory).invoke(
+            return self._create_doc_chain(persist_directory=self._docs_db_dir).invoke(
                 {"query": input}
             )
 
@@ -106,8 +105,7 @@ class AnalystAgent(KBaseAgent):
         def kbase_appCatalog_retrieval_tool(input: str):
             """This tool has the KBase app catalog. Useful for when you need to find apps available in KBase.
             All apps in the catalog also have name, version tooltip, categories and description to help you to decide which app to use. Input should be a fully formed question."""
-            persist_directory = "./vector_db_app_catalog"
-            return self._create_doc_chain(persist_directory=persist_directory).invoke(
+            return self._create_doc_chain(persist_directory=self._catalog_db_dir).invoke(
                 {"query": input}
             )
 
