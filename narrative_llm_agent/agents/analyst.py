@@ -65,11 +65,11 @@ class AnalystAgent(KBaseAgent):
         """
         if not db_path.exists():
             raise RuntimeError(
-                f"database directory {db_path} not found, unable to make Agent."
+                f"Database directory {db_path} not found, unable to make Agent."
             )
         if not db_path.is_dir():
             raise RuntimeError(
-                f"database directory {db_path} is not a directory, unable to make Agent."
+                f"Database directory {db_path} is not a directory, unable to make Agent."
             )
         db_file = db_path / "chroma.sqlite3"
         if not db_file.exists():
@@ -87,7 +87,7 @@ class AnalystAgent(KBaseAgent):
 
     def __init_agent(self: "AnalystAgent") -> None:
         @tool(
-            "Kbase documentation retrieval tool",
+            "KBase documentation retrieval tool",
             args_schema=AnalystInput,
             return_direct=True,
         )
@@ -98,7 +98,7 @@ class AnalystAgent(KBaseAgent):
             )
 
         @tool(
-            "Kbase app catalog retrieval tool",
+            "KBase app catalog retrieval tool",
             args_schema=AnalystInput,
             return_direct=True,
         )
