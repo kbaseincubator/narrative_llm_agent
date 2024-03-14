@@ -9,6 +9,7 @@ from langchain.chains import RetrievalQA
 from langchain.tools import tool
 import os
 from pathlib import Path
+from langchain.agents import load_tools
 
 
 class AnalystInput(BaseModel):
@@ -108,7 +109,7 @@ class AnalystAgent(KBaseAgent):
             return self._create_doc_chain(persist_directory=self._catalog_db_dir).invoke(
                 {"query": input}
             )
-
+        human_tools = load_tools(["human"])
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
@@ -116,7 +117,7 @@ class AnalystAgent(KBaseAgent):
             verbose=True,
             allow_delegation=True,
             llm=self._llm,
-            tools=[kbase_appCatalog_retrieval_tool, kbase_docs_retrieval_tool],
+            tools=[kbase_appCatalog_retrieval_tool, kbase_docs_retrieval_tool]+human_tools,
         )
 
     def _create_doc_chain(self, persist_directory: str | Path):
