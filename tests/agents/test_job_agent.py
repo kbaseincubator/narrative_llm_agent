@@ -4,7 +4,7 @@ from narrative_llm_agent.agents.job import JobAgent
 token = "not_a_token"
 def test_init(mock_llm):
     wa = JobAgent(token, mock_llm)
-    assert wa.role == "Job Manager"
+    assert wa.role == "Job and App Manager"
 
 def test_job_status_tool(mock_llm, mock_kbase_jsonrpc_1_call):
     wa = JobAgent(token, mock_llm)
