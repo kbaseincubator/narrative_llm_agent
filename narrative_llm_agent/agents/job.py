@@ -35,6 +35,7 @@ class JobAgent(KBaseAgent):
         super().__init__(token, llm)
         self.__init_agent()
         self.ee_endpoint = self._service_endpoint + "ee2"
+        self.nms_endpoint = self._service_endpoint + "narrative_method_store/rpc"
 
     def __init_agent(self: "JobAgent") -> None:
         @tool(args_schema=JobInput, return_direct=False)
