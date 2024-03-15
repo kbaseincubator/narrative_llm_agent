@@ -9,7 +9,6 @@ from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMe
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.app import (
     get_processed_app_spec_params,
-    process_app_params,
     build_run_job_params
 )
 
@@ -25,13 +24,12 @@ class JobStart(BaseModel):
     params: dict = Field(description="The set of parameters to pass to a KBase app. This must be a dictionary. Each key is the parameter id, and each value is the expected value given to each parameter. Values can be lists, strings, or numbers.")
 
 class JobAgent(KBaseAgent):
-    role: str = "App Manager"
+    role: str = "Job and App Manager"
     goal: str = """Manage app and job running and tracking in the KBase system.
         Start and monitor jobs using the KBase Execution engine."""
     backstory: str = """You are an expert computer engineer. You are responsible for initializing, running, and monitoring
         KBase applications using the Execution Engine. You work with the rest of your crew to run bioinformatics and
         data science analyses, handle job states, and return results."""
-    ee_endpoint: str
 
     def __init__(self: "JobAgent", token: str, llm: LLM) -> "JobAgent":
         super().__init__(token, llm)
@@ -77,7 +75,7 @@ class JobAgent(KBaseAgent):
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools = [ job_status ],
+            tools = [ job_status, start_job, get_app_params ],
             llm=self._llm,
             allow_delegation=False
         )
@@ -91,10 +89,10 @@ class JobAgent(KBaseAgent):
         nms = NarrativeMethodStore(self.nms_endpoint)
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(spec, params, narrative_id)
-        status = ee.run_job(job_submission)
+        return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
         nms = NarrativeMethodStore(self.nms_endpoint)
         spec = nms.get_app_spec(app_id)
-        return json.dumps(process_app_params(spec))
+        return json.dumps(get_processed_app_spec_params(spec))
 
