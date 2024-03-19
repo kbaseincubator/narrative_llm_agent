@@ -6,6 +6,7 @@ from langchain.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.app import (
     get_processed_app_spec_params,
@@ -36,6 +37,7 @@ class JobAgent(KBaseAgent):
         self.__init_agent()
         self.ee_endpoint = self._service_endpoint + "ee2"
         self.nms_endpoint = self._service_endpoint + "narrative_method_store/rpc"
+        self.ws_endpoint = self._service_endpoint + "ws"
 
     def __init_agent(self: "JobAgent") -> None:
         @tool(args_schema=JobInput, return_direct=False)
@@ -88,8 +90,9 @@ class JobAgent(KBaseAgent):
     def _start_job(self: "JobAgent", narrative_id: int, app_id: str, params: dict) -> str:
         ee = ExecutionEngine(self._token, self.ee_endpoint)
         nms = NarrativeMethodStore(self.nms_endpoint)
+        ws = Workspace(self.ws_endpoint)
         spec = nms.get_app_spec(app_id)
-        job_submission = build_run_job_params(spec, params, narrative_id)
+        job_submission = build_run_job_params(spec, params, narrative_id, ws)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:

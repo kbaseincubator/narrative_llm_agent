@@ -98,6 +98,13 @@ class Workspace(ServiceClient):
             return objects
         return [self.obj_info_to_json(info) for info in objects]
 
+    def get_object_info(self: "Workspace", obj_ref: str, include_path: bool=False) -> dict:
+        obj_info = self.simple_call("get_object_info3", {"objects": [{"ref": obj_ref}]})
+        info_dict = self.obj_info_to_json(obj_info["infos"][0])
+        if include_path:
+            info_dict["path"] = obj_info["paths"][0]
+        return info_dict
+
     def get_object_upas(self: "Workspace", ws_id: int, object_type: str=None) -> list[WorkspaceObjectId]:
         obj_infos = self.list_workspace_objects(ws_id, object_type=object_type)
         return [WorkspaceObjectId.from_ids(info[6], info[0], info[4]) for info in obj_infos]
@@ -119,10 +126,11 @@ class Workspace(ServiceClient):
             "ws_id": obj_info[6],
             "obj_id": obj_info[0],
             "name": obj_info[1],
+            "ws_name": obj_info[7],
             "metadata": obj_info[10],
             "type": obj_info[2],
             "saved": obj_info[3],
             "version": obj_info[4],
             "saved_by": obj_info[5],
-            "size_bytes": obj_info[9]
+            "size_bytes": obj_info[9],
         }
