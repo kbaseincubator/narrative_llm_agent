@@ -61,7 +61,8 @@ class NarrativeAgent(KBaseAgent):
                 add_markdown_cell
             ],
             llm=self._llm,
-            allow_delegation=False
+            allow_delegation=False,
+            memory=True,
         )
 
     def _get_narrative(self, narrative_id: int) -> str:

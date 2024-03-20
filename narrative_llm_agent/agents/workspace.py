@@ -67,7 +67,8 @@ class WorkspaceAgent(KBaseAgent):
                 get_report
             ],
             llm=self._llm,
-            allow_delegation=False
+            allow_delegation=False,
+            memory=True,
         )
 
     def _list_objects(self: "WorkspaceAgent", narrative_id: int) -> str:
