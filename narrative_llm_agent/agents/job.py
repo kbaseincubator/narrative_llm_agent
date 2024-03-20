@@ -80,7 +80,8 @@ class JobAgent(KBaseAgent):
             verbose=True,
             tools = [ job_status, start_job, get_app_params ],
             llm=self._llm,
-            allow_delegation=False
+            allow_delegation=False,
+            memory=True,
         )
 
     def _job_status(self: "JobAgent", job_id: str) -> str:

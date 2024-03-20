@@ -28,7 +28,7 @@ class KGAgent(KBaseAgent):
         super().__init__(token, llm)
         self.__setup_openai_api_key(openai_api_key)
         self.__init_agent()
-        
+
     def __setup_openai_api_key(self, openai_api_key: str) -> None:
         if openai_api_key is not None:
             self._openai_key = openai_api_key
@@ -36,14 +36,14 @@ class KGAgent(KBaseAgent):
             self._openai_key = os.environ["OPENAI_API_KEY"]
         else:
             raise KeyError("Missing environment variable OPENAI_API_KEY")
-            
+
     def __init_agent(self: "KGAgent") -> None:
         @tool("KG retrieval tool", args_schema = KGInput, return_direct=True)
         def KGretrieval_tool(input: str):
-            """This tool has the KBase app Knowledge Graph. Useful for when you need to find the KBase applications and their tooltip, version, category and data objects. 
+            """This tool has the KBase app Knowledge Graph. Useful for when you need to find the KBase applications and their tooltip, version, category and data objects.
             The input should always be a KBase app name and should not include any special characters or version number. """
-            return self._create_KG_agent().invoke({"input": input})['output']   
-        
+            return self._create_KG_agent().invoke({"input": input})['output']
+
         human_tools = load_tools(["human"])
         self.agent = Agent(
             role=self.role,
@@ -52,16 +52,17 @@ class KGAgent(KBaseAgent):
             verbose=True,
             allow_delegation=True,
             llm=self._llm,
-            tools=[KGretrieval_tool]+human_tools
+            tools=[KGretrieval_tool]+human_tools,
+            memory=True,
         )
 
 
     def _create_KG_agent(self):
-        
+
         tools = [InformationTool()]
 
         llm_with_tools = self._llm.bind(functions=[format_tool_to_openai_function(t) for t in tools])
-        
+
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -77,7 +78,7 @@ class KGAgent(KBaseAgent):
                 MessagesPlaceholder(variable_name="agent_scratchpad"),
             ]
         )
-        
+
         agent = (
             {
                 "input": lambda x: x["input"],
@@ -94,4 +95,3 @@ class KGAgent(KBaseAgent):
         )
         agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
         return agent_executor
-        
