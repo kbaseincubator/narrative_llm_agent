@@ -67,7 +67,8 @@ class JobAgent(KBaseAgent):
 
             return self._start_job(process_tool_input(narrative_id, "narrative_id"),
                                    process_tool_input(app_id, "app_id"),
-                                   process_tool_input(params, "params"))
+                                   params)
+                                #    process_tool_input(params, "params"))
 
         @tool(args_schema=AppInput, return_direct=False)
         def get_app_params(app_id: str) -> str:
