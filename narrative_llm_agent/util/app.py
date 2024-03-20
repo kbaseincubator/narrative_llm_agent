@@ -136,7 +136,7 @@ def map_app_params(app_spec: dict, params: dict, ws_id: int, ws_client: Workspac
             if isinstance(p_value, str) and len(p_value) == 0:
                 p_value = None
         elif "narrative_system_variable" in p:
-            p_value = system_variable(p["narrative_system_variable"], ws_id)
+            p_value = system_variable(p["narrative_system_variable"], ws_id, ws_client)
         if "constant_value" in p and p_value is None:
             p_value = p["constant_value"]
         if "generated_value" in p and p_value is None:
@@ -420,7 +420,7 @@ def generate_input(generator: dict) -> str:
     return ret
 
 
-def system_variable(var: str, narrative_id: int) -> str | int | None:
+def system_variable(var: str, narrative_id: int, ws_client: Workspace) -> str | int | None:
     """
     Returns a KBase system variable. Just a little wrapper.
 
@@ -438,7 +438,10 @@ def system_variable(var: str, narrative_id: int) -> str | int | None:
     if anything is not found, returns None
     """
     var = var.lower()
-    if var == "workspace" or var == "workspace_id":
+    if var == "workspace":
+        ws_info = ws_client.get_workspace_info(narrative_id)
+        return ws_info.name
+    elif var == "workspace_id":
         return narrative_id
     elif var == "user_id":
         return None
