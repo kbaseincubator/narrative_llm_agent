@@ -86,7 +86,7 @@ def build_run_job_params(app_spec: dict, params: dict, narrative_id: int, ws_cli
         "service_ver": behavior["kb_service_version"],
         "params": processed_params,
         "app_id": app_spec["info"]["id"],
-        "wsid": narrative_id,
+        "wsid": int(narrative_id),
         "meta": {
             "cell_id": cell_id,
             "run_id": run_id,
