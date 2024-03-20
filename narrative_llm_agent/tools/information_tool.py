@@ -22,7 +22,7 @@ WITH m, type+": "+reduce(s="", n IN names | s + n + ", ") as types
 WITH m, collect(types) as contexts
 WITH m, "type:" + labels(m)[0] + "\n" +
        reduce(s="", c in contexts | s + substring(c, 0, size(c)-2) +"\n") as context
-WITH m, context + "\n" + "App name: " + m.name + "\n" + "Tooltip: " + m.tooltip + "\n" + "Version: " + m.version AS final_context
+WITH m, context + "\n" + "App name: " + m.name + "\n" + "Tooltip: " + m.tooltip + "\n" + "AppID: " + m.appid AS final_context
 RETURN final_context LIMIT 1
 """
 
