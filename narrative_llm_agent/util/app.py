@@ -82,7 +82,7 @@ def build_run_job_params(app_spec: dict, params: dict, narrative_id: int, ws_cli
     processed_params = map_app_params(app_spec, params, narrative_id, ws_client)
     ws_objects = get_ws_object_refs(app_spec, params)
     job_params = {
-        "method": f"{behavior['kb_service_method']}.{behavior['kb_service_name']}",
+        "method": f"{behavior['kb_service_name']}.{behavior['kb_service_method']}",
         "service_ver": behavior["kb_service_version"],
         "params": processed_params,
         "app_id": app_spec["info"]["id"],
