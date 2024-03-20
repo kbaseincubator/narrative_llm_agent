@@ -100,16 +100,16 @@ class JobAgent(KBaseAgent):
         print(f"narrative_id: {narrative_id}")
         print(f"app_id: {app_id}")
         print(f"params: {params}")
-        ee = ExecutionEngine(self._token, self.ee_endpoint)
-        nms = NarrativeMethodStore(self.nms_endpoint)
-        ws = Workspace(self.ws_endpoint)
+        ee = ExecutionEngine(self._token, endpoint=self.ee_endpoint)
+        nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
+        ws = Workspace(self.token, endpoint=self.ws_endpoint)
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(spec, params, narrative_id, ws)
         print(job_submission)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
-        nms = NarrativeMethodStore(self.nms_endpoint)
+        nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
         spec = nms.get_app_spec(app_id)
         return json.dumps(get_processed_app_spec_params(spec))
 
