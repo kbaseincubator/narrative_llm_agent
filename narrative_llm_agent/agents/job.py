@@ -102,7 +102,7 @@ class JobAgent(KBaseAgent):
         print(f"params: {params}")
         ee = ExecutionEngine(self._token, endpoint=self.ee_endpoint)
         nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
-        ws = Workspace(self.token, endpoint=self.ws_endpoint)
+        ws = Workspace(self._token, endpoint=self.ws_endpoint)
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(spec, params, narrative_id, ws)
         print(job_submission)
