@@ -57,7 +57,7 @@ class NarrativeAgent(KBaseAgent):
             verbose = True,
             tools = [
                 get_narrative,
-                # add_app_cell,
+                add_app_cell,
                 add_markdown_cell
             ],
             llm=self._llm,
@@ -85,5 +85,19 @@ class NarrativeAgent(KBaseAgent):
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         narr.add_markdown_cell(markdown_text)
+        narr_util.save_narrative(narr, narrative_id)
+        return "success"
+
+    def _add_app_cell(self, narrative_id: int, job_id: str) -> str:
+        """
+        Add an app cell to the Narrative object and save it. This uses the job id to look
+        up all the app information required to rebuild an app cell. It adds the cell to the
+        bottom of the narrative in the state it was in during the last check. If successful,
+        this returns the string 'success'.
+        """
+        ws = Workspace(self._token, self.ws_endpoint)
+        narr_util = NarrativeUtil(ws)
+        narr = narr_util.get_narrative_from_wsid(narrative_id)
+        narr.add_app_cell()
         narr_util.save_narrative(narr, narrative_id)
         return "success"
