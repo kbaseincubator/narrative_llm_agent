@@ -65,10 +65,11 @@ class JobAgent(KBaseAgent):
             print(f"app_id: {app_id}")
             print(f"params: {params}")
 
+            if isinstance(params, str):
+                params = json.loads(params)
             return self._start_job(process_tool_input(narrative_id, "narrative_id"),
                                    process_tool_input(app_id, "app_id"),
                                    params)
-                                #    process_tool_input(params, "params"))
 
         @tool(args_schema=AppInput, return_direct=False)
         def get_app_params(app_id: str) -> str:
@@ -104,6 +105,7 @@ class JobAgent(KBaseAgent):
         ws = Workspace(self.ws_endpoint)
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(spec, params, narrative_id, ws)
+        print(job_submission)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
