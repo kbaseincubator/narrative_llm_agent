@@ -60,6 +60,11 @@ class JobAgent(KBaseAgent):
             parameters are malformed, or refer to data objects that do not exist, this
             returns a ValueError. If the app starts, this returns a JSON-formatted
             dictionary with cell_id and job_id fields."""
+            print("starting start_job tool")
+            print(f"narrative_id: {narrative_id}")
+            print(f"app_id: {app_id}")
+            print(f"params: {params}")
+
             return self._start_job(process_tool_input(narrative_id, "narrative_id"),
                                    process_tool_input(app_id, "app_id"),
                                    process_tool_input(params, "params"))
@@ -89,6 +94,10 @@ class JobAgent(KBaseAgent):
         return json.dumps(ee.check_job(job_id))
 
     def _start_job(self: "JobAgent", narrative_id: int, app_id: str, params: dict) -> str:
+        print("starting JobAgent._start_job")
+        print(f"narrative_id: {narrative_id}")
+        print(f"app_id: {app_id}")
+        print(f"params: {params}")
         ee = ExecutionEngine(self._token, self.ee_endpoint)
         nms = NarrativeMethodStore(self.nms_endpoint)
         ws = Workspace(self.ws_endpoint)
