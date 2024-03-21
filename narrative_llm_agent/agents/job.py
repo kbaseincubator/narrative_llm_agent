@@ -89,15 +89,7 @@ class JobAgent(KBaseAgent):
             final state can be either completed or error. This might take some time to run,
             as it depends on the job that is running.
             """
-            job_id = process_tool_input(job_id)
-            is_complete = False
-            while not is_complete:
-                status = self._job_status(job_id, as_json_str=False)
-                if status["status"] in ["completed", "error"]:
-                    is_complete = True
-                else:
-                    time.sleep(10)
-            return json.dumps(status)
+            return self._monitor_job(process_tool_input(job_id, "job_id"))
 
         self.agent = Agent(
             role=self.role,
@@ -135,3 +127,12 @@ class JobAgent(KBaseAgent):
         spec = nms.get_app_spec(app_id)
         return json.dumps(get_processed_app_spec_params(spec))
 
+    def _monitor_job(self: "JobAgent", job_id: str) -> str:
+        is_complete = False
+        while not is_complete:
+            status = self._job_status(job_id, as_json_str=False)
+            if status["status"] in ["completed", "error"]:
+                is_complete = True
+            else:
+                time.sleep(10)
+        return json.dumps(status)
