@@ -130,7 +130,7 @@ class JobAgent(KBaseAgent):
     def _monitor_job(self: "JobAgent", job_id: str) -> str:
         is_complete = False
         while not is_complete:
-            status = self._job_status(job_id, as_json_str=False)
+            status = self._job_status(job_id, as_str=False)
             if status["status"] in ["completed", "error"]:
                 is_complete = True
             else:
