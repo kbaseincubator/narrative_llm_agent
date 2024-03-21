@@ -12,6 +12,7 @@ from narrative_llm_agent.util.app import (
     get_processed_app_spec_params,
     build_run_job_params
 )
+import time
 
 class JobInput(BaseModel):
     job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
@@ -80,20 +81,41 @@ class JobAgent(KBaseAgent):
             """
             return self._get_app_params(app_id)
 
+        @tool(args_schema=JobInput, return_direct=False)
+        def monitor_job(job_id: str) -> str:
+            """
+            This monitors a running job in KBase. It will check the job status every 10 seconds.
+            When complete, this returns the final job status as a JSON-formatted string. The
+            final state can be either completed or error. This might take some time to run,
+            as it depends on the job that is running.
+            """
+            job_id = process_tool_input(job_id)
+            is_complete = False
+            while not is_complete:
+                status = self._job_status(job_id, as_json_str=False)
+                if status["status"] in ["completed", "error"]:
+                    is_complete = True
+                else:
+                    time.sleep(10)
+            return json.dumps(status)
+
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools = [ job_status, start_job, get_app_params ],
+            tools = [ job_status, start_job, get_app_params, monitor_job ],
             llm=self._llm,
             allow_delegation=False,
             memory=True,
         )
 
-    def _job_status(self: "JobAgent", job_id: str) -> str:
+    def _job_status(self: "JobAgent", job_id: str, as_str=True) -> str | dict:
         ee = ExecutionEngine(self._token, self.ee_endpoint)
-        return json.dumps(ee.check_job(job_id))
+        status = ee.check_job(job_id)
+        if as_str:
+            return json.dumps(status)
+        return status
 
     def _start_job(self: "JobAgent", narrative_id: int, app_id: str, params: dict) -> str:
         print("starting JobAgent._start_job")
