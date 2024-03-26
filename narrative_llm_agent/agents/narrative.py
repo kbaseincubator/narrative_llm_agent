@@ -6,6 +6,8 @@ from langchain.tools import tool
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
@@ -13,6 +15,10 @@ class NarrativeInput(BaseModel):
 class MarkdownCellInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
     markdown_text: str = Field(description="The markdown text. Must be a string.")
+
+class AppCellFromJobInput(BaseModel):
+    narrative_id: int = Field(description="The narrative id. Should be numeric.")
+    job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
 
 class NarrativeAgent(KBaseAgent):
     role: str = "Narrative Manager"
@@ -24,11 +30,15 @@ class NarrativeAgent(KBaseAgent):
     for your use to help facilitate this role.
     """
     ws_endpoint: str
+    ee_endpoint: str
+    nms_endpoint: str
 
     def __init__(self: "NarrativeAgent", token: str, llm: LLM) -> "NarrativeAgent":
         super().__init__(token, llm)
         self.__init_agent()
         self.ws_endpoint = self._service_endpoint + "ws"
+        self.ee_endpoint = self._service_endpoint + "ee2"
+        self.nms_endpoint = self._service_endpoint + "narrative_method_store/rpc"
 
     def __init_agent(self: "NarrativeAgent"):
         @tool(args_schema=NarrativeInput, return_direct=False)
@@ -49,6 +59,17 @@ class NarrativeAgent(KBaseAgent):
             narrative_id = process_tool_input(narrative_id, "narrative_id")
             markdown_text = process_tool_input(markdown_text, "markdown_text")
             return self._add_markdown_cell(narrative_id, markdown_text)
+
+        @tool(args_schema=AppCellFromJobInput, return_direct=False)
+        def add_app_cell(narrative_id: int, job_id: str) -> str:
+            """Add a new app cell to the bottom of an existing Narrative document. This app cell can be
+            used to track the state and status of a running job. The narrative_id must be numeric. The
+            job_id must be a string representing a KBase job. Do not input a dictionary or JSON-formatted
+            string. If successful, this will return a message saying 'success'. If unsuccessful, or if an
+            error occurs, an exception will be raised."""
+            narrative_id = process_tool_input(narrative_id, "narrative_id")
+            job_id = process_tool_input(job_id, "job_id")
+            return self._add_app_cell(narrative_id, job_id)
 
         self.agent = Agent(
             role = self.role,
@@ -96,8 +117,13 @@ class NarrativeAgent(KBaseAgent):
         this returns the string 'success'.
         """
         ws = Workspace(self._token, self.ws_endpoint)
+        ee = ExecutionEngine(self._token, self.ee_endpoint)
+        nms = NarrativeMethodStore(self.nms_endpoint)
+        job_state = ee.check_job(job_id)
+        app_spec = nms.get_app_spec(job_state.job_input.app_id)
+
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
-        narr.add_app_cell()
+        narr.add_app_cell(job_state, app_spec)
         narr_util.save_narrative(narr, narrative_id)
         return "success"

@@ -1,4 +1,6 @@
 import json
+from narrative_llm_agent.kbase.clients.execution_engine import JobState
+from narrative_llm_agent.util.app import map_inputs_from_job
 from narrative_llm_agent.util.tool import convert_to_boolean
 from typing import List, Any, Dict
 import time
@@ -14,7 +16,6 @@ class AppSpec:
 
 class JobInfo:
     pass
-
 
 class Cell:
     raw: dict
@@ -37,11 +38,10 @@ class Cell:
         return self.raw
 
 class CodeCell(Cell):
-    outputs: List[Any] = []
+    outputs: List[Any]
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
         super().__init__("code", cell_dict)
-        if "outputs" in cell_dict and cell_dict["outputs"] is not None:
-            self.outputs = cell_dict["outputs"]
+        self.outputs = cell_dict.get("outputs", [])
 
 class RawCell(Cell):
     def __init__(self, cell_dict: Dict[str, Any]) -> None:
@@ -52,8 +52,6 @@ class MarkdownCell(Cell):
         super().__init__("markdown", cell_dict)
 
 class KBaseCell(CodeCell):
-    kb_cell_type: str
-
     def __init__(self, kb_cell_type: str, cell_dict: Dict[str, Any]) -> None:
         super().__init__(cell_dict)
         self.kb_cell_type = kb_cell_type
@@ -188,6 +186,66 @@ class Narrative:
         self.raw["cells"].append(cell_dict)
         return new_cell
 
+    def add_app_cell(self, job_state: JobState, app_spec: dict) -> AppCell:
+        cell_dict = self._create_cell_dict("code", "app", "")
+        cell_dict["metadata"]["kbase"]["attributes"]["info"] = {
+            "label": "more...",
+            "url": "/#appcatalog/app/" + app_spec["info"]["id"] + "/release"
+        }
+        cell_dict["metadata"]["kbase"]["attributes"]["id"] = job_state.job_input.narrative_cell_info.cell_id
+        cell_dict["metadata"]["kbase"]["attributes"]["subtitle"] = app_spec["info"]["subtitle"]
+        cell_dict["metadata"]["kbase"]["attributes"]["title"] = app_spec["info"]["name"]
+        cell_dict["metadata"]["kbase"]["appCell"] = self._create_app_cell_meta(job_state, app_spec)
+        new_cell = AppCell(cell_dict)
+        self.cells.append(new_cell)
+        self.raw["cells"].append(cell_dict)
+        return new_cell
+
+    def _create_app_cell_meta(self, job_state: JobState, app_spec: dict) -> dict:
+        """
+        Creates the app cell metadata from info in the job state and app spec.
+        """
+        cell_job_state = self._get_cell_job_state(job_state)
+        cell_job_state["status"] = "queued"  # Force the Narrative Interface to update and redraw the cell
+        meta = {
+            "app": {
+                "gitCommitHash": app_spec["info"]["git_commit_hash"],
+                "id": app_spec["info"]["id"],
+                "version": app_spec["info"]["ver"],
+                "tag": job_state.job_input.narrative_cell_info.app_version_tag,
+                "spec": app_spec
+            },
+            "exec": {
+                "jobs": {
+                    "byId": {
+                        job_state.job_id: cell_job_state
+                    }
+                },
+                "jobState": cell_job_state,
+                "launchState": {
+                    "cell_id": job_state.job_input.narrative_cell_info.cell_id,
+                    "run_id": job_state.job_input.narrative_cell_info.run_id,
+                    "job_id": job_state.job_id,
+                    "event": "launched_job",
+                    "event_at": time.gmtime(), # TODO make ISO time string
+                }
+            },
+            "executionStats": {  # TODO: is this a service call? yes - catalog.get_exec_aggr_stats
+                "full_app_id": app_spec["info"]["id"],
+                "module_name": app_spec["info"]["module_name"],
+            },
+            "fsm": {
+                "currentState": {
+                    "mode": "processing",
+                    "stage": "queued"  # TODO make this more fine-grained based on state, but hopefully YAGNI as the interface will just figure it out
+                }
+            },
+            "paramDisplay": {},  # TODO
+            "params": map_inputs_from_job(job_state.job_input.params, app_spec),
+            "user-settings": {"showCodeInputArea": False}
+        }
+        return meta
+
     def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str, outputs: list=[]) -> dict[str, Any]:
         return {
             "cell_type": cell_type,
@@ -195,7 +253,8 @@ class Narrative:
             "outputs": outputs,
             "metadata": {
                 "kbase": self._create_kbase_meta(kbase_cell_type)
-            }
+            },
+            "execution_count": 0
         }
 
     def _create_kbase_meta(self, kbase_cell_type: str) -> dict[str, Any]:
@@ -214,10 +273,18 @@ class Narrative:
                 "title": title,
                 "icon": icon
             },
+            "cellState": {
+                "toggleMinMax": "maximized"
+            },
             "type": kbase_cell_type
         }
         return meta
 
+    def _get_cell_job_state(self, state: JobState) -> dict:
+        cell_js = state.to_dict()
+        if "job_input" in cell_js:
+            del cell_js["job_input"]
+        return cell_js
 
     def _get_new_cell_id(self) -> str:
         new_id = str(uuid.uuid4())
