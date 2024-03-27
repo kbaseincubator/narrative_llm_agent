@@ -19,6 +19,7 @@ def get_processed_app_spec_params(app_spec: dict) -> dict:
         param_type, allowed_values = process_param_type(param)
         proc_param["type"] = param_type
         proc_param["allowed"] = allowed_values
+        proc_param["multiple"] = True if param["allow_multiple"] == 1 else False
         if "default_values" in param:
             defaults = param["default_values"]
             if param["allow_multiple"] == 1:
