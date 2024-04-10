@@ -519,7 +519,7 @@ def _map_group_inputs(value: Any, spec_param: dict, spec_params: list, ws_id: in
         mapped_value[target_key] = target_val
     return mapped_value
 
-def resolve_single_ref(ws_id: int, value: str, ws_client: Workspace) -> str:
+def resolve_single_ref(value: str, ws_id: int, ws_client: Workspace) -> str:
     # TODO: fix this. It's weird and likely broken.
     ret = None
     if "/" in value:
@@ -539,22 +539,30 @@ def resolve_single_ref(ws_id: int, value: str, ws_client: Workspace) -> str:
     return ret
 
 
-def resolve_ref(ws_id: int, value: str | list, ws_client: Workspace) -> str | list:
+def resolve_ref(value: str | list[str], ws_id: int, ws_client: Workspace) -> str | list[str]:
+    """
+    Resolves a Workspace object reference (or list of references). A "reference" is a
+    string with a workspace id (or name), object id (or name), and an optional version.
+    This resolves the reference(s) to one or more UPAs.
+    If the objects don't exist, or the user doesn't have access to them, this raises a
+    ServerError
+    # TODO: make WorkspaceError exception
+    """
     if isinstance(value, list):
-        return [resolve_single_ref(ws_id, v, ws_client) for v in value]
+        return [resolve_single_ref(v, ws_id, ws_client) for v in value]
     else:
-        return resolve_single_ref(ws_id, value, ws_client)
+        return resolve_single_ref(value, ws_id, ws_client)
 
 
-def resolve_ref_if_typed(value: str, spec_param: dict, ws_id: int, ws_client: Workspace) -> str:
+def resolve_ref_if_typed(value: str | list[str], spec_param: dict, ws_id: int, ws_client: Workspace) -> str | list[str]:
     """
     For a given value and associated spec, if this is not an output param,
     then ensure that the reference points to an object in the current
-    workspace, and transform the value into an absolute reference to it.
+    workspace, and transform the value into an UPA.
     """
     is_output = "is_output" in spec_param and spec_param["is_output"] == 1
     if "allowed_types" in spec_param and not is_output:
         allowed_types = spec_param["allowed_types"]
         if len(allowed_types) > 0:
-            return resolve_ref(ws_id, value, ws_client)
+            return resolve_ref(value, ws_id, ws_client)
     return value

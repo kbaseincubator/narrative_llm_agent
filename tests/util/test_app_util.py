@@ -8,6 +8,7 @@ from narrative_llm_agent.util.app import (
     resolve_ref
 )
 from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.service_client import ServerError
 
 from tests.test_data.test_data import load_test_data_json
 from pathlib import Path
@@ -137,9 +138,14 @@ def test_generate_input_bad():
 def test_resolve_ref(mock_workspace):
     ws_id = 1000
     upa = "1000/2/3"
-    assert resolve_ref(ws_id, upa, mock_workspace) == upa
+    assert resolve_ref(upa, ws_id, mock_workspace) == upa
 
 def test_resolve_ref_list(mock_workspace):
     ws_id = 1000
     ref_list = ["1000/2", "1000/bar"]
-    assert resolve_ref(ws_id, ref_list, mock_workspace) == ["1000/2/3", "1000/3/4"]
+    assert resolve_ref(ref_list, ws_id, mock_workspace) == ["1000/2/3", "1000/3/4"]
+
+@pytest.mark.parametrize("ref", [("1/fdsa/3"), (["1000/2", "1/asdf/3"])])
+def test_resolve_ref_fail(ref, mock_workspace):
+    with pytest.raises(ServerError):
+        resolve_ref(ref, 1000, mock_workspace)
