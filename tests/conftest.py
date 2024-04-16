@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock
 from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
-from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from .test_data.test_data import get_test_narrative, load_test_data_json
 from langchain_core.language_models.llms import LLM
 
@@ -167,9 +167,10 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
             key = split_ref[1]
         else:
             raise ServerError("WorkspaceError", 500, "Not a ref")  # TODO: make real error
-        if key in ws_data:
-            return ws_data[key]
+        if key in ws_data["data"]:
+            return ws_data["data"][key]
         else:
             raise ServerError("WorkspaceError", 500, "Not in ws")  # TODO: make real response
     ws.get_object_info.side_effect = get_object_info_side_effect
+    ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["info"])
     return ws

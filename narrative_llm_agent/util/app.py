@@ -11,6 +11,20 @@ def get_processed_app_spec_params(app_spec: dict) -> dict:
     parameter structure out of it in a way that a fairly dim LLM
     can populate it. Hopefully.
     TODO: build an AppSpec class that maintains the structure. But, YAGNI for now.
+    TODO: build an AppParam class that maintains this structure. Also, YAGNI for now, though
+        tracking magic keys is annoying.
+    Produces a dictionary with keys:
+    * id - the unique id of the parameter
+    * ui_name - the name shown in the UI (and by the LLM)
+    * short_hint - info given from the parameter to how it's used
+    * is_output_object - True if the param will be used to name an output object, False otherwise
+    * type - the type of parameter (text, dropdown, data_object, etc.)
+    * allowed - allowed values of the parameter. This one's a bit more complex.
+        if the parameter is a data_object, allowed is the list of object types that are allowed.
+        if it's numerical, then allowed is a list of two items - min and max values allowed. If
+            mins or maxes aren't given, then None is used as a placeholder
+        if it's a dropdown, then allowed is the list of dropdown values allowed
+    * default_values - any defaults used for this param. can be a singleton, a list, or None
     """
     used_keys = ["id", "ui_name", "short_hint"]
     processed_params = {}
@@ -448,7 +462,7 @@ def system_variable(var: str, narrative_id: int, ws_client: Workspace) -> str | 
     elif var == "workspace_id":
         return narrative_id
     elif var == "user_id":
-        return None
+        return None  # TODO: not implemented yet
     elif var == "timestamp_epoch_ms":
         # get epoch time in milliseconds
         return int(time.time() * 1000)
@@ -560,9 +574,7 @@ def resolve_ref_if_typed(value: str | list[str], spec_param: dict, ws_id: int, w
     then ensure that the reference points to an object in the current
     workspace, and transform the value into an UPA.
     """
-    is_output = "is_output" in spec_param and spec_param["is_output"] == 1
-    if "allowed_types" in spec_param and not is_output:
-        allowed_types = spec_param["allowed_types"]
-        if len(allowed_types) > 0:
-            return resolve_ref(value, ws_id, ws_client)
+    is_output = spec_param.get("is_output_object", False)
+    if spec_param["type"] == "data_object" and not is_output:
+        return resolve_ref(value, ws_id, ws_client)
     return value

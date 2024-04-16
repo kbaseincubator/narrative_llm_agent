@@ -1,6 +1,19 @@
 {
-    "2": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo"},
-    "foo": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo"},
-    "3": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar"},
-    "bar": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar"}
+    "info": [
+        1000,
+        "test_workspace",
+        "test_user",
+        "12345",
+        100,
+        "a",
+        "n",
+        "n",
+        {}
+    ],
+    "data": {
+        "2": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo"},
+        "foo": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo"},
+        "3": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar"},
+        "bar": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar"}
+    }
 }
