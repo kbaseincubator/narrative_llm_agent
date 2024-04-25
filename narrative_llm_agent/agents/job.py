@@ -106,7 +106,7 @@ class JobAgent(KBaseAgent):
         ee = ExecutionEngine(self._token, self.ee_endpoint)
         status = ee.check_job(job_id)
         if as_str:
-            return json.dumps(status)
+            return str(status)
         return status
 
     def _start_job(self: "JobAgent", narrative_id: int, app_id: str, params: dict) -> str:
@@ -135,4 +135,4 @@ class JobAgent(KBaseAgent):
                 is_complete = True
             else:
                 time.sleep(10)
-        return json.dumps(job_state)
+        return str(job_state)

@@ -44,6 +44,8 @@ class JobInput:
         self.parent_job_id = data.get("parent_job_id")
         if "narrative_cell_info" in data:
             self.narrative_cell_info = NarrativeCellInfo(data["narrative_cell_info"])
+        else:
+            self.narrative_cell_info = None
 
     def to_dict(self) -> dict:
         """
