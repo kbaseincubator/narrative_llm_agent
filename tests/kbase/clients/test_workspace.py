@@ -124,16 +124,18 @@ def test_obj_info_to_json():
     ws_id = 123
     ver = 456
     name = "some_obj"
+    ws_name = "some_ws"
     metadata = {"this": "stuff"}
     obj_type = "SomeModule.ObjectType"
     saved = "123123123123"
     saved_by = "me"
     size_bytes = 123456
-    info = [obj_id, name, obj_type, saved, ver, saved_by, ws_id, "nope", "also_nope", size_bytes, metadata]
+    info = [obj_id, name, obj_type, saved, ver, saved_by, ws_id, ws_name, "nope", size_bytes, metadata]
     assert Workspace.obj_info_to_json(info) == {
         "ws_id": ws_id,
         "obj_id": obj_id,
         "name": name,
+        "ws_name": ws_name,
         "metadata": metadata,
         "type": obj_type,
         "saved": saved,

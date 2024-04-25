@@ -124,7 +124,7 @@ class JobAgent(KBaseAgent):
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
         nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
-        spec = nms.get_app_spec(app_id, include_full_info=True)
+        spec = nms.get_app_spec(app_id)
         return json.dumps(get_processed_app_spec_params(spec))
 
     def _monitor_job(self: "JobAgent", job_id: str) -> str:
