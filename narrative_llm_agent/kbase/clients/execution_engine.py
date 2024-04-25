@@ -158,8 +158,8 @@ class ExecutionEngine(ServiceClient):
     def __init__(self: "ExecutionEngine", token: str, endpoint: str=default_endpoint) -> None:
         super().__init__(endpoint, self._service, token)
 
-    def check_job(self: "ExecutionEngine", job_id: str) -> dict:
-        return self.simple_call("check_job", {"job_id": job_id})
+    def check_job(self: "ExecutionEngine", job_id: str) -> JobState:
+        return JobState(self.simple_call("check_job", {"job_id": job_id}))
 
     def run_job(self: "ExecutionEngine", job_submission: dict) -> str:
         return self.simple_call("run_job", job_submission)
