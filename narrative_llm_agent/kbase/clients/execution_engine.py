@@ -94,12 +94,14 @@ class JobState:
     child_jobs: list[str]
     retry_count: int
     retry_ids: list[str]
+    raw: dict
 
     def __init__(self, data: dict) -> None:
         """
         Creates a simple object for holding and validating job states.
         If any required fields are missing, this raises a KeyError.
         """
+        self.raw = data
         required_fields = ["job_id", "user", "wsid", "status", "job_input"]
         missing = [field for field in required_fields if field not in data]
         if len(missing):
@@ -130,7 +132,7 @@ class JobState:
         self.retry_ids = data.get("retry_ids", [])
 
     def __str__(self) -> str:
-        return json.dumps(self.to_dict())
+        return json.dumps(self.raw)
 
     def to_dict(self) -> dict:
         required = ["job_id", "user", "status", "ws_id", "child_jobs", "batch_job"]
