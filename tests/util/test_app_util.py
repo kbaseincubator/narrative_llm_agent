@@ -5,13 +5,20 @@ from narrative_llm_agent.util.app import (
     is_valid_ref,
     is_valid_upa,
     generate_input,
-    resolve_ref
+    resolve_ref,
+    resolve_ref_if_typed,
+    resolve_single_ref,
+    system_variable,
+    transform_param_value
 )
-from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.service_client import ServerError
 
 from tests.test_data.test_data import load_test_data_json
 from pathlib import Path
 import pytest
+
+MOCK_WS_ID = 1000
+MOCK_WS_NAME = "test_workspace"
 
 @pytest.fixture(scope="module")
 def app_spec():
@@ -135,11 +142,118 @@ def test_generate_input_bad():
         generate_input({"symbols": -1})
 
 def test_resolve_ref(mock_workspace):
-    ws_id = 1000
     upa = "1000/2/3"
-    assert resolve_ref(ws_id, upa, mock_workspace) == upa
+    assert resolve_ref(upa, MOCK_WS_ID, mock_workspace) == upa
 
 def test_resolve_ref_list(mock_workspace):
-    ws_id = 1000
     ref_list = ["1000/2", "1000/bar"]
-    assert resolve_ref(ws_id, ref_list, mock_workspace) == ["1000/2/3", "1000/3/4"]
+    assert resolve_ref(ref_list, MOCK_WS_ID, mock_workspace) == ["1000/2/3", "1000/3/4"]
+
+@pytest.mark.parametrize("ref", [("1/fdsa/3"), (["1000/2", "1/asdf/3"])])
+def test_resolve_ref_fail(ref, mock_workspace):
+    with pytest.raises(ServerError):
+        resolve_ref(ref, MOCK_WS_ID, mock_workspace)
+
+typed_single_cases = [
+    (True, "data_object", "foo"),
+    (False, "data_object", "1000/2/3"),
+    (True, "text", "foo"),
+    (False, "text", "foo"),
+]
+@pytest.mark.parametrize("is_output,param_type,expected", typed_single_cases)
+def test_resolve_ref_if_typed_single(is_output, param_type, expected, mock_workspace):
+    spec_param = {
+        "is_output_object": is_output,
+        "type": param_type
+    }
+    assert resolve_ref_if_typed("foo", spec_param, MOCK_WS_ID, mock_workspace) == expected
+
+typed_list_cases = [
+    (True, "data_object", ["foo", "bar"]),
+    (False, "data_object", ["1000/2/3", "1000/3/4"]),
+    (True, "text", ["foo", "bar"]),
+    (False, "text", ["foo", "bar"]),
+]
+@pytest.mark.parametrize("is_output,param_type,expected", typed_list_cases)
+def test_resolve_ref_if_typed_single(is_output, param_type, expected, mock_workspace):
+    spec_param = {
+        "is_output_object": is_output,
+        "type": param_type
+    }
+    assert resolve_ref_if_typed(["foo", "bar"], spec_param, MOCK_WS_ID, mock_workspace) == expected
+
+single_ref_cases = [
+    ("1000/2"),
+    ("1000/2/3"),
+    ("1000/foo"),
+    ("1000/foo/3")
+]
+@pytest.mark.parametrize("value", single_ref_cases)
+def test_resolve_single_ref(value, mock_workspace):
+    assert resolve_single_ref(value, MOCK_WS_ID, mock_workspace) == "1000/2/3"
+
+def test_resolve_single_ref_fail(mock_workspace):
+    with pytest.raises(ValueError, match="has too many slashes"):
+        resolve_single_ref("not/a/real/upa", MOCK_WS_ID, mock_workspace)
+
+def test_resolve_single_ref_not_found(mock_workspace):
+    with pytest.raises(ServerError):
+        resolve_single_ref("not_found", MOCK_WS_ID, mock_workspace)
+
+@pytest.mark.parametrize("input,expected", [
+    ("workspace", MOCK_WS_NAME),
+    ("workspace_id", MOCK_WS_ID),
+    ("user_id", None),
+    ("not_a_sys_var", None)
+])
+def test_system_variable(input, expected, mock_workspace):
+    assert(system_variable(input, MOCK_WS_ID, mock_workspace)) == expected
+
+
+##### COPIED FROM kbase/narrative repo #####
+# transform_param_value tests
+transform_param_value_simple_cases = [
+    ("string", None, None, None),
+    ("string", "foo", None, "foo"),
+    ("string", 123, None, "123"),
+    ("string", ["a", "b", "c"], None, "a,b,c"),
+    ("string", {"a": "b", "c": "d"}, None, "a=b,c=d"),
+    ("string", [], None, ""),
+    ("string", {}, None, ""),
+    ("int", "1", None, 1),
+    ("int", None, None, None),
+    ("int", "", None, None),
+    ("list<string>", [1, 2, 3], None, ["1", "2", "3"]),
+    ("list<int>", ["1", "2", "3"], None, [1, 2, 3]),
+    ("list<string>", "asdf", None, ["asdf"]),
+    ("list<int>", "1", None, [1]),
+]
+
+
+@pytest.mark.parametrize(
+    ("transform_type", "value", "spec_param", "expected"),
+    transform_param_value_simple_cases,
+)
+def test_transform_param_value_simple(transform_type, value, spec_param, expected, mock_workspace):
+    assert transform_param_value(transform_type, value, spec_param, MOCK_WS_ID, mock_workspace) == expected
+
+
+def test_transform_param_value_fail(mock_workspace):
+    ttype = "foobar"
+    with pytest.raises(ValueError, match=f"Unsupported Transformation type: {ttype}"):
+        transform_param_value(ttype, "foo", None, MOCK_WS_ID, mock_workspace)
+
+
+textsubdata_cases = [
+    (None, None),
+    ("asdf", "asdf"),
+    (123, "123"),
+    (["1", "2", "3"], "1,2,3"),
+    ({"a": "b", "c": "d"}, "a=b,c=d"),
+]
+
+
+@pytest.mark.parametrize(("value", "expected"), textsubdata_cases)
+def test_transform_param_value_textsubdata(value, expected, mock_workspace):
+    spec = {"type": "textsubdata"}
+    assert transform_param_value(None, value, spec, MOCK_WS_ID, mock_workspace) == expected
