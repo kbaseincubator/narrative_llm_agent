@@ -9,3 +9,6 @@ class ExecutionEngine(ServiceClient):
 
     def check_job(self: "ExecutionEngine", job_id: str) -> dict:
         return self.simple_call("check_job", {"job_id": job_id})
+
+    def run_job(self: "ExecutionEngine", job_submission: dict) -> str:
+        return self.simple_call("run_job", job_submission)

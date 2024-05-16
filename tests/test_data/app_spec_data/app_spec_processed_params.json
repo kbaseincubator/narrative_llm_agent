@@ -1,0 +1,204 @@
+{
+    "actual_input_object": {
+        "id": "actual_input_object",
+        "ui_name": "Genome to be duplicated",
+        "short_hint": "Should be a genome (KBaseGenomes.Genome)",
+        "type": "data_object",
+        "allowed": [
+            "KBaseGenomes.Genome"
+        ],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "actual_output_object": {
+        "id": "actual_output_object",
+        "ui_name": "Name of new Genome",
+        "short_hint": "The name of the new Genome object that gets created (a KBaseGenomes.Genome)",
+        "type": "data_object",
+        "allowed": [
+            "KBaseGenomes.Genome"
+        ],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": true
+    },
+    "single_int": {
+        "id": "single_int",
+        "ui_name": "Single integer",
+        "short_hint": "Only accept a single integer between [-100, 100]",
+        "type": "int",
+        "allowed": [
+            -100,
+            100
+        ],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "list_of_ints": {
+        "id": "list_of_ints",
+        "ui_name": "Multiple integers",
+        "short_hint": "Accept multiple integers between [-100, 100]",
+        "type": "int",
+        "allowed": [
+            -100,
+            100
+        ],
+        "multiple": true,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "single_float": {
+        "id": "single_float",
+        "ui_name": "Single floating point number",
+        "short_hint": "Only accept a single float between [-55.5, 55.5]",
+        "type": "float",
+        "allowed": [
+            -55.5,
+            55.5
+        ],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "list_of_floats": {
+        "id": "list_of_floats",
+        "ui_name": "Multiple floating point numbers",
+        "short_hint": "Accept multiple floating point numbers between [-55.5, 55.5]",
+        "type": "float",
+        "allowed": [
+            -55.5,
+            55.5
+        ],
+        "multiple": true,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "single_string": {
+        "id": "single_string",
+        "ui_name": "Single random string",
+        "short_hint": "Just validate that it is a something.",
+        "type": "text",
+        "allowed": [],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "list_of_strings": {
+        "id": "list_of_strings",
+        "ui_name": "Multiple strings",
+        "short_hint": "Accept multple random strings",
+        "type": "text",
+        "allowed": [],
+        "multiple": true,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "single_ws_object": {
+        "id": "single_ws_object",
+        "ui_name": "A single ws object",
+        "short_hint": "Accepts both KBaseGenomes.Genome or KBaseFBA.FBAModel",
+        "type": "data_object",
+        "allowed": [
+            "KBaseGenomes.Genome",
+            "KBaseFBA.FBAModel"
+        ],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "list_of_ws_objects": {
+        "id": "list_of_ws_objects",
+        "ui_name": "Multiple ws objects",
+        "short_hint": "Accepts both KBaseGenomes.Genome or KBaseFBA.FBAModel",
+        "type": "data_object",
+        "allowed": [
+            "KBaseGenomes.Genome",
+            "KBaseFBA.FBAModel"
+        ],
+        "multiple": true,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "dropdown_selection": {
+        "id": "dropdown_selection",
+        "ui_name": "Dropdown of random strings",
+        "short_hint": "Should only accept what is in that dropdown.",
+        "type": "dropdown",
+        "allowed": [
+            "Apple",
+            "Banana",
+            "Carrot"
+        ],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "list_of_dropdown_selections": {
+        "id": "list_of_dropdown_selections",
+        "ui_name": "Multiple dropdown results",
+        "short_hint": "Should accept only what is in the dropdown, but a list of them.",
+        "type": "dropdown",
+        "allowed": [
+            "Apple",
+            "Banana",
+            "Carrot"
+        ],
+        "multiple": true,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "single_checkbox": {
+        "id": "single_checkbox",
+        "ui_name": "A single checkbox",
+        "short_hint": "Accepts just True or False, should auto-map to actual value",
+        "type": "checkbox",
+        "allowed": [],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "single_textarea": {
+        "id": "single_textarea",
+        "ui_name": "Single textarea",
+        "short_hint": "A textarea",
+        "type": "textarea",
+        "allowed": [],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "list_of_textareas": {
+        "id": "list_of_textareas",
+        "ui_name": "A list of textareas.",
+        "short_hint": "Maybe you want to write an article with lots of paragraphs?",
+        "type": "textarea",
+        "allowed": [],
+        "multiple": true,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "model_for_subdata": {
+        "id": "model_for_subdata",
+        "ui_name": "A single FBA model for subdata selection",
+        "short_hint": "This is the FBA model that will be used for populating subdata selection",
+        "type": "data_object",
+        "allowed": [
+            "KBaseFBA.FBAModel"
+        ],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    },
+    "single_textsubdata": {
+        "id": "single_textsubdata",
+        "ui_name": "A single fancy text subdata",
+        "short_hint": "Used for a KBaseFBA.FBAModel (as in the example spec)",
+        "type": "textsubdata",
+        "allowed": [],
+        "multiple": false,
+        "default_value": null,
+        "is_output_object": false
+    }
+}

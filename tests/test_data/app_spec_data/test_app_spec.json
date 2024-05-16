@@ -1,0 +1,486 @@
+{
+    "info": {
+        "id": "NarrativeTest/test_input_params",
+        "module_name": "NarrativeTest",
+        "git_commit_hash": "a17cce938a979c42022cb5e9d416604f87d8a69d",
+        "name": "Test Input Parameters",
+        "ver": "0.0.6",
+        "subtitle": "Used for testing that input parameters are properly validated.",
+        "tooltip": "Used for testing that input parameters are properly validated.",
+        "categories": [
+            "active"
+        ],
+        "authors": [
+            "wjriehl"
+        ],
+        "input_types": [
+            "KBaseFBA.FBAModel",
+            "KBaseGenomes.Genome"
+        ],
+        "output_types": [
+            "KBaseGenomes.Genome"
+        ],
+        "app_type": "app",
+        "namespace": "NarrativeTest"
+    },
+    "widgets": {
+        "input": "null",
+        "output": "kbaseGenomeView"
+    },
+    "parameters": [
+        {
+            "id": "actual_input_object",
+            "ui_name": "Genome to be duplicated",
+            "short_hint": "Should be a genome (KBaseGenomes.Genome)",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 0,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "input",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "valid_ws_types": [
+                    "KBaseGenomes.Genome"
+                ],
+                "is_output_name": 0,
+                "placeholder": "",
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "actual_output_object",
+            "ui_name": "Name of new Genome",
+            "short_hint": "The name of the new Genome object that gets created (a KBaseGenomes.Genome)",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 0,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "output",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "valid_ws_types": [
+                    "KBaseGenomes.Genome"
+                ],
+                "is_output_name": 1,
+                "placeholder": "",
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "single_int",
+            "ui_name": "Single integer",
+            "short_hint": "Only accept a single integer between [-100, 100]",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "validate_as": "int",
+                "is_output_name": 0,
+                "placeholder": "",
+                "min_int": -100,
+                "max_int": 100,
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "list_of_ints",
+            "ui_name": "Multiple integers",
+            "short_hint": "Accept multiple integers between [-100, 100]",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 1,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "validate_as": "int",
+                "is_output_name": 0,
+                "placeholder": "",
+                "min_int": -100,
+                "max_int": 100,
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "single_float",
+            "ui_name": "Single floating point number",
+            "short_hint": "Only accept a single float between [-55.5, 55.5]",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "validate_as": "float",
+                "is_output_name": 0,
+                "placeholder": "",
+                "min_float": -55.5,
+                "max_float": 55.5,
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "list_of_floats",
+            "ui_name": "Multiple floating point numbers",
+            "short_hint": "Accept multiple floating point numbers between [-55.5, 55.5]",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 1,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "validate_as": "float",
+                "is_output_name": 0,
+                "placeholder": "",
+                "min_float": -55.5,
+                "max_float": 55.5,
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "single_string",
+            "ui_name": "Single random string",
+            "short_hint": "Just validate that it is a something.",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ]
+        },
+        {
+            "id": "list_of_strings",
+            "ui_name": "Multiple strings",
+            "short_hint": "Accept multple random strings",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 1,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ]
+        },
+        {
+            "id": "single_ws_object",
+            "ui_name": "A single ws object",
+            "short_hint": "Accepts both KBaseGenomes.Genome or KBaseFBA.FBAModel",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "input",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "valid_ws_types": [
+                    "KBaseGenomes.Genome",
+                    "KBaseFBA.FBAModel"
+                ],
+                "is_output_name": 0,
+                "placeholder": "",
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "list_of_ws_objects",
+            "ui_name": "Multiple ws objects",
+            "short_hint": "Accepts both KBaseGenomes.Genome or KBaseFBA.FBAModel",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 1,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "input",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "valid_ws_types": [
+                    "KBaseGenomes.Genome",
+                    "KBaseFBA.FBAModel"
+                ],
+                "is_output_name": 0,
+                "placeholder": "",
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "dropdown_selection",
+            "ui_name": "Dropdown of random strings",
+            "short_hint": "Should only accept what is in that dropdown.",
+            "description": "",
+            "field_type": "dropdown",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "dropdown_options": {
+                "options": [
+                    {
+                        "value": "apple",
+                        "display": "Apple"
+                    },
+                    {
+                        "value": "banana",
+                        "display": "Banana"
+                    },
+                    {
+                        "value": "carrot",
+                        "display": "Carrot"
+                    }
+                ],
+                "multiselection": 0
+            }
+        },
+        {
+            "id": "list_of_dropdown_selections",
+            "ui_name": "Multiple dropdown results",
+            "short_hint": "Should accept only what is in the dropdown, but a list of them.",
+            "description": "",
+            "field_type": "dropdown",
+            "allow_multiple": 1,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "dropdown_options": {
+                "options": [
+                    {
+                        "value": "apple",
+                        "display": "Apple"
+                    },
+                    {
+                        "value": "banana",
+                        "display": "Banana"
+                    },
+                    {
+                        "value": "carrot",
+                        "display": "Carrot"
+                    }
+                ],
+                "multiselection": 0
+            }
+        },
+        {
+            "id": "single_checkbox",
+            "ui_name": "A single checkbox",
+            "short_hint": "Accepts just True or False, should auto-map to actual value",
+            "description": "",
+            "field_type": "checkbox",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "checkbox_options": {
+                "checked_value": 1,
+                "unchecked_value": 0
+            }
+        },
+        {
+            "id": "single_textarea",
+            "ui_name": "Single textarea",
+            "short_hint": "A textarea",
+            "description": "",
+            "field_type": "textarea",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "textarea_options": {
+                "n_rows": 4,
+                "placeholder": ""
+            }
+        },
+        {
+            "id": "list_of_textareas",
+            "ui_name": "A list of textareas.",
+            "short_hint": "Maybe you want to write an article with lots of paragraphs?",
+            "description": "",
+            "field_type": "textarea",
+            "allow_multiple": 1,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "textarea_options": {
+                "n_rows": 3,
+                "placeholder": ""
+            }
+        },
+        {
+            "id": "model_for_subdata",
+            "ui_name": "A single FBA model for subdata selection",
+            "short_hint": "This is the FBA model that will be used for populating subdata selection",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "input",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "valid_ws_types": [
+                    "KBaseFBA.FBAModel"
+                ],
+                "is_output_name": 0,
+                "placeholder": "",
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "single_textsubdata",
+            "ui_name": "A single fancy text subdata",
+            "short_hint": "Used for a KBaseFBA.FBAModel (as in the example spec)",
+            "description": "",
+            "field_type": "textsubdata",
+            "allow_multiple": 0,
+            "optional": 1,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "parameter",
+            "default_values": [
+                ""
+            ],
+            "textsubdata_options": {
+                "placeholder": "",
+                "multiselection": 1,
+                "show_src_obj": 0,
+                "allow_custom": 0,
+                "subdata_selection": {
+                    "parameter_id": "model_for_subdata",
+                    "subdata_included": [
+                        "modelcompounds/[*]/id",
+                        "modelcompounds/[*]/name",
+                        "modelcompounds/[*]/formula"
+                    ],
+                    "path_to_subdata": [
+                        "modelcompounds"
+                    ],
+                    "selection_id": "id",
+                    "selection_description": [
+                        "name",
+                        "formula"
+                    ],
+                    "description_template": "- {{name}} ({{formula}})"
+                }
+            }
+        }
+    ],
+    "fixed_parameters": [],
+    "behavior": {
+        "kb_service_url": "",
+        "kb_service_name": "NarrativeTest",
+        "kb_service_version": "a17cce938a979c42022cb5e9d416604f87d8a69d",
+        "kb_service_method": "test_async_job",
+        "kb_service_input_mapping": [
+            {
+                "narrative_system_variable": "workspace",
+                "target_property": "workspace"
+            },
+            {
+                "input_parameter": "actual_input_object",
+                "target_property": "input_genome_name"
+            },
+            {
+                "input_parameter": "actual_output_object",
+                "target_property": "output_genome_name"
+            }
+        ],
+        "kb_service_output_mapping": [
+            {
+                "service_method_output_path": [
+                    "0",
+                    "report_name"
+                ],
+                "target_property": "report_name"
+            },
+            {
+                "service_method_output_path": [
+                    "0",
+                    "report_ref"
+                ],
+                "target_property": "report_ref"
+            },
+            {
+                "constant_value": "16",
+                "target_property": "report_window_line_height"
+            },
+            {
+                "service_method_output_path": [
+                    "0"
+                ],
+                "target_property": "contig_filter_result"
+            },
+            {
+                "input_parameter": "actual_output_object",
+                "target_property": "id"
+            },
+            {
+                "narrative_system_variable": "workspace",
+                "target_property": "ws"
+            }
+        ]
+    },
+    "job_id_output_field": "docker"
+}

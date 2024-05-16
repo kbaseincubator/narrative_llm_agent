@@ -118,6 +118,7 @@ class AnalystAgent(KBaseAgent):
             allow_delegation=True,
             llm=self._llm,
             tools=[kbase_appCatalog_retrieval_tool, kbase_docs_retrieval_tool]+human_tools,
+            memory=True,
         )
 
     def _create_doc_chain(self, persist_directory: str | Path):
