@@ -44,6 +44,8 @@ class JobInput:
         self.parent_job_id = data.get("parent_job_id")
         if "narrative_cell_info" in data:
             self.narrative_cell_info = NarrativeCellInfo(data["narrative_cell_info"])
+        else:
+            self.narrative_cell_info = None
 
     def to_dict(self) -> dict:
         """
@@ -127,9 +129,6 @@ class JobState:
         self.retry_count = data.get("retry_count", 0)
         self.retry_ids = data.get("retry_ids", [])
 
-    def __str__(self) -> str:
-        return json.dumps(self.to_dict())
-
     def to_dict(self) -> dict:
         required = ["job_id", "user", "status", "ws_id", "child_jobs", "batch_job"]
         dict_form = {key: getattr(self, key) for key in required}
@@ -150,6 +149,13 @@ class JobState:
 
         return dict_form
 
+    def __str__(self) -> str:
+        return json.dumps(self.to_dict())
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, JobState):
+            return False
+        return self.to_dict() == other.to_dict()
 
 class ExecutionEngine(ServiceClient):
     default_endpoint: str = "https://kbase.us/services/ee2"

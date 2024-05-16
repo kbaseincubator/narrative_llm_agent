@@ -174,3 +174,7 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
     ws.get_object_info.side_effect = get_object_info_side_effect
     ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["info"])
     return ws
+
+@pytest.fixture
+def mock_job_states() -> dict[str, dict[str, any]]:
+    return load_test_data_json("job_states.json")

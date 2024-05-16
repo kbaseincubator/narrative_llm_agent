@@ -276,7 +276,7 @@ def transform_param_value(
     if (
         spec_param is not None
         and spec_param["type"] == "text"
-        and not spec_param["is_output"]
+        and not spec_param["is_output_object"]
         and len(spec_param.get("allowed_types", []))
     ):
         is_input_object_param = True
@@ -574,11 +574,9 @@ def resolve_ref_if_typed(value: str | list[str], spec_param: dict, ws_id: int, w
     then ensure that the reference points to an object in the current
     workspace, and transform the value into an absolute reference to it.
     """
-    is_output = "is_output" in spec_param and spec_param["is_output"] == 1
-    if "allowed_types" in spec_param and not is_output:
-        allowed_types = spec_param["allowed_types"]
-        if len(allowed_types) > 0:
-            return resolve_ref(ws_id, value, ws_client)
+    is_output = spec_param.get("is_output_object", False)
+    if spec_param["type"] == "data_object" and not is_output:
+        return resolve_ref(value, ws_id, ws_client)
     return value
 
 def map_inputs_from_job(job_inputs: dict | list, app_spec: dict) -> dict:

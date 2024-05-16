@@ -4,7 +4,7 @@ from langchain_core.language_models.llms import LLM
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
 import json
-from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
+from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
 from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.util.tool import process_tool_input
@@ -102,11 +102,11 @@ class JobAgent(KBaseAgent):
             memory=True,
         )
 
-    def _job_status(self: "JobAgent", job_id: str, as_str=True) -> str | dict:
+    def _job_status(self: "JobAgent", job_id: str, as_str=True) -> str | JobState:
         ee = ExecutionEngine(self._token, self.ee_endpoint)
         status = ee.check_job(job_id)
         if as_str:
-            return json.dumps(status)
+            return str(status)
         return status
 
     def _start_job(self: "JobAgent", narrative_id: int, app_id: str, params: dict) -> str:

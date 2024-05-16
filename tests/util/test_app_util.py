@@ -166,6 +166,8 @@ def test_resolve_ref_if_typed_single(is_output, param_type, expected, mock_works
         "is_output_object": is_output,
         "type": param_type
     }
+    result = resolve_ref_if_typed("foo", spec_param, MOCK_WS_ID, mock_workspace)
+    print(f"RESOLUTION: {result}")
     assert resolve_ref_if_typed("foo", spec_param, MOCK_WS_ID, mock_workspace) == expected
 
 typed_list_cases = [
@@ -175,7 +177,7 @@ typed_list_cases = [
     (False, "text", ["foo", "bar"]),
 ]
 @pytest.mark.parametrize("is_output,param_type,expected", typed_list_cases)
-def test_resolve_ref_if_typed_single(is_output, param_type, expected, mock_workspace):
+def test_resolve_ref_if_typed(is_output, param_type, expected, mock_workspace):
     spec_param = {
         "is_output_object": is_output,
         "type": param_type
