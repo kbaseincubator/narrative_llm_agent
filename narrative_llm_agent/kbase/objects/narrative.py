@@ -2,7 +2,6 @@ import json
 from narrative_llm_agent.kbase.clients.execution_engine import JobState
 from narrative_llm_agent.util.app import map_inputs_from_job
 from narrative_llm_agent.util.tool import convert_to_boolean
-from typing import List, Any, Dict
 import time
 import uuid
 
@@ -22,7 +21,7 @@ class Cell:
     cell_type: str
     source: str
 
-    def __init__(self, cell_type: str, raw_cell: Dict[str, Any]) -> None:
+    def __init__(self, cell_type: str, raw_cell: dict[str, any]) -> None:
         self.raw = raw_cell
         self.cell_type = cell_type
         self.source = raw_cell.get("source", "")
@@ -38,21 +37,21 @@ class Cell:
         return self.raw
 
 class CodeCell(Cell):
-    outputs: List[Any]
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    outputs: list[any]
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__("code", cell_dict)
         self.outputs = cell_dict.get("outputs", [])
 
 class RawCell(Cell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__("raw", cell_dict)
 
 class MarkdownCell(Cell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__("markdown", cell_dict)
 
 class KBaseCell(CodeCell):
-    def __init__(self, kb_cell_type: str, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, kb_cell_type: str, cell_dict: dict[str, any]) -> None:
         super().__init__(cell_dict)
         self.kb_cell_type = kb_cell_type
 
@@ -65,7 +64,7 @@ class AppCell(KBaseCell):
     app_name: str
     job_info: JobInfo
 
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseApp', cell_dict)
         self.app_spec = None
         self.app_id = None
@@ -77,21 +76,21 @@ class AppCell(KBaseCell):
         return f"method.{spec_info['id']}/{spec_info['gitCommitHash']}"
 
 class BulkImportCell(KBaseCell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseBulkImport', cell_dict)
 
     def get_info_str(self):
         return "kbase.bulk_import"
 
 class DataCell(KBaseCell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseData', cell_dict)
 
     def get_info_str(self):
         return "kbase.data_viewer"
 
 class OutputCell(KBaseCell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseOutput', cell_dict)
 
     def get_info_str(self):
@@ -100,14 +99,14 @@ class OutputCell(KBaseCell):
 
 class NarrativeMetadata:
     creator: str
-    data_dependencies: List[str]
+    data_dependencies: list[str]
     description: str
     format: str = "ipynb"
     name: str
     is_temporary: bool
-    raw: Dict[str, Any]
+    raw: dict[str, any]
 
-    def __init__(self, narr_meta: Dict[str, Any]) -> None:
+    def __init__(self, narr_meta: dict[str, any]) -> None:
         self.creator = narr_meta.get("creator", "unknown")
         self.data_dependencies = narr_meta.get("data_dependencies", [])
         self.description = narr_meta.get("description", "")
@@ -124,9 +123,10 @@ class Narrative:
     nbformat: int
     nbformat_minor: int
     metadata: NarrativeMetadata
-    cells: List[Cell]
+    cells: list[Cell]
+    kbase_cells_by_id: dict[str, Cell]
 
-    def __init__(self, narr_dict: Dict[str, Any]) -> None:
+    def __init__(self, narr_dict: dict[str, any]) -> None:
         if "cells" not in narr_dict:
             raise ValueError("'cells' key not found, this might be a VERY old narrative. Please update it before continuing.")
         self.metadata = NarrativeMetadata(narr_dict.get("metadata", {}))
@@ -135,10 +135,17 @@ class Narrative:
         self.cells = [
             Narrative.make_cell_from_dict(cell) for cell in narr_dict["cells"]
         ]
+        self.kbase_cells_by_id = {}
+        for cell in self.cells:
+            cell_meta = cell.raw.get("metadata", {})
+            if "kbase" in cell_meta and "attributes" in cell_meta["kbase"]:
+                cell_id = cell_meta["kbase"]["attributes"].get("id")
+                if cell_id is not None:
+                    self.kbase_cells_by_id[cell_id] = cell
         self.raw = narr_dict
 
     @classmethod
-    def make_cell_from_dict(cls, cell_dict: Dict[str, Any]) -> Cell:
+    def make_cell_from_dict(cls, cell_dict: dict[str, any]) -> Cell:
         # route to the right cell constructor
         meta = cell_dict.get("metadata", {})
         if "kbase" not in meta or "type" not in meta["kbase"]:
@@ -166,14 +173,22 @@ class Narrative:
         else:
             return Cell("unknown", cell_dict)
 
+    def _add_cell(self, cell: Cell) -> None:
+        self.cells.append(cell)
+        self.raw["cells"].append(cell.to_dict())
+        cell_meta = cell.raw.get("metadata", {})
+        if "kbase" in cell_meta and "attributes" in cell_meta["kbase"]:
+            cell_id = cell_meta["kbase"]["attributes"].get("id")
+            if cell_id is not None:
+                self.kbase_cells_by_id[cell_id] = cell
+
     def add_markdown_cell(self, text: str) -> MarkdownCell:
         """
         Adds a markdown cell to the Narrative and returns it.
         """
         cell_dict = self._create_cell_dict("markdown", "markdown", text)
         new_cell = MarkdownCell(cell_dict)
-        self.cells.append(new_cell)
-        self.raw["cells"].append(cell_dict)
+        self._add_cell(new_cell)
         return new_cell
 
     def add_code_cell(self, source: str, outputs: list=[]) -> CodeCell:
@@ -182,8 +197,7 @@ class Narrative:
         """
         cell_dict = self._create_cell_dict("code", "code", source, outputs=outputs)
         new_cell = CodeCell(cell_dict)
-        self.cells.append(new_cell)
-        self.raw["cells"].append(cell_dict)
+        self._add_cell(new_cell)
         return new_cell
 
     def add_app_cell(self, job_state: JobState, app_spec: dict) -> AppCell:
@@ -197,8 +211,7 @@ class Narrative:
         cell_dict["metadata"]["kbase"]["attributes"]["title"] = app_spec["info"]["name"]
         cell_dict["metadata"]["kbase"]["appCell"] = self._create_app_cell_meta(job_state, app_spec)
         new_cell = AppCell(cell_dict)
-        self.cells.append(new_cell)
-        self.raw["cells"].append(cell_dict)
+        self._add_cell(new_cell)
         return new_cell
 
     def _create_app_cell_meta(self, job_state: JobState, app_spec: dict) -> dict:
@@ -246,7 +259,7 @@ class Narrative:
         }
         return meta
 
-    def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str, outputs: list=[]) -> dict[str, Any]:
+    def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str, outputs: list=[]) -> dict[str, any]:
         return {
             "cell_type": cell_type,
             "source": source,
@@ -257,7 +270,7 @@ class Narrative:
             "execution_count": 0
         }
 
-    def _create_kbase_meta(self, kbase_cell_type: str) -> dict[str, Any]:
+    def _create_kbase_meta(self, kbase_cell_type: str) -> dict[str, any]:
         """
         TODO: fix this up for real and make it more robust.
         """
@@ -289,17 +302,9 @@ class Narrative:
     def _get_new_cell_id(self) -> str:
         new_id = str(uuid.uuid4())
         # check all cells
-        while self._is_duplicate_id(new_id):
+        while new_id in self.kbase_cells_by_id:
             new_id = str(uuid.uuid4())
         return new_id
-
-    def _is_duplicate_id(self, cell_id: str) -> bool:
-        for cell in self.cells:
-            cell_meta = cell.raw.get("metadata", {})
-            if "kbase" in cell_meta and "attributes" in cell_meta["kbase"]:
-                if cell_meta["kbase"]["attributes"].get("id") == cell_id:
-                    return True
-        return False
 
     def to_dict(self):
         return {
