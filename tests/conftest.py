@@ -1,6 +1,8 @@
 import pytest
-from narrative_llm_agent.kbase.service_client import ServiceClient
-from .test_data.test_data import get_test_narrative
+from unittest.mock import Mock
+from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
+from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
+from .test_data.test_data import get_test_narrative, load_test_data_json
 from langchain_core.language_models.llms import LLM
 
 @pytest.fixture
@@ -151,3 +153,24 @@ class MockLLM(LLM):
 @pytest.fixture
 def mock_llm():
     return MockLLM()
+
+@pytest.fixture
+def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
+    ws = mocker.Mock(spec=Workspace)
+    ws_data = load_test_data_json("fake_ws_data.json")
+
+    def get_object_info_side_effect(ref: str, ):
+        split_ref = ref.split("/")
+        if len(split_ref) == 1:
+            key = ref
+        elif len(split_ref) == 2 or len(split_ref) == 3:
+            key = split_ref[1]
+        else:
+            raise ServerError("WorkspaceError", 500, "Not a ref")  # TODO: make real error
+        if key in ws_data["data"]:
+            return ws_data["data"][key]
+        else:
+            raise ServerError("WorkspaceError", 500, "Not in ws")  # TODO: make real response
+    ws.get_object_info.side_effect = get_object_info_side_effect
+    ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["info"])
+    return ws

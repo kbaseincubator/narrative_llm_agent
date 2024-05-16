@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-def load_test_data_json(file_path: Path, parse_json: bool=True) -> str | list | dict:
+def load_test_data_json(file_path: Path | str, parse_json: bool=True) -> str | list | dict:
     """
     Loads some JSON test data. If parse_json == False, this just returns the
     file contents as a string and doesn't parse the JSON.
