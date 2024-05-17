@@ -308,7 +308,6 @@ class Narrative:
 
     def _get_new_cell_id(self) -> str:
         new_id = str(uuid.uuid4())
-        # check all cells
         while new_id in self.kbase_cells_by_id:
             new_id = str(uuid.uuid4())
         return new_id

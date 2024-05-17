@@ -113,9 +113,9 @@ class TestAppCell:
 
     def test_init(self, sample_cell_dict):
         cell = AppCell(sample_cell_dict)
-        assert cell.app_spec is sample_cell_dict["metadata"]["kbase"]["appCell"]["app"]["spec"]
-        assert cell.app_id is "app_id"
-        assert cell.app_name is "App Name"
+        assert cell.app_spec == sample_cell_dict["metadata"]["kbase"]["appCell"]["app"]["spec"]
+        assert cell.app_id == "app_id"
+        assert cell.app_name == "App Name"
         assert cell.job_info is None  # TODO
         assert cell.cell_type == "code"
         assert cell.kb_cell_type == "KBaseApp"
@@ -286,3 +286,4 @@ class TestNarrative:
         assert new_cell.cell_type == "code"
         assert new_cell.kb_cell_type == "KBaseApp"
         assert len(narr.cells) == num_cells + 1
+        print(json.dumps(new_cell.raw, indent=4))
