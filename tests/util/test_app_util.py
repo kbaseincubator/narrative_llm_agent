@@ -21,15 +21,6 @@ MOCK_WS_ID = 1000
 MOCK_WS_NAME = "test_workspace"
 
 @pytest.fixture(scope="module")
-def app_spec():
-    """
-    Loads an app spec for testing. This is the NarrativeTest/test_input_params app spec.
-    """
-    app_spec_path = Path("app_spec_data") / "test_app_spec.json"
-    spec = load_test_data_json(app_spec_path)
-    return spec
-
-@pytest.fixture(scope="module")
 def expected_app_params():
     """
     Loads the pre-processed app spec params from the NarrativeTest/test_input_params spec.

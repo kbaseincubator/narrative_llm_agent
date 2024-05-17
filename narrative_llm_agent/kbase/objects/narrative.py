@@ -66,9 +66,10 @@ class AppCell(KBaseCell):
 
     def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseApp', cell_dict)
-        self.app_spec = None
-        self.app_id = None
-        self.app_name = None
+        app_info = cell_dict["metadata"]["kbase"].get("appCell", {})
+        self.app_spec = app_info.get("app", {}).get("spec")
+        self.app_id = self.app_spec["info"]["id"]
+        self.app_name = self.app_spec["info"]["name"]
         self.job_info = None
 
     def get_info_str(self):
@@ -201,6 +202,12 @@ class Narrative:
         return new_cell
 
     def add_app_cell(self, job_state: JobState, app_spec: dict) -> AppCell:
+        """Adds an app cell to this narrative based on the job state and app spec.
+
+        This unpacks information from the job state and app spec to build a new KBase
+        app cell, which gets added to the bottom of the Narrative. The newly created
+        cell gets returned.
+        """
         cell_dict = self._create_cell_dict("code", "app", "")
         cell_dict["metadata"]["kbase"]["attributes"]["info"] = {
             "label": "more...",
@@ -314,7 +321,7 @@ class Narrative:
             "nbformat_minor": self.nbformat_minor
         }
 
-    def get_cell_counts(self):
+    def get_cell_counts(self) -> dict[str, int]:
         """
         Returns a dictionary of cell counts. Keys are one of
         jupyter.markdown
