@@ -73,6 +73,9 @@ class JsonRpcError:
         self.message = message
         self.error = error
 
+    def to_dict(self):
+        return { key: getattr(self, key) for key in ["name", "code", "message", "error"] }
+
 class JobState:
     job_id: str
     user: str
@@ -103,7 +106,7 @@ class JobState:
         required_fields = ["job_id", "user", "wsid", "status", "job_input"]
         missing = [field for field in required_fields if field not in data]
         if len(missing):
-            raise KeyError(f"JobState data is missing required fields {missing}")
+            raise KeyError(f"JobState data is missing required field(s) {','.join(missing)}")
 
         self.job_id = data["job_id"]
         self.user = data["user"]
@@ -117,7 +120,8 @@ class JobState:
         self.finished = data.get("finished", 0)
         self.updated = data.get("updated", 0)
         if "error" in data:
-            self.error = JsonRpcError(data["error"])
+            err = data["error"]
+            self.error = JsonRpcError(err.get("name"), err.get("code"), err.get("message"), err.get("error"))
         else:
             self.error = None
         self.error_code = data.get("error_code")

@@ -1,5 +1,6 @@
 from narrative_llm_agent.util.app import (
     get_processed_app_spec_params,
+    map_inputs_from_job,
     process_param_type,
     get_ws_object_refs,
     is_valid_ref,
@@ -250,3 +251,54 @@ textsubdata_cases = [
 def test_transform_param_value_textsubdata(value, expected, mock_workspace):
     spec = {"type": "textsubdata"}
     assert transform_param_value(None, value, spec, MOCK_WS_ID, mock_workspace) == expected
+
+
+def test_map_inputs_from_job():
+    inputs = [
+        "input1",
+        {"ws": "my_workspace", "foo": "bar"},
+        "some_ref/obj_id",
+        ["ref/num_1", "ref/num_2", "num_3"],
+        123,
+    ]
+    app_spec = {
+        "behavior": {
+            "kb_service_input_mapping": [
+                {"target_position": 0, "input_parameter": "an_input"},
+                {
+                    "target_position": 1,
+                    "target_property": "ws",
+                    "input_parameter": "workspace",
+                },
+                {
+                    "target_position": 1,
+                    "target_property": "foo",
+                    "input_parameter": "baz",
+                },
+                {
+                    "target_position": 2,
+                    "input_parameter": "ref_input",
+                    "target_type_transform": "ref",
+                },
+                {
+                    "target_position": 3,
+                    "input_parameter": "a_list",
+                    "target_type_transform": "list<ref>",
+                },
+                {
+                    "target_position": 4,
+                    "input_parameter": "a_num",
+                    "target_type_transform": "int",
+                },
+            ],
+        }
+    }
+    expected = {
+        "an_input": "input1",
+        "workspace": "my_workspace",
+        "baz": "bar",
+        "ref_input": "obj_id",
+        "a_list": ["num_1", "num_2", "num_3"],
+        "a_num": 123,
+    }
+    assert map_inputs_from_job(inputs, app_spec) == expected
