@@ -1,0 +1,47 @@
+{
+    "job_id_1": {
+        "job_id": "job_id_1",
+        "status": "complete",
+        "user": "some_user",
+        "wsid": 12345,
+        "job_input": {
+            "method": "foobar.baz",
+            "app_id": "foobar/baz",
+            "service_ver": "release",
+            "params": []
+        },
+        "created": 1234567890
+    },
+    "job_id_2": {
+        "job_id": "job_id_2",
+        "status": "running",
+        "user": "some_user",
+        "wsid": 67890,
+        "job_input": {
+            "method": "foobar.baz",
+            "app_id": "foobar/baz",
+            "service_ver": "release",
+            "params": []
+        }
+    },
+    "job_error": {
+        "job_id": "job_error",
+        "status": "error",
+        "user": "some_user",
+        "wsid": 12345,
+        "job_input": {
+            "method": "foobar.baz",
+            "app_id": "foobar/baz",
+            "service_ver": "release",
+            "params": []
+        },
+        "error": {
+            "name": "error name",
+            "code": 42,
+            "error": "some error",
+            "message": "totally an error"
+        },
+        "errormsg": "an error message",
+        "error_code": 500
+    }
+}

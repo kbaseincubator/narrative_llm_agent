@@ -1,0 +1,54 @@
+{
+    "user": "some_user",
+    "authstrat": "kbaseworkspace",
+    "wsid": 74915,
+    "status": "error",
+    "updated": 1715965156330,
+    "queued": 1715965112218,
+    "running": 1715965124833,
+    "finished": 1715965155823,
+    "errormsg": "Unexpected Job Error",
+    "error_code": 2,
+    "batch_job": false,
+    "scheduler_type": "condor",
+    "scheduler_id": "61656",
+    "job_input": {
+        "wsid": 74915,
+        "method": "NarrativeTest.test_async_job",
+        "params": [
+            {
+                "workspace": "some_user:narrative_1714401043351",
+                "input_genome_name": "Sbicolor.JGI-v2.1",
+                "output_genome_name": "a_copied_genome"
+            }
+        ],
+        "service_ver": "a17cce938a979c42022cb5e9d416604f87d8a69d",
+        "app_id": "NarrativeTest/test_input_params",
+        "source_ws_objects": [
+            "74915/3/8",
+            "74915/3/8",
+            "74915/4/1",
+            "74915/3/8",
+            "74915/4/1"
+        ],
+        "requirements": {
+            "clientgroup": "njs",
+            "cpu": 2,
+            "memory": 10000,
+            "disk": 100
+        },
+        "narrative_cell_info": {
+            "run_id": "a1093607-8d79-43df-8c1c-9e26931296db",
+            "token_id": "673fab3d-8a9d-4134-bd83-1bafa61fed38",
+            "tag": "dev",
+            "cell_id": "6303c892-0490-4e09-9823-b5cb84b1609f"
+        }
+    },
+    "child_jobs": [],
+    "retry_ids": [],
+    "retry_saved_toggle": false,
+    "retry_count": 0,
+    "job_id": "this_is_a_job_id_to_test",
+    "batch_id": null,
+    "created": 1715965112000
+}

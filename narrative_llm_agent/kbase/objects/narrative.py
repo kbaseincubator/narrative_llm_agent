@@ -1,6 +1,7 @@
 import json
+from narrative_llm_agent.kbase.clients.execution_engine import JobState
+from narrative_llm_agent.util.app import map_inputs_from_job
 from narrative_llm_agent.util.tool import convert_to_boolean
-from typing import List, Any, Dict
 import time
 import uuid
 
@@ -15,13 +16,12 @@ class AppSpec:
 class JobInfo:
     pass
 
-
 class Cell:
     raw: dict
     cell_type: str
     source: str
 
-    def __init__(self, cell_type: str, raw_cell: Dict[str, Any]) -> None:
+    def __init__(self, cell_type: str, raw_cell: dict[str, any]) -> None:
         self.raw = raw_cell
         self.cell_type = cell_type
         self.source = raw_cell.get("source", "")
@@ -37,24 +37,21 @@ class Cell:
         return self.raw
 
 class CodeCell(Cell):
-    outputs: List[Any] = []
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    outputs: list[any]
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__("code", cell_dict)
-        if "outputs" in cell_dict and cell_dict["outputs"] is not None:
-            self.outputs = cell_dict["outputs"]
+        self.outputs = cell_dict.get("outputs", [])
 
 class RawCell(Cell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__("raw", cell_dict)
 
 class MarkdownCell(Cell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__("markdown", cell_dict)
 
 class KBaseCell(CodeCell):
-    kb_cell_type: str
-
-    def __init__(self, kb_cell_type: str, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, kb_cell_type: str, cell_dict: dict[str, any]) -> None:
         super().__init__(cell_dict)
         self.kb_cell_type = kb_cell_type
 
@@ -67,11 +64,12 @@ class AppCell(KBaseCell):
     app_name: str
     job_info: JobInfo
 
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseApp', cell_dict)
-        self.app_spec = None
-        self.app_id = None
-        self.app_name = None
+        app_info = cell_dict["metadata"]["kbase"].get("appCell", {})
+        self.app_spec = app_info.get("app", {}).get("spec")
+        self.app_id = self.app_spec["info"]["id"]
+        self.app_name = self.app_spec["info"]["name"]
         self.job_info = None
 
     def get_info_str(self):
@@ -79,21 +77,21 @@ class AppCell(KBaseCell):
         return f"method.{spec_info['id']}/{spec_info['gitCommitHash']}"
 
 class BulkImportCell(KBaseCell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseBulkImport', cell_dict)
 
     def get_info_str(self):
         return "kbase.bulk_import"
 
 class DataCell(KBaseCell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseData', cell_dict)
 
     def get_info_str(self):
         return "kbase.data_viewer"
 
 class OutputCell(KBaseCell):
-    def __init__(self, cell_dict: Dict[str, Any]) -> None:
+    def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseOutput', cell_dict)
 
     def get_info_str(self):
@@ -102,14 +100,14 @@ class OutputCell(KBaseCell):
 
 class NarrativeMetadata:
     creator: str
-    data_dependencies: List[str]
+    data_dependencies: list[str]
     description: str
     format: str = "ipynb"
     name: str
     is_temporary: bool
-    raw: Dict[str, Any]
+    raw: dict[str, any]
 
-    def __init__(self, narr_meta: Dict[str, Any]) -> None:
+    def __init__(self, narr_meta: dict[str, any]) -> None:
         self.creator = narr_meta.get("creator", "unknown")
         self.data_dependencies = narr_meta.get("data_dependencies", [])
         self.description = narr_meta.get("description", "")
@@ -126,9 +124,10 @@ class Narrative:
     nbformat: int
     nbformat_minor: int
     metadata: NarrativeMetadata
-    cells: List[Cell]
+    cells: list[Cell]
+    kbase_cells_by_id: dict[str, Cell]
 
-    def __init__(self, narr_dict: Dict[str, Any]) -> None:
+    def __init__(self, narr_dict: dict[str, any]) -> None:
         if "cells" not in narr_dict:
             raise ValueError("'cells' key not found, this might be a VERY old narrative. Please update it before continuing.")
         self.metadata = NarrativeMetadata(narr_dict.get("metadata", {}))
@@ -137,10 +136,17 @@ class Narrative:
         self.cells = [
             Narrative.make_cell_from_dict(cell) for cell in narr_dict["cells"]
         ]
+        self.kbase_cells_by_id = {}
+        for cell in self.cells:
+            cell_meta = cell.raw.get("metadata", {})
+            if "kbase" in cell_meta and "attributes" in cell_meta["kbase"]:
+                cell_id = cell_meta["kbase"]["attributes"].get("id")
+                if cell_id is not None:
+                    self.kbase_cells_by_id[cell_id] = cell
         self.raw = narr_dict
 
     @classmethod
-    def make_cell_from_dict(cls, cell_dict: Dict[str, Any]) -> Cell:
+    def make_cell_from_dict(cls, cell_dict: dict[str, any]) -> Cell:
         # route to the right cell constructor
         meta = cell_dict.get("metadata", {})
         if "kbase" not in meta or "type" not in meta["kbase"]:
@@ -168,14 +174,22 @@ class Narrative:
         else:
             return Cell("unknown", cell_dict)
 
+    def _add_cell(self, cell: Cell) -> None:
+        self.cells.append(cell)
+        self.raw["cells"].append(cell.to_dict())
+        cell_meta = cell.raw.get("metadata", {})
+        if "kbase" in cell_meta and "attributes" in cell_meta["kbase"]:
+            cell_id = cell_meta["kbase"]["attributes"].get("id")
+            if cell_id is not None:
+                self.kbase_cells_by_id[cell_id] = cell
+
     def add_markdown_cell(self, text: str) -> MarkdownCell:
         """
         Adds a markdown cell to the Narrative and returns it.
         """
         cell_dict = self._create_cell_dict("markdown", "markdown", text)
         new_cell = MarkdownCell(cell_dict)
-        self.cells.append(new_cell)
-        self.raw["cells"].append(cell_dict)
+        self._add_cell(new_cell)
         return new_cell
 
     def add_code_cell(self, source: str, outputs: list=[]) -> CodeCell:
@@ -184,21 +198,86 @@ class Narrative:
         """
         cell_dict = self._create_cell_dict("code", "code", source, outputs=outputs)
         new_cell = CodeCell(cell_dict)
-        self.cells.append(new_cell)
-        self.raw["cells"].append(cell_dict)
+        self._add_cell(new_cell)
         return new_cell
 
-    def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str, outputs: list=[]) -> dict[str, Any]:
+    def add_app_cell(self, job_state: JobState, app_spec: dict) -> AppCell:
+        """Adds an app cell to this narrative based on the job state and app spec.
+
+        This unpacks information from the job state and app spec to build a new KBase
+        app cell, which gets added to the bottom of the Narrative. The newly created
+        cell gets returned.
+        """
+        cell_dict = self._create_cell_dict("code", "app", "")
+        cell_dict["metadata"]["kbase"]["attributes"]["info"] = {
+            "label": "more...",
+            "url": "/#appcatalog/app/" + app_spec["info"]["id"] + "/release"
+        }
+        cell_dict["metadata"]["kbase"]["attributes"]["id"] = job_state.job_input.narrative_cell_info.cell_id
+        cell_dict["metadata"]["kbase"]["attributes"]["subtitle"] = app_spec["info"]["subtitle"]
+        cell_dict["metadata"]["kbase"]["attributes"]["title"] = app_spec["info"]["name"]
+        cell_dict["metadata"]["kbase"]["appCell"] = self._create_app_cell_meta(job_state, app_spec)
+        new_cell = AppCell(cell_dict)
+        self._add_cell(new_cell)
+        return new_cell
+
+    def _create_app_cell_meta(self, job_state: JobState, app_spec: dict) -> dict:
+        """
+        Creates the app cell metadata from info in the job state and app spec.
+        """
+        cell_job_state = self._get_cell_job_state(job_state)
+        cell_job_state["status"] = "queued"  # Force the Narrative Interface to update and redraw the cell
+        meta = {
+            "app": {
+                "gitCommitHash": app_spec["info"]["git_commit_hash"],
+                "id": app_spec["info"]["id"],
+                "version": app_spec["info"]["ver"],
+                "tag": job_state.job_input.narrative_cell_info.app_version_tag,
+                "spec": app_spec
+            },
+            "exec": {
+                "jobs": {
+                    "byId": {
+                        job_state.job_id: cell_job_state
+                    }
+                },
+                "jobState": cell_job_state,
+                "launchState": {
+                    "cell_id": job_state.job_input.narrative_cell_info.cell_id,
+                    "run_id": job_state.job_input.narrative_cell_info.run_id,
+                    "job_id": job_state.job_id,
+                    "event": "launched_job",
+                    "event_at": time.gmtime(), # TODO make ISO time string
+                }
+            },
+            "executionStats": {  # TODO: is this a service call? yes - catalog.get_exec_aggr_stats
+                "full_app_id": app_spec["info"]["id"],
+                "module_name": app_spec["info"]["module_name"],
+            },
+            "fsm": {
+                "currentState": {
+                    "mode": "processing",
+                    "stage": "queued"  # TODO make this more fine-grained based on state, but hopefully YAGNI as the interface will just figure it out
+                }
+            },
+            "paramDisplay": {},  # TODO
+            "params": map_inputs_from_job(job_state.job_input.params, app_spec),
+            "user-settings": {"showCodeInputArea": False}
+        }
+        return meta
+
+    def _create_cell_dict(self, cell_type: str, kbase_cell_type: str, source: str, outputs: list=[]) -> dict[str, any]:
         return {
             "cell_type": cell_type,
             "source": source,
             "outputs": outputs,
             "metadata": {
                 "kbase": self._create_kbase_meta(kbase_cell_type)
-            }
+            },
+            "execution_count": 0
         }
 
-    def _create_kbase_meta(self, kbase_cell_type: str) -> dict[str, Any]:
+    def _create_kbase_meta(self, kbase_cell_type: str) -> dict[str, any]:
         """
         TODO: fix this up for real and make it more robust.
         """
@@ -214,25 +293,24 @@ class Narrative:
                 "title": title,
                 "icon": icon
             },
+            "cellState": {
+                "toggleMinMax": "maximized"
+            },
             "type": kbase_cell_type
         }
         return meta
 
+    def _get_cell_job_state(self, state: JobState) -> dict:
+        cell_js = state.to_dict()
+        if "job_input" in cell_js:
+            del cell_js["job_input"]
+        return cell_js
 
     def _get_new_cell_id(self) -> str:
         new_id = str(uuid.uuid4())
-        # check all cells
-        while self._is_duplicate_id(new_id):
+        while new_id in self.kbase_cells_by_id:
             new_id = str(uuid.uuid4())
         return new_id
-
-    def _is_duplicate_id(self, cell_id: str) -> bool:
-        for cell in self.cells:
-            cell_meta = cell.raw.get("metadata", {})
-            if "kbase" in cell_meta and "attributes" in cell_meta["kbase"]:
-                if cell_meta["kbase"]["attributes"].get("id") == cell_id:
-                    return True
-        return False
 
     def to_dict(self):
         return {
@@ -242,7 +320,7 @@ class Narrative:
             "nbformat_minor": self.nbformat_minor
         }
 
-    def get_cell_counts(self):
+    def get_cell_counts(self) -> dict[str, int]:
         """
         Returns a dictionary of cell counts. Keys are one of
         jupyter.markdown

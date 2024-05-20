@@ -4,6 +4,7 @@ from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
 from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from .test_data.test_data import get_test_narrative, load_test_data_json
 from langchain_core.language_models.llms import LLM
+from pathlib import Path
 
 @pytest.fixture
 def mock_auth_request(requests_mock):
@@ -174,3 +175,16 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
     ws.get_object_info.side_effect = get_object_info_side_effect
     ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["info"])
     return ws
+
+@pytest.fixture
+def mock_job_states() -> dict[str, dict[str, any]]:
+    return load_test_data_json("job_states.json")
+
+@pytest.fixture
+def app_spec() -> dict[str, any]:
+    """
+    Loads an app spec for testing. This is the NarrativeTest/test_input_params app spec.
+    """
+    app_spec_path = Path("app_spec_data") / "test_app_spec.json"
+    spec = load_test_data_json(app_spec_path)
+    return spec

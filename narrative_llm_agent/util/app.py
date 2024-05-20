@@ -276,7 +276,7 @@ def transform_param_value(
     if (
         spec_param is not None
         and spec_param["type"] == "text"
-        and not spec_param["is_output"]
+        and not spec_param["is_output_object"]
         and len(spec_param.get("allowed_types", []))
     ):
         is_input_object_param = True
@@ -572,9 +572,77 @@ def resolve_ref_if_typed(value: str | list[str], spec_param: dict, ws_id: int, w
     """
     For a given value and associated spec, if this is not an output param,
     then ensure that the reference points to an object in the current
-    workspace, and transform the value into an UPA.
+    workspace, and transform the value into an absolute reference to it.
     """
     is_output = spec_param.get("is_output_object", False)
     if spec_param["type"] == "data_object" and not is_output:
         return resolve_ref(value, ws_id, ws_client)
+    return value
+
+def map_inputs_from_job(job_inputs: dict | list, app_spec: dict) -> dict:
+    """
+    Unmaps the actual list of job inputs back to the parameters specified by app_spec.
+    For example, the inputs given to a method might be a list like this:
+    ['input1', {'ws': 'my_workspace', 'foo': 'bar'}]
+    and the input mapping looks like:
+    [{
+        'target_position': 0,
+        'input_parameter': 'an_input'
+    },
+    {
+        'target_position': 1,
+        'target_property': 'ws',
+        'input_parameter': 'workspace'
+    },
+    {
+        'target_position': 1,
+        'target_property': 'foo',
+        'input_parameter': 'baz'
+    }]
+    this would return:
+    {
+        'an_input': 'input1',
+        'workspace': 'my_workspace',
+        'baz': 'bar'
+    }
+    This only covers those parameters from the input_mapping that come with an input_parameter
+    field. system variables, constants, etc., are ignored - this function just goes back to the
+    original inputs set by the user.
+    """
+    input_dict = {}
+    spec_inputs = app_spec["behavior"]["kb_service_input_mapping"]
+
+    # expect the inputs to be valid. so things in the expected position should be the
+    # right things (either dict, list, singleton)
+    for param in spec_inputs:
+        if "input_parameter" not in param:
+            continue
+        input_param = param.get("input_parameter", None)
+        position = param.get("target_position", 0)
+        prop = param.get("target_property", None)
+        value = job_inputs[position]
+        if prop is not None:
+            value = value.get(prop, None)
+
+        # that's the value. Now, if it was transformed, try to transform it back.
+        if "target_type_transform" in param:
+            transform_type = param["target_type_transform"]
+            if transform_type.startswith("list") and isinstance(value, list):
+                inner_transform = transform_type[5:-1]
+                for i in range(len(value)):
+                    value[i] = _untransform(inner_transform, value[i])
+            else:
+                value = _untransform(transform_type, value)
+
+        input_dict[input_param] = value
+    return input_dict
+
+
+def _untransform(transform_type: str, value: str) -> str:
+    if transform_type in ["ref", "putative-ref", "unresolved-ref"] and isinstance(value, str):
+        # shear off everything before the first '/' - there should just be one.
+        slash = value.find("/")
+        if slash == -1:
+            return value
+        return value[slash + 1 :]
     return value
