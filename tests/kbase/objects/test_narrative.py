@@ -286,4 +286,3 @@ class TestNarrative:
         assert new_cell.cell_type == "code"
         assert new_cell.kb_cell_type == "KBaseApp"
         assert len(narr.cells) == num_cells + 1
-        print(json.dumps(new_cell.raw, indent=4))

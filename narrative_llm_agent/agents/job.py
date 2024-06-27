@@ -127,12 +127,12 @@ class JobAgent(KBaseAgent):
         spec = nms.get_app_spec(app_id, include_full_info=True)
         return json.dumps(get_processed_app_spec_params(spec))
 
-    def _monitor_job(self: "JobAgent", job_id: str) -> str:
+    def _monitor_job(self: "JobAgent", job_id: str, interval: int=10) -> str:
         is_complete = False
         while not is_complete:
             status = self._job_status(job_id, as_str=False)
-            if status["status"] in ["completed", "error"]:
+            if status.status in ["completed", "error"]:
                 is_complete = True
             else:
-                time.sleep(10)
-        return json.dumps(status)
+                time.sleep(interval)
+        return str(status)

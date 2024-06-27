@@ -1,6 +1,5 @@
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
 import pytest
-from tests.test_data.test_data import load_test_data_json
 
 token = "not_a_token"
 endpoint = "https://nope.kbase.us/services/not_ee2"
