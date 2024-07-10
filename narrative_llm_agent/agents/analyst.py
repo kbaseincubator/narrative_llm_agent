@@ -10,7 +10,9 @@ from langchain.tools import tool
 import os
 from pathlib import Path
 from langchain.agents import load_tools
-
+from langchain_core.runnables import RunnableConfig
+import chainlit as cl
+from narrative_llm_agent.tools.human_tool import HumanInputChainlit
 
 class AnalystInput(BaseModel):
     input: str = Field(
@@ -87,6 +89,13 @@ class AnalystAgent(KBaseAgent):
             raise KeyError("Missing environment variable OPENAI_API_KEY")
 
     def __init_agent(self: "AnalystAgent") -> None:
+        cfg = RunnableConfig()
+        # Check if running with Chainlit
+        if os.getenv('CHAINLIT_RUN'):
+            cfg["callbacks"] = [cl.LangchainCallbackHandler()]
+            human_tools = [HumanInputChainlit()]
+        else:
+            human_tools = load_tools(["human"])
         @tool(
             "KBase documentation retrieval tool",
             args_schema=AnalystInput,
@@ -109,7 +118,7 @@ class AnalystAgent(KBaseAgent):
             return self._create_doc_chain(persist_directory=self._catalog_db_dir).invoke(
                 {"query": input}
             )
-        human_tools = load_tools(["human"])
+    
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
