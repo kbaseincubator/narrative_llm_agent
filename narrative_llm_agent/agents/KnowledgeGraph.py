@@ -34,7 +34,7 @@ class KGAgent(KBaseAgent):
         super().__init__(token, llm)
         self.__setup_openai_api_key(openai_api_key)
         self.__init_agent()
-
+    
     def __setup_openai_api_key(self, openai_api_key: str) -> None:
         if openai_api_key is not None:
             self._openai_key = openai_api_key
@@ -57,7 +57,6 @@ class KGAgent(KBaseAgent):
             """This tool has the KBase app Knowledge Graph. Useful for when you need to find the KBase applications and their tooltip, version, category and data objects.
             The input should always be a KBase app name and should not include any special characters or version number. """
             return self._create_KG_agent().invoke({"input": input})['output']
-
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
