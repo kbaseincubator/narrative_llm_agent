@@ -48,6 +48,8 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Run tests
+        env:
+          PYTHONPATH: ${{github.workspace}}
         run: poetry run pytest
 
       - name: Send to Codecov
