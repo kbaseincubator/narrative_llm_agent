@@ -116,7 +116,7 @@ class TestAppCell:
         assert cell.app_spec == sample_cell_dict["metadata"]["kbase"]["appCell"]["app"]["spec"]
         assert cell.app_id == "app_id"
         assert cell.app_name == "App Name"
-        assert cell.job_info is None  # TODO
+        assert cell.job_state is None  # TODO
         assert cell.cell_type == "code"
         assert cell.kb_cell_type == "KBaseApp"
 
