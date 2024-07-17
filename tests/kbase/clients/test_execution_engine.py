@@ -35,7 +35,7 @@ class TestJobState:
 
     def test_error_on_start(self, mock_job_states):
         job_id = "job_id_1"
-        reqd_keys = ["job_id", "wsid", "status"]
+        reqd_keys = ["job_id", "status"]
         for key in reqd_keys:
             copy_json = mock_job_states[job_id].copy()
             del copy_json[key]
