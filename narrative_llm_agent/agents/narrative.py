@@ -8,6 +8,7 @@ from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.objects.narrative import Narrative
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
@@ -49,6 +50,14 @@ class NarrativeAgent(KBaseAgent):
             dictionary or JSON-formatted string."""
             return self._get_narrative(process_tool_input(narrative_id, "narrative_id"))
 
+        @tool(args_schema=NarrativeInput, return_direct=False)
+        def get_narrative_state(narrative_id: int) -> str:
+            """Get the current state of a Narrative from the KBase workspace. This returns the most
+            recent version of the Narrative document with the given id in a reduced format that can be
+            more easily interpreted by an LLM with less confusion. The narrative_id input must be
+            numeric. Do not input a dictionary or JSON-formatted string."""
+            return self._get_narrative_state(process_tool_input(narrative_id, "narrative_id"))
+
         @tool(args_schema=MarkdownCellInput, return_direct=False)
         def add_markdown_cell(narrative_id: int, markdown_text: str) -> str:
             """Add a new markdown cell to an existing Narrative document. This cell gets added to the
@@ -79,14 +88,15 @@ class NarrativeAgent(KBaseAgent):
             tools = [
                 get_narrative,
                 add_app_cell,
-                add_markdown_cell
+                add_markdown_cell,
+                get_narrative_state
             ],
             llm=self._llm,
             allow_delegation=False,
             memory=True,
         )
 
-    def _get_narrative(self, narrative_id: int) -> str:
+    def _get_narrative(self, narrative_id: int, as_json: bool=True) -> str | Narrative:
         """
         Fetch a Narrative object from the Workspace service with given narrative id.
         This is returned as a JSON string.
@@ -94,7 +104,14 @@ class NarrativeAgent(KBaseAgent):
         ws = Workspace(self._token, self.ws_endpoint)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
-        return str(narr)
+        if as_json:
+            return str(narr)
+        return narr
+
+    def _get_narrative_state(self, narrative_id: int) -> str:
+        narr = self._get_narrative(narrative_id, as_json=False)
+        ee = ExecutionEngine(self._token, self.ee_endpoint)
+        return narr.get_current_state(ee)
 
     def _add_markdown_cell(self, narrative_id: int, markdown_text: str) -> str:
         """

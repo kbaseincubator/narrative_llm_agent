@@ -1,3 +1,4 @@
+from typing import Any
 from ..service_client import ServiceClient
 import json
 
@@ -82,6 +83,7 @@ class JobState:
     ws_id: int
     status: str
     job_input: JobInput
+    job_output: dict[str, Any] | None
     created: int
     queued: int
     estimating: int
@@ -103,16 +105,19 @@ class JobState:
         Creates a simple object for holding and validating job states.
         If any required fields are missing, this raises a KeyError.
         """
-        required_fields = ["job_id", "user", "wsid", "status", "job_input"]
+        required_fields = ["job_id", "status"]
         missing = [field for field in required_fields if field not in data]
         if len(missing):
             raise KeyError(f"JobState data is missing required field(s) {','.join(missing)}")
 
         self.job_id = data["job_id"]
-        self.user = data["user"]
-        self.ws_id = data["wsid"]
+        self.ws_id = data.get("wsid")
         self.status = data["status"]
-        self.job_input = JobInput(data["job_input"])
+        self.user = data.get("user")
+        self.job_input = None
+        if "job_input" in data:
+            self.job_input = JobInput(data["job_input"])
+        self.job_output = data.get("job_output")
         self.created = data.get("created", 0)
         self.queued = data.get("queued", 0)
         self.estimating = data.get("estimating", 0)
@@ -134,8 +139,10 @@ class JobState:
         self.retry_ids = data.get("retry_ids", [])
 
     def to_dict(self) -> dict:
-        required = ["job_id", "user", "status", "ws_id", "child_jobs", "batch_job"]
+        required = ["job_id", "user", "status", "child_jobs", "batch_job"]
         dict_form = {key: getattr(self, key) for key in required}
+
+        dict_form["wsid"] = self.ws_id
 
         time_keys = ["created", "queued", "estimating", "running", "finished", "updated"]
         for key in time_keys:

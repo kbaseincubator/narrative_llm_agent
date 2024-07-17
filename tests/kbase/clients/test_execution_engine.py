@@ -1,6 +1,5 @@
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
 import pytest
-from tests.test_data.test_data import load_test_data_json
 
 token = "not_a_token"
 endpoint = "https://nope.kbase.us/services/not_ee2"
@@ -36,7 +35,7 @@ class TestJobState:
 
     def test_error_on_start(self, mock_job_states):
         job_id = "job_id_1"
-        reqd_keys = ["job_id", "user", "wsid", "status", "job_input"]
+        reqd_keys = ["job_id", "status"]
         for key in reqd_keys:
             copy_json = mock_job_states[job_id].copy()
             del copy_json[key]

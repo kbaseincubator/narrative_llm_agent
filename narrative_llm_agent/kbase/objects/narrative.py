@@ -1,5 +1,6 @@
 import json
-from narrative_llm_agent.kbase.clients.execution_engine import JobState
+from typing import Any
+from narrative_llm_agent.kbase.clients.execution_engine import JobState, ExecutionEngine
 from narrative_llm_agent.util.app import map_inputs_from_job
 from narrative_llm_agent.util.tool import convert_to_boolean
 import time
@@ -11,9 +12,6 @@ NARRATIVE_NAME_KEY: str = "narrative_nice_name"
 NARRATIVE_TYPE: str = "KBaseNarrative.Narrative"
 
 class AppSpec:
-    pass
-
-class JobInfo:
     pass
 
 class Cell:
@@ -62,7 +60,8 @@ class AppCell(KBaseCell):
     app_spec: AppSpec
     app_id: str
     app_name: str
-    job_info: JobInfo
+    job_state: JobState
+    params: dict
 
     def __init__(self, cell_dict: dict[str, any]) -> None:
         super().__init__('KBaseApp', cell_dict)
@@ -70,7 +69,10 @@ class AppCell(KBaseCell):
         self.app_spec = app_info.get("app", {}).get("spec")
         self.app_id = self.app_spec["info"]["id"]
         self.app_name = self.app_spec["info"]["name"]
-        self.job_info = None
+        self.job_state = None
+        if "exec" in app_info and "jobState" in app_info["exec"]:
+            self.job_state = JobState(app_info["exec"]["jobState"])
+        self.params = app_info.get("params", {})
 
     def get_info_str(self):
         spec_info = self.raw["metadata"]["kbase"].get("appCell", {}).get("app")
@@ -312,10 +314,61 @@ class Narrative:
             new_id = str(uuid.uuid4())
         return new_id
 
-    def to_dict(self):
+    def get_current_state(self, ee_client: ExecutionEngine, as_json: bool=True) -> dict[str, Any]:
+        """
+        Gets the current state of this narrative by the following means:
+        1. Markdown and Code cells are left unchanged
+        2. Various KBase cells are adjusted to not be quite as large. Metadata is reduced to the minimum to
+           define what cell that is and what app (if any) exists in it.
+        3. Any app cells get their job state (if any) looked up and updated.
+        4. The narrative is then returned as a dictionary.
+        """
+        cell_states = []
+
+        for cell in self.cells:
+            if isinstance(cell, AppCell):
+                reduced_app_cell = {
+                    "app_id": cell.app_id,
+                    "app_name": cell.app_name,
+                    "app_params": cell.params,
+                }
+                if cell.job_state is not None:
+                    job_id = cell.job_state.job_id
+                    cur_state = ee_client.check_job(job_id)
+                    reduced_app_cell["job_state"] = {
+                        "job_id": job_id,
+                        "status": cur_state.status,
+                    }
+                    if cur_state.error:
+                        reduced_app_cell["job_state"]["error"] = cur_state.error
+                    results = cur_state.job_output
+                    if results:
+                        if "results" in results:
+                            results = results["results"]
+                        reduced_app_cell["results"] = results
+                cell_states.append(reduced_app_cell)
+
+            elif isinstance(cell, OutputCell):
+                # do output cell stuff later
+                cell_states.append(cell.to_dict())
+            else:
+                cell_states.append(cell.to_dict())
+
+        narr_dict = self._make_narrative_dict(cell_states, self.metadata.to_dict())
+        if as_json:
+            return json.dumps(narr_dict)
+        return narr_dict
+
+    def to_dict(self) -> dict[str, Any]:
+        return self._make_narrative_dict(
+            [cell.to_dict() for cell in self.cells],
+            self.metadata.to_dict()
+        )
+
+    def _make_narrative_dict(self, cell_dicts: list[dict[str, Any]], meta_dict: dict[str, Any]) -> dict[str, Any]:
         return {
-            "cells": [cell.to_dict() for cell in self.cells],
-            "metadata": self.metadata.to_dict(),
+            "cells": cell_dicts,
+            "metadata": meta_dict,
             "nbformat": self.nbformat,
             "nbformat_minor": self.nbformat_minor
         }
