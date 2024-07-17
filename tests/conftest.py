@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock
 from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
 from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
-from .test_data.test_data import get_test_narrative, load_test_data_json
+from tests.test_data.test_data import get_test_narrative, load_test_data_json
 from langchain_core.language_models.llms import LLM
 from pathlib import Path
 
