@@ -105,13 +105,13 @@ class JobState:
         Creates a simple object for holding and validating job states.
         If any required fields are missing, this raises a KeyError.
         """
-        required_fields = ["job_id", "wsid", "status"]
+        required_fields = ["job_id", "status"]
         missing = [field for field in required_fields if field not in data]
         if len(missing):
             raise KeyError(f"JobState data is missing required field(s) {','.join(missing)}")
 
         self.job_id = data["job_id"]
-        self.ws_id = data["wsid"]
+        self.ws_id = data.get("wsid")
         self.status = data["status"]
         self.user = data.get("user")
         self.job_input = None
