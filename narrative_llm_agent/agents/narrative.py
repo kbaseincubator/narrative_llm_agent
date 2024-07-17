@@ -88,7 +88,8 @@ class NarrativeAgent(KBaseAgent):
             tools = [
                 get_narrative,
                 add_app_cell,
-                add_markdown_cell
+                add_markdown_cell,
+                get_narrative_state
             ],
             llm=self._llm,
             allow_delegation=False,
