@@ -110,7 +110,8 @@ class NarrativeAgent(KBaseAgent):
 
     def _get_narrative_state(self, narrative_id: int) -> str:
         narr = self._get_narrative(narrative_id, as_json=False)
-        return narr.get_current_state()
+        ee = ExecutionEngine(self._token, self.ee_endpoint)
+        return narr.get_current_state(ee)
 
     def _add_markdown_cell(self, narrative_id: int, markdown_text: str) -> str:
         """

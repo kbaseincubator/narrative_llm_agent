@@ -314,7 +314,7 @@ class Narrative:
             new_id = str(uuid.uuid4())
         return new_id
 
-    def get_current_state(self, ee_client: ExecutionEngine) -> dict[str, Any]:
+    def get_current_state(self, ee_client: ExecutionEngine, as_json: bool=True) -> dict[str, Any]:
         """
         Gets the current state of this narrative by the following means:
         1. Markdown and Code cells are left unchanged
@@ -354,7 +354,10 @@ class Narrative:
             else:
                 cell_states.append(cell.to_dict())
 
-        return self._make_narrative_dict(cell_states, self.metadata.to_dict())
+        narr_dict = self._make_narrative_dict(cell_states, self.metadata.to_dict())
+        if as_json:
+            return json.dumps(narr_dict)
+        return narr_dict
 
     def to_dict(self) -> dict[str, Any]:
         return self._make_narrative_dict(
