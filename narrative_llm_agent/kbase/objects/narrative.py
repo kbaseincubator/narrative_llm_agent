@@ -339,7 +339,7 @@ class Narrative:
                         "job_id": job_id,
                         "status": cur_state.status,
                     }
-                    if "error" in cur_state:
+                    if cur_state.error:
                         reduced_app_cell["job_state"]["error"] = cur_state.error
                     results = cur_state.job_output
                     if results:
@@ -349,7 +349,7 @@ class Narrative:
                 cell_states.append(reduced_app_cell)
 
             elif isinstance(cell, OutputCell):
-                # do output cell stuff
+                # do output cell stuff later
                 cell_states.append(cell.to_dict())
             else:
                 cell_states.append(cell.to_dict())
