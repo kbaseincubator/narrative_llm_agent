@@ -85,7 +85,7 @@ class WorkspaceUtil:
             node = url.split("/shock-api/node/")[-1]
             url = f"{self._service_endpoint}blobstore/node/{node}?download"
         headers = {
-            "Authorization": token
+            "Authorization": f"OAuth {token}"
         }
         resp = requests.get(url, headers=headers)
         try:
