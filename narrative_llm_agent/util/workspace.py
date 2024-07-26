@@ -83,7 +83,7 @@ class WorkspaceUtil:
             # we need to make it look like
             # https://env.kbase.us/services/data_import_export/download?id=<shock_uuid>&wszip=0&name=<filename>
             node = url.split("/shock-api/node/")[-1]
-            url = f"{self._service_endpoint}/data_import_export/download?id={node}&wszip=0&name={report_file.name}"
+            url = f"{self._service_endpoint}blobstore/node/{node}?download"
         headers = {
             "Authorization": token
         }
