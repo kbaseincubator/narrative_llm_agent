@@ -10,10 +10,10 @@ token = "not_a_token"
 endpoint = "https://nope.kbase.us/services/not_ws"
 
 @pytest.fixture
-def client():
+def ws_client():
     return Workspace(token, endpoint)
 
-def test_get_ws_info(mock_kbase_client_call, client):
+def test_get_ws_info(mock_kbase_client_call, ws_client):
     ws_id = 123
     ws_info = [
         ws_id,
@@ -26,12 +26,12 @@ def test_get_ws_info(mock_kbase_client_call, client):
         "n",
         {}
     ]
-    mock_kbase_client_call(client, ws_info)
+    mock_kbase_client_call(ws_client, ws_info)
     expected_info = WorkspaceInfo(ws_info)
-    ret_info = client.get_workspace_info(ws_id)
+    ret_info = ws_client.get_workspace_info(ws_id)
     assert str(expected_info) == str(ret_info)
 
-def test_list_workspace_objects(mock_kbase_client_call, client):
+def test_list_workspace_objects(mock_kbase_client_call, ws_client):
     """
     Need to cheat here a little bit as we're mocking two different calls.
     This would be opaque to the user, but as we're testing the client (and not mocking
@@ -44,18 +44,18 @@ def test_list_workspace_objects(mock_kbase_client_call, client):
         [2, "foo2", "Object.Type", "123", 5, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}],
         [3, "foo3", "Object.Type", "123", 6, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}]
     ]
-    mock_kbase_client_call(client, ws_info, "get_workspace_info")
-    mock_kbase_client_call(client, expected_infos, "list_objects")
-    received = client.list_workspace_objects(ws_id)
+    mock_kbase_client_call(ws_client, ws_info, "get_workspace_info")
+    mock_kbase_client_call(ws_client, expected_infos, "list_objects")
+    received = ws_client.list_workspace_objects(ws_id)
     for idx, obj_info in enumerate(received):
         assert obj_info == expected_infos[idx]
 
-    received = client.list_workspace_objects(ws_id, as_dict=True)
+    received = ws_client.list_workspace_objects(ws_id, as_dict=True)
     for idx, obj_info in enumerate(received):
         assert obj_info == Workspace.obj_info_to_json(expected_infos[idx])
 
 
-def test_get_object_upas(mock_kbase_client_call, client):
+def test_get_object_upas(mock_kbase_client_call, ws_client):
     """
     Also cheating here. See test_list_workspace_objects.
     """
@@ -71,13 +71,13 @@ def test_get_object_upas(mock_kbase_client_call, client):
         WorkspaceObjectId.from_upa("123456/2/5"),
         WorkspaceObjectId.from_upa("123456/3/6")
     ]
-    mock_kbase_client_call(client, ws_info, "get_workspace_info")
-    mock_kbase_client_call(client, object_infos, "list_objects")
-    received = client.get_object_upas(ws_id)
+    mock_kbase_client_call(ws_client, ws_info, "get_workspace_info")
+    mock_kbase_client_call(ws_client, object_infos, "list_objects")
+    received = ws_client.get_object_upas(ws_id)
     for idx, upa in enumerate(received):
         assert str(upa) == str(expected[idx])
 
-def test_get_objects(mock_kbase_client_call, client):
+def test_get_objects(mock_kbase_client_call, ws_client):
     """
     #TODO this should include a mock that checks / asserts based around
     the full parameter formatting, and possibly the object result.
@@ -102,11 +102,11 @@ def test_get_objects(mock_kbase_client_call, client):
     """
     refs = ["1/2/3", "4/5/6"]
     expected_objs = [{"obj1": "stuff"}, {"obj2": "stuff"}]
-    mock_kbase_client_call(client, {"data": expected_objs})
-    assert client.get_objects(refs) == expected_objs
-    assert client.get_objects(refs, ["some/data/paths"]) == expected_objs
+    mock_kbase_client_call(ws_client, {"data": expected_objs})
+    assert ws_client.get_objects(refs) == expected_objs
+    assert ws_client.get_objects(refs, ["some/data/paths"]) == expected_objs
 
-def test_save_objects(mock_kbase_client_call, client):
+def test_save_objects(mock_kbase_client_call, ws_client):
     """
     Returns an object info in real life. For the unit test, we're kinda testing
     a no-op, ensuring that the request is well-formed and the client responds
@@ -116,8 +116,8 @@ def test_save_objects(mock_kbase_client_call, client):
     If we ever do some integration tests, that belongs there.
     """
     obj_info = [1, "foo", "bar", "123", 2, "me", 3, "nope", "noway", 1231234, {"some": "meta"}]
-    mock_kbase_client_call(client, [obj_info])
-    assert client.save_objects(3, [{"myobject": "lives_here"}]) == [obj_info]
+    mock_kbase_client_call(ws_client, [obj_info])
+    assert ws_client.save_objects(3, [{"myobject": "lives_here"}]) == [obj_info]
 
 def test_obj_info_to_json():
     obj_id = 1

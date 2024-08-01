@@ -29,7 +29,11 @@ class AnalystAgent(KBaseAgent):
     )
     backstory = """You are an expert academic computational biologist with decades of
     experience working in microbial genetics. You have published several genome announcement
-    papers and have worked extensively with novel sequence data."""
+    papers and have worked extensively with novel sequence data. You are an experienced expert
+    at data analysis and interpretation. You have a talent for delegating data retrieval and
+    job running tasks to your coworkers. You don't do much of the work of data generation,
+    but are very good at coordinating tasks among your coworkers, managing their process,
+    and extracting knowledge from the results."""
     _openai_key: str
     _catalog_db_dir: Path
     _docs_db_dir: Path
@@ -118,7 +122,7 @@ class AnalystAgent(KBaseAgent):
             return self._create_doc_chain(persist_directory=self._catalog_db_dir).invoke(
                 {"query": input}
             )
-    
+
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
