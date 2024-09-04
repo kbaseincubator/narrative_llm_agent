@@ -13,6 +13,7 @@ from narrative_llm_agent.util.app import (
     build_run_job_params
 )
 import time
+from langchain.agents import load_tools
 
 class JobInput(BaseModel):
     job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
@@ -41,6 +42,7 @@ class JobAgent(KBaseAgent):
         self.ws_endpoint = self._service_endpoint + "ws"
 
     def __init_agent(self: "JobAgent") -> None:
+        human_tools = load_tools(["human"])
         @tool(args_schema=JobInput, return_direct=False)
         def job_status(job_id: str) -> str:
             """Looks up and returns the status of a KBase job. Returns the status as a
@@ -96,7 +98,7 @@ class JobAgent(KBaseAgent):
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools = [ job_status, start_job, get_app_params, monitor_job ],
+            tools = [ job_status, start_job, get_app_params, monitor_job ] + human_tools,
             llm=self._llm,
             allow_delegation=False,
             memory=True,
