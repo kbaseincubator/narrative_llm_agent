@@ -2,7 +2,6 @@ from crewai import Agent
 from narrative_llm_agent.agents.kbase_agent import KBaseAgent
 from langchain_core.language_models.llms import LLM
 
-
 class CoordinatorAgent(KBaseAgent):
     role: str = "Project coordinator"
     goal: str = (
