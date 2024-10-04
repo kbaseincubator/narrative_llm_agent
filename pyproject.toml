@@ -8,11 +8,11 @@ packages = [{include = "narrative_llm_agent"},{include='tests'}]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
-langchain = ">0.2,<=0.3"
-crewai = "0.41.0"
+langchain = ">0.2"
+crewai = ">0.41.0"
 requests = "^2.31.0"
 chromadb = "^0.4.24"
-ruff = "0.3.1"
+ruff = ">0.3.1"
 neo4j = "^5.18.0"
 streamlit = "^1.32.2"
 dash = "^2.16.1"
