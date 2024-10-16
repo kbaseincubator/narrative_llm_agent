@@ -66,18 +66,6 @@ class MetadataAgent(KBaseAgent):
             """Return the metadata for a KBase Workspace object with the given UPA."""
             return self._get_object_metadata(process_tool_input(obj_upa, "obj_upa"))
 
-        # @tool("Store Conversation Tool", args_schema=StoreConversationInput)
-        # def store_conversation(narrative_id: int, json_conversation: str) -> str:
-        #     """Securely store a conversation in a KBase Narrative."""
-        #     print("this is the JSON:\n----------\n")
-        #     print(json.loads(json_conversation))
-        #     print(f"stored in narrative {narrative_id}")
-        #     print("-------------")
-        #     return self._store_conversation(
-        #         process_tool_input(narrative_id, "narrative_id"),
-        #         process_tool_input(json_conversation, "json_input")
-        #     )
-
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
