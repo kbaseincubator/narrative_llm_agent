@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import Mock
+from narrative_llm_agent.kbase.objects.narrative import Narrative
 from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
 from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from tests.test_data.test_data import get_test_narrative, load_test_data_json
@@ -134,6 +135,10 @@ def mock_kbase_client_call(requests_mock):
         )
         return response_packet
     return kbase_call
+
+@pytest.fixture
+def test_narrative_object():
+    return Narrative(get_test_narrative(as_dict=True))
 
 @pytest.fixture
 def sample_narrative_json() -> str:
