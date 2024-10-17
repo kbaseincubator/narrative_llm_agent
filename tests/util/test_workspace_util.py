@@ -16,15 +16,15 @@ def mocked_ws_util(mocker):
     only gets the given report data object
     """
     def make_mocked_util(report):
-        ws_util = WorkspaceUtil(token, endpoint)
+        mocker.patch("narrative_llm_agent.util.workspace.WS_ENDPOINT", endpoint)
+        ws_util = WorkspaceUtil(token)
         mocker.patch.object(ws_util._ws, "get_objects", return_value=[report])
         return ws_util
     return make_mocked_util
 
 def test_init():
-    ws_util = WorkspaceUtil(token, endpoint)
+    ws_util = WorkspaceUtil(token)
     assert ws_util._token == token
-    assert ws_util._service_endpoint == endpoint
     assert isinstance(ws_util._ws, Workspace)
 
 def test_get_report_fastqc_ok(mocked_ws_util, requests_mock):

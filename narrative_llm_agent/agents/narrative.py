@@ -9,7 +9,11 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
 from narrative_llm_agent.kbase.objects.narrative import Narrative
-
+from narrative_llm_agent.config import (
+    EE_ENDPOINT,
+    NMS_ENDPOINT,
+    WS_ENDPOINT
+)
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
 
@@ -30,16 +34,10 @@ class NarrativeAgent(KBaseAgent):
     job information and state, for your team. You are an expert at the Jupyter Notebook and notebook cell structure. You have an array of tools
     for your use to help facilitate this role.
     """
-    ws_endpoint: str
-    ee_endpoint: str
-    nms_endpoint: str
 
     def __init__(self: "NarrativeAgent", token: str, llm: LLM) -> "NarrativeAgent":
         super().__init__(token, llm)
         self.__init_agent()
-        self.ws_endpoint = self._service_endpoint + "ws"
-        self.ee_endpoint = self._service_endpoint + "ee2"
-        self.nms_endpoint = self._service_endpoint + "narrative_method_store/rpc"
 
     def __init_agent(self: "NarrativeAgent"):
         @tool(args_schema=NarrativeInput, return_direct=False)
@@ -101,7 +99,7 @@ class NarrativeAgent(KBaseAgent):
         Fetch a Narrative object from the Workspace service with given narrative id.
         This is returned as a JSON string.
         """
-        ws = Workspace(self._token, self.ws_endpoint)
+        ws = Workspace(self._token, WS_ENDPOINT)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         if as_json:
@@ -110,7 +108,7 @@ class NarrativeAgent(KBaseAgent):
 
     def _get_narrative_state(self, narrative_id: int) -> str:
         narr = self._get_narrative(narrative_id, as_json=False)
-        ee = ExecutionEngine(self._token, self.ee_endpoint)
+        ee = ExecutionEngine(self._token, EE_ENDPOINT)
         return narr.get_current_state(ee)
 
     def _add_markdown_cell(self, narrative_id: int, markdown_text: str) -> str:
@@ -119,7 +117,7 @@ class NarrativeAgent(KBaseAgent):
         markdown_text into ta new markdown cell. If successful, this returns the string
         'success'.
         """
-        ws = Workspace(self._token, self.ws_endpoint)
+        ws = Workspace(self._token, WS_ENDPOINT)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         narr.add_markdown_cell(markdown_text)
@@ -133,9 +131,9 @@ class NarrativeAgent(KBaseAgent):
         bottom of the narrative in the state it was in during the last check. If successful,
         this returns the string 'success'.
         """
-        ws = Workspace(self._token, self.ws_endpoint)
-        ee = ExecutionEngine(self._token, self.ee_endpoint)
-        nms = NarrativeMethodStore(self.nms_endpoint)
+        ws = Workspace(self._token, WS_ENDPOINT)
+        ee = ExecutionEngine(self._token, EE_ENDPOINT)
+        nms = NarrativeMethodStore(NMS_ENDPOINT)
         job_state = ee.check_job(job_id)
         app_spec = nms.get_app_spec(job_state.job_input.app_id)
 

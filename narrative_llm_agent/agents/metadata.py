@@ -8,6 +8,7 @@ from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from crewai_tools import tool, BaseTool
 import json
+from narrative_llm_agent.config import WS_ENDPOINT
 
 class MetadataInput(BaseModel):
     obj_upa: str = "UPA for reads data object"
@@ -82,7 +83,7 @@ class MetadataAgent(KBaseAgent):
         # look up object info first, get metadata from that to form a prompt.
         # then have the agent converse with the user.
         print("looking up obj info for " + obj_upa)
-        ws = Workspace(self._token, endpoint=self._service_endpoint + "ws")
+        ws = Workspace(self._token, endpoint=WS_ENDPOINT)
         obj_info = ws.get_object_info(obj_upa)
         print("got object info")
         print(obj_info)
@@ -90,7 +91,7 @@ class MetadataAgent(KBaseAgent):
 
     def _store_conversation(self: "MetadataAgent", narrative_id: int, json_conversation: str) -> str:
         """Stores JSON-formatted results of a conversation in a Narrative markdown cell."""
-        ws = Workspace(self._token, endpoint=self._service_endpoint + "ws")
+        ws = Workspace(self._token, endpoint=WS_ENDPOINT)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         narr.add_markdown_cell(json_conversation)

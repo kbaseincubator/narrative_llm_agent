@@ -4,6 +4,7 @@ from narrative_llm_agent.agents.narrative import (
 )
 from tests.test_data.test_data import load_test_data_json
 from pathlib import Path
+from narrative_llm_agent.config import EE_ENDPOINT, NMS_ENDPOINT
 
 token = "not_a_token"
 
@@ -41,8 +42,8 @@ def test_add_app_cell(mock_llm, mocker, mock_kbase_jsonrpc_1_call, test_narrativ
     na = NarrativeAgent(token, mock_llm)
     state_dict = load_test_data_json(Path("app_spec_data") / "app_spec_job_state.json")
     # Digging into too many details here, but good enough.
-    mock_kbase_jsonrpc_1_call(na.ee_endpoint, state_dict)
-    mock_kbase_jsonrpc_1_call(na.nms_endpoint, [app_spec])
+    mock_kbase_jsonrpc_1_call(EE_ENDPOINT, state_dict)
+    mock_kbase_jsonrpc_1_call(NMS_ENDPOINT, [app_spec])
     num_cells = len(test_narrative_object.cells)
     resp = na._add_app_cell(wsid, job_id)
     assert resp == "success"

@@ -14,6 +14,11 @@ from narrative_llm_agent.util.app import (
 )
 import time
 from langchain.agents import load_tools
+from narrative_llm_agent.config import (
+    EE_ENDPOINT,
+    NMS_ENDPOINT,
+    WS_ENDPOINT
+)
 
 class JobInput(BaseModel):
     job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
@@ -37,9 +42,6 @@ class JobAgent(KBaseAgent):
     def __init__(self: "JobAgent", token: str, llm: LLM) -> "JobAgent":
         super().__init__(token, llm)
         self.__init_agent()
-        self.ee_endpoint = self._service_endpoint + "ee2"
-        self.nms_endpoint = self._service_endpoint + "narrative_method_store/rpc"
-        self.ws_endpoint = self._service_endpoint + "ws"
 
     def __init_agent(self: "JobAgent") -> None:
         human_tools = load_tools(["human"])
@@ -105,7 +107,7 @@ class JobAgent(KBaseAgent):
         )
 
     def _job_status(self: "JobAgent", job_id: str, as_str=True) -> str | JobState:
-        ee = ExecutionEngine(self._token, self.ee_endpoint)
+        ee = ExecutionEngine(self._token, EE_ENDPOINT)
         status = ee.check_job(job_id)
         if as_str:
             return str(status)
@@ -116,16 +118,16 @@ class JobAgent(KBaseAgent):
         print(f"narrative_id: {narrative_id}")
         print(f"app_id: {app_id}")
         print(f"params: {params}")
-        ee = ExecutionEngine(self._token, endpoint=self.ee_endpoint)
-        nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
-        ws = Workspace(self._token, endpoint=self.ws_endpoint)
+        ee = ExecutionEngine(self._token, endpoint=EE_ENDPOINT)
+        nms = NarrativeMethodStore(endpoint=NMS_ENDPOINT)
+        ws = Workspace(self._token, endpoint=WS_ENDPOINT)
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(spec, params, narrative_id, ws)
         print(job_submission)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
-        nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
+        nms = NarrativeMethodStore(endpoint=NMS_ENDPOINT)
         spec = nms.get_app_spec(app_id, include_full_info=True)
         return json.dumps(get_processed_app_spec_params(spec))
 

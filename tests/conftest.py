@@ -6,6 +6,9 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from tests.test_data.test_data import get_test_narrative, load_test_data_json
 from langchain_core.language_models.llms import LLM
 from pathlib import Path
+from narrative_llm_agent.config import WS_ENDPOINT
+
+print(WS_ENDPOINT)
 
 @pytest.fixture
 def mock_auth_request(requests_mock):
