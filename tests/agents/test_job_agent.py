@@ -5,7 +5,7 @@ import pytest
 from narrative_llm_agent.agents.job import JobAgent
 from narrative_llm_agent.kbase.clients.execution_engine import JobState
 from narrative_llm_agent.kbase.clients.workspace import WorkspaceInfo, Workspace
-from narrative_llm_agent.config import EE_ENDPOINT
+from narrative_llm_agent.config import get_config
 from pathlib import Path
 
 from tests.test_data.test_data import load_test_data_json
@@ -30,7 +30,7 @@ def test_init(mock_llm):
 def test_job_status_tool(mock_llm, mock_kbase_jsonrpc_1_call, mock_job_states):
     ja = JobAgent(token, mock_llm)
     for job_id, state in mock_job_states.items():
-        mock_kbase_jsonrpc_1_call(EE_ENDPOINT, state)
+        mock_kbase_jsonrpc_1_call(get_config().ee_endpoint, state)
         expected_job_state = JobState(state)
         assert json.loads(ja._job_status(job_id)) == expected_job_state.to_dict()
         assert ja._job_status(job_id, as_str=False) == expected_job_state

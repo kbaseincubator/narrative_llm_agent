@@ -1,25 +1,57 @@
+"""
+This loads up the configuration from a config file.
+It first looks for the configuration under the NARRATIVE_LLM_AGENT_CONFIG environment variable.
+If that's not found, it defaults to `config.cfg` in the root directory.
+The environment variable, if present, should be a path to a config file, relative to
+the root directory.
+E.g. if your config is "my_config.cfg", then this expects the file to be in:
+/home/my_user/narrative_llm_agent/my_config.cfg
+"""
+
 from pathlib import Path
 from configparser import ConfigParser
+import os
 
-CONFIG_FILE = "config.cfg"
-CONFIG_PATH: Path = (Path(__file__).parent / ".." / CONFIG_FILE).resolve()
-config = ConfigParser()
-if not CONFIG_PATH.exists:
-    raise RuntimeError(f"Missing {CONFIG_FILE} file")
 
-config.read(CONFIG_PATH)
-kbase_cfg = dict(config.items("kbase"))
+DEFAULT_CONFIG_FILE = "config.cfg"
+ENV_CONFIG_FILE = "NARRATIVE_LLM_AGENT_CONFIG"
 
-SERVICE_ENDPOINT = kbase_cfg.get("service_endpoint")
-WS_ENDPOINT = SERVICE_ENDPOINT + kbase_cfg.get("workspace")
-EE_ENDPOINT = SERVICE_ENDPOINT + kbase_cfg.get("execution_engine")
-NMS_ENDPOINT = SERVICE_ENDPOINT + kbase_cfg.get("narrative_method_store")
+class AgentConfig:
+    def __init__(self: "AgentConfig") -> None:
+        config_file = os.environ.get(ENV_CONFIG_FILE, DEFAULT_CONFIG_FILE)
+        config_path: Path = (Path(__file__).parent / ".." / config_file).resolve()
+        if not config_path.exists:
+            raise RuntimeError(f"Config file path '{config_path}' does not exist.")
+        if not config_path.is_file():
+            raise RuntimeError(f"Config file path '{config_path}' is not a file.")
 
-AUTH_TOKEN_ENV = kbase_cfg.get("auth_token_env")
-OPENAI_KEY_ENV = kbase_cfg.get("openai_key_env")
+        config = ConfigParser()
+        config.read(config_path)
+        kb_cfg = dict(config.items("kbase"))
 
-NEO4J_URI_ENV = kbase_cfg.get("neo4j_uri")
-NEO4J_USERNAME_ENV = kbase_cfg.get("neo4j_username")
-NEO4J_PASSWORD_ENV = kbase_cfg.get("neo4j_password")
+        self.service_endpoint = kb_cfg.get("service_endpoint")
+        self.ws_endpoint = None
+        self.ee_endpoint = None
+        self.nms_endpoint = None
+        if self.service_endpoint is not None:
+            if "workspace" in kb_cfg:
+                self.ws_endpoint = self.service_endpoint + kb_cfg["workspace"]
+            if "execution_engine" in kb_cfg:
+                self.ee_endpoint = self.service_endpoint + kb_cfg["execution_engine"]
+            if "narrative_method_store" in kb_cfg:
+                self.nms_endpoint = self.service_endpoint + kb_cfg["narrative_method_store"]
 
-CBORG_KEY_ENV = kbase_cfg.get("cborg_key_env")
+        self.auth_token_env = kb_cfg.get("auth_token_env")
+        self.openai_key_env = kb_cfg.get("openai_key_env")
+        self.neo4j_uri_env = kb_cfg.get("neo4j_uri")
+        self.neo4j_username_env = kb_cfg.get("neo4j_username")
+        self.neo4j_password_env = kb_cfg.get("neo4j_password")
+        self.cborg_key_env = kb_cfg.get("cborg_key_env")
+
+__config: AgentConfig = None
+
+def get_config() -> AgentConfig:
+    global __config
+    if __config is None:
+        __config = AgentConfig()
+    return __config

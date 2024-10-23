@@ -1,6 +1,6 @@
 import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from narrative_llm_agent.config import WS_ENDPOINT, SERVICE_ENDPOINT
+from narrative_llm_agent.config import get_config
 import requests
 import zipfile
 import io
@@ -17,7 +17,8 @@ class WorkspaceUtil:
 
     def __init__(self, token: str):
         self._token = token
-        self._ws = Workspace(self._token, WS_ENDPOINT)
+        self._config = get_config()
+        self._ws = Workspace(self._token, self._config.ws_endpoint)
 
     def _get_report_source(self, provenance: list[dict]) -> str:
         """
@@ -82,7 +83,7 @@ class WorkspaceUtil:
             # we need to make it look like
             # https://env.kbase.us/services/data_import_export/download?id=<shock_uuid>&wszip=0&name=<filename>
             node = url.split("/shock-api/node/")[-1]
-            url = f"{SERVICE_ENDPOINT}blobstore/node/{node}?download"
+            url = f"{self._config.service_endpoint}blobstore/node/{node}?download"
         headers = {
             "Authorization": f"OAuth {token}"
         }

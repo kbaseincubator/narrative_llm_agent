@@ -7,7 +7,7 @@ import json
 
 # just need to mock a single workspace call
 token = "not_a_token"
-endpoint = "https://notreal.kbase.us/services/"
+# endpoint = "https://notreal.kbase.us/services/"
 
 @pytest.fixture
 def mocked_ws_util(mocker):
@@ -16,7 +16,7 @@ def mocked_ws_util(mocker):
     only gets the given report data object
     """
     def make_mocked_util(report):
-        mocker.patch("narrative_llm_agent.util.workspace.WS_ENDPOINT", endpoint)
+        # mocker.patch("narrative_llm_agent.util.workspace.WS_ENDPOINT", endpoint)
         ws_util = WorkspaceUtil(token)
         mocker.patch.object(ws_util._ws, "get_objects", return_value=[report])
         return ws_util
