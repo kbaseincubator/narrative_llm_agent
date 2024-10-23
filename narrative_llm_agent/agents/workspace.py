@@ -8,7 +8,6 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.util.workspace import WorkspaceUtil
 from narrative_llm_agent.util.tool import process_tool_input
-from narrative_llm_agent.config import get_config
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
@@ -35,7 +34,6 @@ class WorkspaceAgent(KBaseAgent):
 
     def __init__(self: "WorkspaceAgent", token: str, llm: LLM) -> "WorkspaceAgent":
         super().__init__(token, llm)
-        self._config = get_config()
         self.__init_agent()
 
     def __init_agent(self: "WorkspaceAgent"):
@@ -89,7 +87,7 @@ class WorkspaceAgent(KBaseAgent):
         list as stringified JSON.
         narrative_id - int - the id of the narrative (workspace)
         """
-        ws = Workspace(self._token, endpoint=self._config.ws_endpoint)
+        ws = Workspace(token=self._token)
         return json.dumps(ws.list_workspace_objects(narrative_id))
 
     def _get_object(self: "WorkspaceAgent", upa: str) -> dict:
@@ -97,7 +95,7 @@ class WorkspaceAgent(KBaseAgent):
         Fetches a single object from the workspace service. Returns it
         as a dictionary, structured as per the object type.
         """
-        ws = Workspace(self._token, endpoint=self._config.ws_endpoint)
+        ws = Workspace(token=self._token)
         return ws.get_objects([upa])[0]
 
     def _get_report(self: "WorkspaceAgent", upa: str) -> str:
@@ -105,7 +103,7 @@ class WorkspaceAgent(KBaseAgent):
         Fetches a report object from the workspace service. If it is not
         a report, this raises a ValueError.
         """
-        ws_util = WorkspaceUtil(self._token)
+        ws_util = WorkspaceUtil(token=self._token)
         return ws_util.get_report(upa)
 
     def _get_report_from_job_id(self: "WorkspaceAgent", job_id: str) -> str:
@@ -118,7 +116,7 @@ class WorkspaceAgent(KBaseAgent):
         If the job is complete and has a report in its outputs, this tries to fetch
         the report using the UPA of the report object.
         """
-        ee = ExecutionEngine(self._token, endpoint=self._config.ee_endpoint)
+        ee = ExecutionEngine(token=self._token)
         state = ee.check_job(job_id)
         if state.status in ["queued", "running"]:
             return "The job is not yet complete"

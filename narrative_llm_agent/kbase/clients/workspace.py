@@ -2,6 +2,7 @@ from ..service_client import ServiceClient
 from typing import Any
 from copy import deepcopy
 import json
+from narrative_llm_agent.config import get_config
 
 class WorkspaceObjectId:
     upa: str
@@ -70,11 +71,12 @@ class WorkspaceInfo:
 
 
 class Workspace(ServiceClient):
-    default_endpoint: str = "https://kbase.us/services/ws"
     _service = "Workspace"
 
-    def __init__(self: "Workspace", token: str, endpoint: str=default_endpoint) -> None:
-        super().__init__(endpoint, self._service, token)
+    def __init__(self: "Workspace", token: str=None, endpoint: str=None) -> None:
+        if endpoint is None:
+            endpoint = get_config().ws_endpoint
+        super().__init__(endpoint, self._service, token=token)
 
     def get_workspace_info(self: "Workspace", ws_id: int) -> WorkspaceInfo:
         ws_info = self.simple_call("get_workspace_info", {"id": ws_id})

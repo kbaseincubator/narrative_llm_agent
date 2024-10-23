@@ -14,7 +14,6 @@ from narrative_llm_agent.util.app import (
 )
 import time
 from langchain.agents import load_tools
-from narrative_llm_agent.config import get_config
 
 class JobInput(BaseModel):
     job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
@@ -37,7 +36,6 @@ class JobAgent(KBaseAgent):
 
     def __init__(self: "JobAgent", token: str, llm: LLM) -> "JobAgent":
         super().__init__(token, llm)
-        self._config = get_config()
         self.__init_agent()
 
     def __init_agent(self: "JobAgent") -> None:
@@ -104,7 +102,7 @@ class JobAgent(KBaseAgent):
         )
 
     def _job_status(self: "JobAgent", job_id: str, as_str=True) -> str | JobState:
-        ee = ExecutionEngine(self._token, self._config.ee_endpoint)
+        ee = ExecutionEngine(token=self._token)
         status = ee.check_job(job_id)
         if as_str:
             return str(status)
@@ -115,16 +113,16 @@ class JobAgent(KBaseAgent):
         print(f"narrative_id: {narrative_id}")
         print(f"app_id: {app_id}")
         print(f"params: {params}")
-        ee = ExecutionEngine(self._token, endpoint=self._config.ee_endpoint)
-        nms = NarrativeMethodStore(endpoint=self._config.nms_endpoint)
-        ws = Workspace(self._token, endpoint=self._config.ws_endpoint)
+        ee = ExecutionEngine(token=self._token)
+        nms = NarrativeMethodStore()
+        ws = Workspace(token=self._token)
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(spec, params, narrative_id, ws)
         print(job_submission)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
-        nms = NarrativeMethodStore(endpoint=self._config.nms_endpoint)
+        nms = NarrativeMethodStore()
         spec = nms.get_app_spec(app_id, include_full_info=True)
         return json.dumps(get_processed_app_spec_params(spec))
 

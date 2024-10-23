@@ -29,6 +29,7 @@ class AgentConfig:
         config.read(config_path)
         kb_cfg = dict(config.items("kbase"))
 
+        # TODO (YAGNI): add errors when endpoints are missing.
         self.service_endpoint = kb_cfg.get("service_endpoint")
         self.ws_endpoint = None
         self.ee_endpoint = None
@@ -59,3 +60,9 @@ def get_config() -> AgentConfig:
 def clear_config() -> None:
     global __config
     __config = None
+
+def get_kbase_auth_token() -> str:
+    env_var = get_config().auth_token_env
+    if env_var is None:
+        raise ValueError("No auth token environment variable set.")
+    return os.environ.get(env_var)
