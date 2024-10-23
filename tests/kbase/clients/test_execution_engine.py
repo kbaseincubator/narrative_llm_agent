@@ -1,12 +1,10 @@
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
 import pytest
-
-token = "not_a_token"
-endpoint = "https://nope.kbase.us/services/not_ee2"
+from narrative_llm_agent.config import get_config, get_kbase_auth_token
 
 @pytest.fixture
 def client():
-    return ExecutionEngine(token, endpoint)
+    return ExecutionEngine()
 
 class TestExecutionEngineClient:
     def test_check_job(self, mock_kbase_client_call, mock_job_states, client):
@@ -19,6 +17,53 @@ class TestExecutionEngineClient:
         mock_kbase_client_call(client, ret_job_id)
         # TODO: kind of a null test. might need some introspection
         assert client.run_job({}) == ret_job_id
+
+def test_build_client_from_config(client, mock_token):
+    assert client._endpoint == get_config().ee_endpoint
+    assert client._headers["Authorization"] == mock_token
+
+token = "not_a_token"
+endpoint = "https://nope.kbase.us/services/not_ee2"
+configs = [
+    (
+        {
+            "endpoint": endpoint,
+            "token": token,
+        },
+        {
+            "endpoint": endpoint,
+            "token": token,
+        }
+    ),
+    (
+        { "token": token },
+        {
+            "endpoint": get_config().ee_endpoint,
+            "token": token,
+        }
+    ),
+    (
+        {
+            "endpoint": endpoint,
+        },
+        {
+            "endpoint": endpoint,
+            "token": get_kbase_auth_token(),
+        }
+    ),
+    (
+        {},
+        {
+            "endpoint": get_config().ee_endpoint,
+            "token": get_kbase_auth_token(),
+        }
+    )
+]
+@pytest.mark.parametrize("config, expected", configs)
+def test_build_client_from_config_with_params(config, expected):
+    client = ExecutionEngine(**config)
+    assert client._endpoint == expected["endpoint"]
+    assert client._headers["Authorization"] == expected["token"]
 
 class TestJobState:
     def test_normal(self, mock_job_states):

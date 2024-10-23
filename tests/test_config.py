@@ -3,7 +3,6 @@ from narrative_llm_agent.config import (
     get_config,
     clear_config,
     AgentConfig,
-    __config,
     ENV_CONFIG_FILE
 )
 import os
@@ -37,7 +36,8 @@ def test_clear_config():
     config = get_config()
     assert isinstance(config, AgentConfig)
     clear_config()
-    assert __config is None
+    import narrative_llm_agent.config as conf_module
+    assert conf_module.__config is None
     config = get_config()
     assert isinstance(config, AgentConfig)
 

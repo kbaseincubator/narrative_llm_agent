@@ -4,10 +4,10 @@ from narrative_llm_agent.config import get_config
 class NarrativeMethodStore(ServiceClient):
     _service = "NarrativeMethodStore"
 
-    def __init__(self: "NarrativeMethodStore", endpoint: str=None) -> None:
+    def __init__(self: "NarrativeMethodStore", endpoint: str=None, token: str=None) -> None:
         if endpoint is None:
             endpoint = get_config().nms_endpoint
-        super().__init__(endpoint, self._service)
+        super().__init__(endpoint, self._service, token=token)
 
     def get_app_spec(self: "NarrativeMethodStore", app_id: str, tag: str="release", include_full_info: bool=False) -> dict:
         spec = self.simple_call("get_method_spec", {"ids": [app_id], "tag": tag})[0]

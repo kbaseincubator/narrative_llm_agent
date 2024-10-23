@@ -1,3 +1,7 @@
+from narrative_llm_agent.config import (
+    get_config,
+    get_kbase_auth_token
+)
 from narrative_llm_agent.kbase.clients.workspace import (
     Workspace,
     WorkspaceInfo,
@@ -6,12 +10,52 @@ from narrative_llm_agent.kbase.clients.workspace import (
 
 import pytest
 
-token = "not_a_token"
-endpoint = "https://nope.kbase.us/services/not_ws"
-
 @pytest.fixture
 def ws_client():
-    return Workspace(token, endpoint)
+    return Workspace()
+
+token = "not_a_token"
+endpoint = "https://nope.kbase.us/services/not_ws"
+configs = [
+    (
+        {
+            "endpoint": endpoint,
+            "token": token,
+        },
+        {
+            "endpoint": endpoint,
+            "token": token,
+        }
+    ),
+    (
+        { "token": token },
+        {
+            "endpoint": get_config().ws_endpoint,
+            "token": token,
+        }
+    ),
+    (
+        {
+            "endpoint": endpoint,
+        },
+        {
+            "endpoint": endpoint,
+            "token": get_kbase_auth_token(),
+        }
+    ),
+    (
+        {},
+        {
+            "endpoint": get_config().ws_endpoint,
+            "token": get_kbase_auth_token(),
+        }
+    )
+]
+@pytest.mark.parametrize("config, expected", configs)
+def test_build_client_from_config_with_params(config, expected):
+    client = Workspace(**config)
+    assert client._endpoint == expected["endpoint"]
+    assert client._headers["Authorization"] == expected["token"]
 
 def test_get_ws_info(mock_kbase_client_call, ws_client):
     ws_id = 123
