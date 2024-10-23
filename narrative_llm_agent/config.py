@@ -20,10 +20,10 @@ class AgentConfig:
     def __init__(self: "AgentConfig") -> None:
         config_file = os.environ.get(ENV_CONFIG_FILE, DEFAULT_CONFIG_FILE)
         config_path: Path = (Path(__file__).parent / ".." / config_file).resolve()
-        if not config_path.exists:
-            raise RuntimeError(f"Config file path '{config_path}' does not exist.")
+        if not config_path.exists():
+            raise FileNotFoundError(f"Config file path '{config_path}' does not exist.")
         if not config_path.is_file():
-            raise RuntimeError(f"Config file path '{config_path}' is not a file.")
+            raise IsADirectoryError(f"Config file path '{config_path}' is not a file.")
 
         config = ConfigParser()
         config.read(config_path)
@@ -55,3 +55,7 @@ def get_config() -> AgentConfig:
     if __config is None:
         __config = AgentConfig()
     return __config
+
+def clear_config() -> None:
+    global __config
+    __config = None
