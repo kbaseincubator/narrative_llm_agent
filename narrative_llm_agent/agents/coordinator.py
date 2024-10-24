@@ -24,7 +24,7 @@ class CoordinatorAgent(KBaseAgent):
     )
 
     def __init__(self: "CoordinatorAgent", llm: LLM) -> None:
-        super().__init__(None, llm)
+        super().__init__(llm)
         self.__init_agent()
 
     def __init_agent(self: "CoordinatorAgent") -> None:

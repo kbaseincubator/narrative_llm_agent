@@ -6,6 +6,17 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from tests.test_data.test_data import get_test_narrative, load_test_data_json
 from langchain_core.language_models.llms import LLM
 from pathlib import Path
+import os
+
+MOCK_TOKEN = "fake_token"
+
+@pytest.fixture
+def mock_token():
+    return MOCK_TOKEN
+
+def pytest_sessionstart():
+    os.environ["NARRATIVE_LLM_AGENT_CONFIG"] = str(Path(__file__).parent / "test.cfg")
+    os.environ["KB_AUTH_TOKEN"] = MOCK_TOKEN
 
 @pytest.fixture
 def mock_auth_request(requests_mock):

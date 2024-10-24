@@ -1,6 +1,7 @@
 from typing import Any
 from ..service_client import ServiceClient
 import json
+from narrative_llm_agent.config import get_config
 
 class NarrativeCellInfo:
     cell_id: str
@@ -169,11 +170,12 @@ class JobState:
         return self.to_dict() == other.to_dict()
 
 class ExecutionEngine(ServiceClient):
-    default_endpoint: str = "https://kbase.us/services/ee2"
     _service: str = "execution_engine2"
 
-    def __init__(self: "ExecutionEngine", token: str, endpoint: str=default_endpoint) -> None:
-        super().__init__(endpoint, self._service, token)
+    def __init__(self: "ExecutionEngine", token: str=None, endpoint: str=None) -> None:
+        if endpoint is None:
+            endpoint = get_config().ee_endpoint
+        super().__init__(endpoint, self._service, token=token)
 
     def check_job(self: "ExecutionEngine", job_id: str) -> JobState:
         return JobState(self.simple_call("check_job", {"job_id": job_id}))

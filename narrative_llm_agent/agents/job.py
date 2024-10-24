@@ -34,12 +34,9 @@ class JobAgent(KBaseAgent):
         KBase applications using the Execution Engine. You work with the rest of your crew to run bioinformatics and
         data science analyses, handle job states, and return results."""
 
-    def __init__(self: "JobAgent", token: str, llm: LLM) -> "JobAgent":
-        super().__init__(token, llm)
+    def __init__(self: "JobAgent", llm: LLM, token: str=None) -> "JobAgent":
+        super().__init__(llm, token=token)
         self.__init_agent()
-        self.ee_endpoint = self._service_endpoint + "ee2"
-        self.nms_endpoint = self._service_endpoint + "narrative_method_store/rpc"
-        self.ws_endpoint = self._service_endpoint + "ws"
 
     def __init_agent(self: "JobAgent") -> None:
         human_tools = load_tools(["human"])
@@ -105,7 +102,7 @@ class JobAgent(KBaseAgent):
         )
 
     def _job_status(self: "JobAgent", job_id: str, as_str=True) -> str | JobState:
-        ee = ExecutionEngine(self._token, self.ee_endpoint)
+        ee = ExecutionEngine(token=self._token)
         status = ee.check_job(job_id)
         if as_str:
             return str(status)
@@ -116,16 +113,16 @@ class JobAgent(KBaseAgent):
         print(f"narrative_id: {narrative_id}")
         print(f"app_id: {app_id}")
         print(f"params: {params}")
-        ee = ExecutionEngine(self._token, endpoint=self.ee_endpoint)
-        nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
-        ws = Workspace(self._token, endpoint=self.ws_endpoint)
+        ee = ExecutionEngine(token=self._token)
+        nms = NarrativeMethodStore()
+        ws = Workspace(token=self._token)
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(spec, params, narrative_id, ws)
         print(job_submission)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
-        nms = NarrativeMethodStore(endpoint=self.nms_endpoint)
+        nms = NarrativeMethodStore()
         spec = nms.get_app_spec(app_id, include_full_info=True)
         return json.dumps(get_processed_app_spec_params(spec))
 

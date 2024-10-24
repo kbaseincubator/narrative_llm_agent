@@ -1,6 +1,7 @@
 import requests
 import uuid
 from typing import Any
+from narrative_llm_agent.config import get_kbase_auth_token
 
 CONTENT_TYPE = "content-type"
 APPLICATION_JSON = "application/json"
@@ -30,6 +31,8 @@ class ServiceClient:
         self._service = service
         self._token = token
         self._headers = {}
+        if token is None:
+            token = get_kbase_auth_token()
         if token is not None:
             self._headers["Authorization"] = token
         self._timeout = timeout

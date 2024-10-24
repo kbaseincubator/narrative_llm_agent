@@ -13,6 +13,7 @@ from langchain.agents import load_tools
 from langchain_core.runnables import RunnableConfig
 import chainlit as cl
 from narrative_llm_agent.tools.human_tool import HumanInputChainlit
+from narrative_llm_agent.config import get_config
 
 class AnalystInput(BaseModel):
     input: str = Field(
@@ -40,13 +41,13 @@ class AnalystAgent(KBaseAgent):
 
     def __init__(
         self: "AnalystAgent",
-        token: str,
         llm: LLM,
+        token: str = None,
         openai_api_key: str = None,
         catalog_db_dir: Path | str = None,
         docs_db_dir: Path | str = None,
     ):
-        super().__init__(token, llm)
+        super().__init__(llm, token=token)
         self.__setup_openai_api_key(openai_api_key)
 
         if catalog_db_dir is not None:
