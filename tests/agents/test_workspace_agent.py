@@ -10,14 +10,16 @@ import pytest
 
 token = "not_a_token"
 def test_init(mock_llm):
-    wa = WorkspaceAgent(token, mock_llm)
+    wa = WorkspaceAgent(mock_llm, token=token)
     assert wa.role == "Workspace Manager"
+    assert wa._token == token
+    assert wa._llm == mock_llm
 
 def test_list_objects_tool(mock_llm, mocker):
     ws_id = 12345
     obj_list = [{"first": "object"}, {"second": "object"}]
     mock = mocker.patch.object(Workspace, "list_workspace_objects", return_value=obj_list)
-    wa = WorkspaceAgent(token, mock_llm)
+    wa = WorkspaceAgent(mock_llm)
     assert wa._list_objects(ws_id) == json.dumps(obj_list)
     mock.assert_called_once_with(ws_id)
 
@@ -25,7 +27,7 @@ def test_get_object_tool(mock_llm, mocker):
     upa = "1/2/3"
     my_obj = {"data": {"some": "data"}}
     mock = mocker.patch.object(Workspace, "get_objects", return_value=[my_obj])
-    wa = WorkspaceAgent(token, mock_llm)
+    wa = WorkspaceAgent(mock_llm)
     assert wa._get_object(upa) == my_obj
     mock.assert_called_once_with([upa])
 
@@ -33,7 +35,7 @@ def test_get_report_tool(mock_llm, mocker):
     some_report = "this is a report"
     upa = "1/2/3"
     mock = mocker.patch.object(WorkspaceUtil, "get_report", return_value=some_report)
-    wa = WorkspaceAgent(token, mock_llm)
+    wa = WorkspaceAgent(mock_llm)
     assert wa._get_report(upa) == some_report
     mock.assert_called_once_with(upa)
 
@@ -68,7 +70,7 @@ def test_get_report_from_job_id_no_report(status, job_output, expected, mock_job
     state["status"] = status
     state["job_output"] = job_output
     mock = mocker.patch.object(ExecutionEngine, "check_job", return_value=JobState(state))
-    wa = WorkspaceAgent(token, mock_llm)
+    wa = WorkspaceAgent(mock_llm)
     assert wa._get_report_from_job_id(job_id) == expected
     mock.assert_called_once_with(job_id)
 
@@ -80,7 +82,7 @@ def test_get_report_from_id_ok(mock_job_states, mocker, mock_llm):
     state["job_output"] = { "result": [{ "report_ref": report_ref }] }
     ee_mock = mocker.patch.object(ExecutionEngine, "check_job", return_value=JobState(state))
     ws_mock = mocker.patch.object(WorkspaceUtil, "get_report", return_value=some_report)
-    wa = WorkspaceAgent(token, mock_llm)
+    wa = WorkspaceAgent(mock_llm)
     assert wa._get_report_from_job_id(job_id) == some_report
     ee_mock.assert_called_once_with(job_id)
     ws_mock.assert_called_once_with(report_ref)

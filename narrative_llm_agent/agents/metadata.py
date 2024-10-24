@@ -47,8 +47,8 @@ class MetadataAgent(KBaseAgent):
         "information to make sure a project is successful before it begins."
     )
 
-    def __init__(self: "MetadataAgent", token: str, llm: LLM, initial_prompts=None) -> None:
-        super().__init__(token, llm)
+    def __init__(self: "MetadataAgent", llm: LLM, token:str = None, initial_prompts:list[str]=None) -> None:
+        super().__init__(llm, token=token)
         if initial_prompts is None:
             initial_prompts = []
         self.initial_prompts = initial_prompts

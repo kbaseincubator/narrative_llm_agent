@@ -30,11 +30,11 @@ class KGAgent(KBaseAgent):
     backstory="""You are an expert in utilizing the Knowledge Graph tools available to you to answer questions related to the KBase Knowledge Graph """
     _openai_key: str
 
-    def __init__(self: "KGAgent", token: str, llm: LLM, openai_api_key: str = None):
-        super().__init__(token, llm)
+    def __init__(self: "KGAgent", llm: LLM, token: str=None, openai_api_key: str = None):
+        super().__init__(llm, token=token)
         self.__setup_openai_api_key(openai_api_key)
         self.__init_agent()
-    
+
     def __setup_openai_api_key(self, openai_api_key: str) -> None:
         if openai_api_key is not None:
             self._openai_key = openai_api_key
@@ -42,7 +42,7 @@ class KGAgent(KBaseAgent):
             self._openai_key = os.environ["OPENAI_API_KEY"]
         else:
             raise KeyError("Missing environment variable OPENAI_API_KEY")
-            
+
     def __init_agent(self: "KGAgent") -> None:
         cfg = RunnableConfig()
         # Check if running with Chainlit
@@ -51,8 +51,8 @@ class KGAgent(KBaseAgent):
             human_tools = [HumanInputChainlit()]
         else:
             human_tools = load_tools(["human"])
-            
-        @tool("KG retrieval tool", args_schema = KGInput, return_direct=True)   
+
+        @tool("KG retrieval tool", args_schema = KGInput, return_direct=True)
         def KGretrieval_tool(input: str):
             """This tool has the KBase app Knowledge Graph. Useful for when you need to find the KBase applications and their tooltip, version, category and data objects.
             The input should always be a KBase app name and should not include any special characters or version number. """

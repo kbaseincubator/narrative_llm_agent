@@ -31,8 +31,8 @@ class NarrativeAgent(KBaseAgent):
     for your use to help facilitate this role.
     """
 
-    def __init__(self: "NarrativeAgent", token: str, llm: LLM) -> "NarrativeAgent":
-        super().__init__(token, llm)
+    def __init__(self: "NarrativeAgent", llm: LLM, token:str=None) -> "NarrativeAgent":
+        super().__init__(llm, token=token)
         self.__init_agent()
 
     def __init_agent(self: "NarrativeAgent"):

@@ -32,8 +32,8 @@ class WorkspaceAgent(KBaseAgent):
     These interactions will include uploading and downloading data, running analyses, and retrieving results.
     You are closely familiar with the Workspace service and all of its functionality."""
 
-    def __init__(self: "WorkspaceAgent", token: str, llm: LLM) -> "WorkspaceAgent":
-        super().__init__(token, llm)
+    def __init__(self: "WorkspaceAgent", llm: LLM, token:str = None) -> "WorkspaceAgent":
+        super().__init__(llm, token=token)
         self.__init_agent()
 
     def __init_agent(self: "WorkspaceAgent"):

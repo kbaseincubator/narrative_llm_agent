@@ -34,8 +34,8 @@ class JobAgent(KBaseAgent):
         KBase applications using the Execution Engine. You work with the rest of your crew to run bioinformatics and
         data science analyses, handle job states, and return results."""
 
-    def __init__(self: "JobAgent", token: str, llm: LLM) -> "JobAgent":
-        super().__init__(token, llm)
+    def __init__(self: "JobAgent", llm: LLM, token: str=None) -> "JobAgent":
+        super().__init__(llm, token=token)
         self.__init_agent()
 
     def __init_agent(self: "JobAgent") -> None:

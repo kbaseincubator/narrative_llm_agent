@@ -22,13 +22,12 @@ def mock_ee_client(mocker):
 def mock_ws_client(mocker):
     return mocker.patch("narrative_llm_agent.agents.job.Workspace")
 
-token = "not_a_token"
 def test_init(mock_llm):
-    ja = JobAgent(token, mock_llm)
+    ja = JobAgent(mock_llm)
     assert ja.role == "Job and App Manager"
 
 def test_job_status_tool(mock_llm, mock_kbase_jsonrpc_1_call, mock_job_states):
-    ja = JobAgent(token, mock_llm)
+    ja = JobAgent(mock_llm)
     for job_id, state in mock_job_states.items():
         mock_kbase_jsonrpc_1_call(get_config().ee_endpoint, state)
         expected_job_state = JobState(state)
@@ -40,7 +39,7 @@ def test_get_app_params_tool(mock_llm, app_spec, mock_nms_client):
     mock_nms.get_app_spec.return_value = app_spec
     expected_params_path = Path("app_spec_data") / "app_spec_processed_params.json"
     params_spec = load_test_data_json(expected_params_path)
-    ja = JobAgent(token, mock_llm)
+    ja = JobAgent(mock_llm)
     assert json.loads(ja._get_app_params("some_app_id")) == params_spec
 
 def test_start_job_tool(mock_llm, app_spec, mock_nms_client, mock_ee_client, mock_ws_client):
@@ -80,7 +79,7 @@ def test_start_job_tool(mock_llm, app_spec, mock_nms_client, mock_ee_client, moc
         1089,
         {}
     ])
-    ja = JobAgent(token, mock_llm)
+    ja = JobAgent(mock_llm)
     assert ja._start_job(narrative_id, app_id, params) == job_id
 
 def test_monitor_job_tool(mock_llm, mock_ee_client, mock_job_states):
@@ -100,5 +99,5 @@ def test_monitor_job_tool(mock_llm, mock_ee_client, mock_job_states):
         return JobState(state)
     mock_ee = mock_ee_client.return_value
     mock_ee.check_job.side_effect = fake_check_job
-    ja = JobAgent(token, mock_llm)
+    ja = JobAgent(mock_llm)
     assert ja._monitor_job(job_id, interval=1) == str(JobState(mock_job_states[job_id]))

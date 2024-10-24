@@ -28,7 +28,7 @@ def mock_ws_client(mocker):
     return mocker.patch("narrative_llm_agent.agents.job.Workspace")
 
 def test_init(mock_llm):
-    ma = MetadataAgent(token, mock_llm)
+    ma = MetadataAgent(mock_llm, token=token)
     assert ma.role == "Human Interaction Manager"
 
 
@@ -36,7 +36,7 @@ def test_get_obj_metadata_null(mock_llm, mocker):
     upa = "1/2/3"
     my_obj_info = mock_obj_info(upa, None)
     mock = mocker.patch.object(Workspace, "get_object_info", return_value=my_obj_info)
-    ma = MetadataAgent(token, mock_llm)
+    ma = MetadataAgent(mock_llm, token=token)
     assert ma._get_object_metadata(upa) == "null"
     mock.assert_called_once_with(upa)
 
@@ -45,7 +45,7 @@ def test_get_obj_metadata(mock_llm, mocker):
     meta = {"foo": "bar", "baz": "frobozz"}
     my_obj_info = mock_obj_info(upa, meta)
     mock = mocker.patch.object(Workspace, "get_object_info", return_value=my_obj_info)
-    ma = MetadataAgent(token, mock_llm)
+    ma = MetadataAgent(mock_llm, token=token)
     meta_str = ma._get_object_metadata(upa)
     assert json.loads(meta_str) == meta
     mock.assert_called_once_with(upa)
@@ -59,7 +59,7 @@ def test_store_conversation(mock_llm, mocker, test_narrative_object):
     get_mock = mocker.patch.object(NarrativeUtil, "get_narrative_from_wsid", return_value=narr)
     save_mock = mocker.patch.object(NarrativeUtil, "save_narrative", return_value=[])
     num_cells = len(narr.cells)
-    ma = MetadataAgent(token, mock_llm)
+    ma = MetadataAgent(mock_llm, token=token)
     resp = ma._store_conversation(ws_id, conversation)
     assert resp == "Conversation successfully stored."
     get_mock.assert_called_once_with(ws_id)
