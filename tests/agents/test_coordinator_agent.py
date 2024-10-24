@@ -1,5 +1,4 @@
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
-import os
 import pytest
 
 FAKE_OPENAI_KEY = "fake_openai_api_key"

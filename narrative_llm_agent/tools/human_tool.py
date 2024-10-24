@@ -1,4 +1,3 @@
-from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import BaseTool
 import chainlit as cl
 from chainlit import run_sync
