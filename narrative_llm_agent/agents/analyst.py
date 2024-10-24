@@ -13,7 +13,6 @@ from langchain.agents import load_tools
 from langchain_core.runnables import RunnableConfig
 import chainlit as cl
 from narrative_llm_agent.tools.human_tool import HumanInputChainlit
-from narrative_llm_agent.config import get_config
 
 class AnalystInput(BaseModel):
     input: str = Field(

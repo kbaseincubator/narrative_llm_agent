@@ -1,10 +1,8 @@
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
-from langchain_openai import OpenAIEmbeddings
 from langchain.pydantic_v1 import BaseModel, Field
-from langchain.chains import RetrievalQA
-from langchain.tools import BaseTool, tool
+from langchain.tools import tool
 from narrative_llm_agent.tools.information_tool import InformationTool
 from langchain.tools.render import format_tool_to_openai_function
 from langchain.agents.format_scratchpad import format_to_openai_function_messages
@@ -13,12 +11,9 @@ from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
 from langchain.agents import AgentExecutor
 from langchain.agents import load_tools
 import os
-from pathlib import Path
 from langchain_core.runnables import RunnableConfig
 import chainlit as cl
-from chainlit import run_sync
 #from langchain_community.tools import HumanInputRun
-from langchain.agents import load_tools
 from narrative_llm_agent.tools.human_tool import HumanInputChainlit
 
 class KGInput(BaseModel):

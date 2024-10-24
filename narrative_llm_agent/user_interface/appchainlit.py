@@ -1,12 +1,9 @@
 import os
-from langchain.schema import ChatMessage
-from narrative_llm_agent.agents.kbase_agent import KBaseAgent
 from narrative_llm_agent.agents.analyst import AnalystAgent
 from narrative_llm_agent.agents.KnowledgeGraph import KGAgent
 from langchain_openai import ChatOpenAI
-from crewai import Agent, Task, Crew, Process
+from crewai import Task, Crew
 import chainlit as cl
-from chainlit import run_sync
 
 # Set the environment variable
 os.environ['CHAINLIT_RUN'] = '1'
@@ -35,7 +32,7 @@ async def on_chat_start():
 
     open_ai_key = await cl.AskUserMessage("Please enter your OpenAI key here:").send()
     KBase_auth_token = await cl.AskUserMessage("Please enter your KBase token key here:").send()
-    await cl.Message(content=f"Thank you").send()
+    await cl.Message(content="Thank you").send()
     user_query = "What app can I use to determine the quality of pair end reads?"
     llm = ChatOpenAI(temperature=0, model="gpt-4",streaming=True)
     # callbacks=[cl.LangchainCallbackHandler()]
