@@ -1,14 +1,13 @@
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 
-class KBaseAgent:
-    agent: Agent
-    _token: str
-    _llm: LLM
-    _service_endpoint: str
 
-    def __init__(self: "KBaseAgent", token: str, llm: LLM, service_endpoint: str="https://ci.kbase.us/services/") -> None:
-        self._token = token
-        self._llm = llm
+class KBaseAgent:
+    agent: Agent | None
+    _token: str | None
+    _llm: LLM
+
+    def __init__(self: "KBaseAgent", llm: LLM, token: str = None) -> None:
         self.agent = None
-        self._service_endpoint = service_endpoint
+        self._llm = llm
+        self._token = token

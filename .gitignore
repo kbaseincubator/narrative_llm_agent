@@ -162,7 +162,7 @@ cython_debug/
 
 # Private files
 
-config.py
+./config.py
 .DS_Store
 
 #Conda environment
