@@ -1,22 +1,39 @@
 import pytest
 from unittest.mock import Mock
+from narrative_llm_agent.kbase.objects.narrative import Narrative
 from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
 from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from tests.test_data.test_data import get_test_narrative, load_test_data_json
 from langchain_core.language_models.llms import LLM
 from pathlib import Path
+import os
+
+MOCK_TOKEN = "fake_token"
+
+
+@pytest.fixture
+def mock_token():
+    return MOCK_TOKEN
+
+
+def pytest_sessionstart():
+    os.environ["NARRATIVE_LLM_AGENT_CONFIG"] = str(Path(__file__).parent / "test.cfg")
+    os.environ["KB_AUTH_TOKEN"] = MOCK_TOKEN
+
 
 @pytest.fixture
 def mock_auth_request(requests_mock):
-    def auth_request(url: str, token: str, return_value: dict, status_code: int=200):
+    def auth_request(url: str, token: str, return_value: dict, status_code: int = 200):
         requests_mock.register_uri(
             "GET",
             url,
             request_headers={"Authorization": token},
             json=return_value,
-            status_code=status_code
+            status_code=status_code,
         )
+
     return auth_request
+
 
 @pytest.fixture
 def mock_auth_request_ok(mock_auth_request):
@@ -29,11 +46,13 @@ def mock_auth_request_ok(mock_auth_request):
             "name": "llm agency",
             "user": "j_random_user",
             "custom": {},
-            "cachefor": 300000
+            "cachefor": 300000,
         }
         mock_auth_request(url, token, auth_success)
         return auth_success
+
     return auth_request_ok
+
 
 @pytest.fixture
 def mock_auth_request_bad_token(mock_auth_request):
@@ -46,20 +65,26 @@ def mock_auth_request_bad_token(mock_auth_request):
                 "apperror": "Invalid token",
                 "message": "10020 Invalid token",
                 "callid": "12345",
-                "time": 1708720112853
+                "time": 1708720112853,
             }
         }
         mock_auth_request(url, token, unauth_error, status_code=401)
         return unauth_error
+
     return auth_request_bad_token
+
 
 @pytest.fixture
 def mock_kbase_server_error(requests_mock):
     def mock_generic_error(method: str, url: str, err: dict):
         requests_mock.register_uri(method, url, status_code=500, json=err)
+
     return mock_generic_error
 
-def build_jsonrpc_1_response(result: dict, is_error: bool=False, no_result: bool=False):
+
+def build_jsonrpc_1_response(
+    result: dict, is_error: bool = False, no_result: bool = False
+):
     resp = {
         "id": "12345",
         "version": "1.1",
@@ -71,6 +96,7 @@ def build_jsonrpc_1_response(result: dict, is_error: bool=False, no_result: bool
     else:
         resp["result"] = [result]
     return resp
+
 
 def match_jsonrpc_1_packet(request):
     """
@@ -92,25 +118,37 @@ def match_jsonrpc_1_packet(request):
             return False
     return True
 
+
 @pytest.fixture
 def mock_kbase_jsonrpc_1_call(requests_mock):
-    def kbase_jsonrpc_1_call(url: str, resp: dict, status_code: int=200, no_result: bool=False):
+    def kbase_jsonrpc_1_call(
+        url: str, resp: dict, status_code: int = 200, no_result: bool = False
+    ):
         is_error = status_code != 200
-        response_packet = build_jsonrpc_1_response(resp, is_error=is_error, no_result=no_result)
+        response_packet = build_jsonrpc_1_response(
+            resp, is_error=is_error, no_result=no_result
+        )
         requests_mock.register_uri(
             "POST",
             url,
             additional_matcher=match_jsonrpc_1_packet,
             json=response_packet,
             headers={"content-type": "application/json"},
-            status_code=status_code
+            status_code=status_code,
         )
         return response_packet
+
     return kbase_jsonrpc_1_call
+
 
 @pytest.fixture
 def mock_kbase_client_call(requests_mock):
-    def kbase_call(client: ServiceClient, resp: dict, service_method: str=None, status_code: int=200):
+    def kbase_call(
+        client: ServiceClient,
+        resp: dict,
+        service_method: str = None,
+        status_code: int = 200,
+    ):
         def match_kbase_service_call(request):
             packet = request.json()
             if "method" not in packet or not isinstance(packet["method"], str):
@@ -130,10 +168,17 @@ def mock_kbase_client_call(requests_mock):
             additional_matcher=match_kbase_service_call,
             json=response_packet,
             headers={"content-type": "application/json"},
-            status_code=status_code
+            status_code=status_code,
         )
         return response_packet
+
     return kbase_call
+
+
+@pytest.fixture
+def test_narrative_object():
+    return Narrative(get_test_narrative(as_dict=True))
+
 
 @pytest.fixture
 def sample_narrative_json() -> str:
@@ -144,6 +189,7 @@ def sample_narrative_json() -> str:
     # open it and return the raw JSON str
     return get_test_narrative()
 
+
 class MockLLM(LLM):
     def _call():
         pass
@@ -151,34 +197,45 @@ class MockLLM(LLM):
     def _llm_type():
         pass
 
+
 @pytest.fixture
 def mock_llm():
     return MockLLM()
+
 
 @pytest.fixture
 def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
     ws = mocker.Mock(spec=Workspace)
     ws_data = load_test_data_json("fake_ws_data.json")
 
-    def get_object_info_side_effect(ref: str, ):
+    def get_object_info_side_effect(
+        ref: str,
+    ):
         split_ref = ref.split("/")
         if len(split_ref) == 1:
             key = ref
         elif len(split_ref) == 2 or len(split_ref) == 3:
             key = split_ref[1]
         else:
-            raise ServerError("WorkspaceError", 500, "Not a ref")  # TODO: make real error
+            raise ServerError(
+                "WorkspaceError", 500, "Not a ref"
+            )  # TODO: make real error
         if key in ws_data["data"]:
             return ws_data["data"][key]
         else:
-            raise ServerError("WorkspaceError", 500, "Not in ws")  # TODO: make real response
+            raise ServerError(
+                "WorkspaceError", 500, "Not in ws"
+            )  # TODO: make real response
+
     ws.get_object_info.side_effect = get_object_info_side_effect
     ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["info"])
     return ws
 
+
 @pytest.fixture
 def mock_job_states() -> dict[str, dict[str, any]]:
     return load_test_data_json("job_states.json")
+
 
 @pytest.fixture
 def app_spec() -> dict[str, any]:

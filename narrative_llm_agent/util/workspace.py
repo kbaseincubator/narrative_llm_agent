@@ -1,24 +1,26 @@
 import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-import requests
+from narrative_llm_agent.kbase.clients.blobstore import Blobstore
+
+# import requests
 import zipfile
 import io
 from pathlib import Path
 from narrative_llm_agent.kbase.objects.report import (
     KBaseReport,
-    LinkedFile,
-    is_report
+    # LinkedFile,
+    is_report,
 )
+# from narrative_llm_agent.config import get_config
+
 
 class WorkspaceUtil:
     _ws: Workspace
-    _service_endpoint: str
     _token: str
 
-    def __init__(self, token: str, service_endpoint: str):
+    def __init__(self, token: str = None):
         self._token = token
-        self._service_endpoint = service_endpoint
-        self._ws = Workspace(self._token, self._service_endpoint + "ws")
+        self._ws = Workspace(token=self._token)
 
     def _get_report_source(self, provenance: list[dict]) -> str:
         """
@@ -29,7 +31,10 @@ class WorkspaceUtil:
         Tuned for fastqc right now. Others to come!
         """
         recent = provenance[0]
-        if recent.get("method", "").lower() == "runfastqc" and recent.get("service", "").lower() == "kb_fastqc":
+        if (
+            recent.get("method", "").lower() == "runfastqc"
+            and recent.get("service", "").lower() == "kb_fastqc"
+        ):
             return "fastqc"
         return "other"
 
@@ -41,9 +46,13 @@ class WorkspaceUtil:
         # get and test it's a report
         obj = self._ws.get_objects([upa])[0]
         if "info" not in obj or len(obj["info"]) < 10:
-            raise ValueError(f"Object with UPA {upa} does not appear to be properly formatted.")
+            raise ValueError(
+                f"Object with UPA {upa} does not appear to be properly formatted."
+            )
         if not is_report(obj["info"][2]):
-            raise ValueError(f"Object with UPA {upa} is not a report but a {obj['info'][2]}.")
+            raise ValueError(
+                f"Object with UPA {upa} is not a report but a {obj['info'][2]}."
+            )
         # check report source from provenance and process based on its service and method
         report_source = self._get_report_source(obj["provenance"])
         if report_source == "fastqc":
@@ -58,8 +67,10 @@ class WorkspaceUtil:
         """
         report_data = {report_file.name: None for report_file in report.file_links}
         target_file_name = "fastqc_data.txt"
+        blobstore = Blobstore(token=self._token)
         for report_file in report.file_links:
-            resp = self._download_report_file(report_file, self._token)
+            resp = blobstore.download_report_file(report_file.url)
+            # resp = self._download_report_file(report_file, self._token)
             comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
             foi = None
             for data_file in comp_file.filelist:
@@ -74,22 +85,3 @@ class WorkspaceUtil:
             report_result.append(f"file {idx+1}: {name}:")
             report_result.append(value)
         return "\n".join(report_result)
-
-    def _download_report_file(self, report_file: LinkedFile, token: str) -> requests.Response:
-        url = report_file.url
-        if "shock-api" in url:
-            # url looks like:
-            # https://env.kbase.us/services/shock-api/node/<shock-uuid>
-            # we need to make it look like
-            # https://env.kbase.us/services/data_import_export/download?id=<shock_uuid>&wszip=0&name=<filename>
-            node = url.split("/shock-api/node/")[-1]
-            url = f"{self._service_endpoint}blobstore/node/{node}?download"
-        headers = {
-            "Authorization": f"OAuth {token}"
-        }
-        resp = requests.get(url, headers=headers)
-        try:
-            resp.raise_for_status()
-        except requests.HTTPError:
-            raise ValueError(f"HTTP status code {resp.status_code} for report file at {url} (original url {report_file.url})")
-        return resp

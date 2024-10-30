@@ -9,7 +9,7 @@ packages = [{include = "narrative_llm_agent"},{include='tests'}]
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
 langchain = ">0.2"
-crewai = ">0.41.0"
+crewai = {extras = ["tools"], version = "^0.67.1"}
 requests = "^2.31.0"
 chromadb = "^0.4.24"
 ruff = ">0.3.1"
@@ -17,6 +17,7 @@ neo4j = "^5.18.0"
 streamlit = "^1.32.2"
 dash = "^2.16.1"
 chainlit = "^1.0.401"
+langchain-chroma = "^0.1.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

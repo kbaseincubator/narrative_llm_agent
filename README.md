@@ -14,6 +14,9 @@ For development, using Poetry is the easiest way to go.
 ## Building
 With everything else installed, just run `poetry build`.
 
+## Configuration
+`config.cfg` has the configuration for the package. Mostly, you'll need to set the service endpoint to wherever you're trying to run this.
+
 ## Bill's development workflow
 Mostly I've been developing against this locally on my laptop. I'm sure there are ways to wire up some IDE to run remotely through an ssh tunnel, but I haven't bothered. I'll dev locally, run tests, push to a branch, then switch over to a console on a remote host, pull, and `poetry build`. Then the build products are on the remote PYTHONPATH already and usable.
 
@@ -21,8 +24,4 @@ Mostly I've been developing against this locally on my laptop. I'm sure there ar
 That mostly just works using the above workflow. Poetry is (primarily) a package management tool, so it integrates with the build tools and such. Conda is an environment management tool. So once you have a conda environment set up, you can skip the `poetry shell` step above, and just run `poetry install` in your conda environment.
 
 # TODO list
-* tool / client for fetching app specs from the catalog service (JobAgent)
-* tool / prompt / task for initializing a job (i.e. making dictionary of job inputs)
-* tool for starting a job (JobAgent)
-  * should validate job inputs, that they match app spec, etc.
 * store task prompts / specific tasks with agents, etc. StartJobTask, GetReportTask, etc.

@@ -1,35 +1,72 @@
+from narrative_llm_agent.config import get_config, get_kbase_auth_token
 from narrative_llm_agent.kbase.clients.workspace import (
     Workspace,
     WorkspaceInfo,
-    WorkspaceObjectId
+    WorkspaceObjectId,
 )
 
 import pytest
 
-token = "not_a_token"
-endpoint = "https://nope.kbase.us/services/not_ws"
 
 @pytest.fixture
 def ws_client():
-    return Workspace(token, endpoint)
+    return Workspace()
+
+
+token = "not_a_token"
+endpoint = "https://nope.kbase.us/services/not_ws"
+configs = [
+    (
+        {
+            "endpoint": endpoint,
+            "token": token,
+        },
+        {
+            "endpoint": endpoint,
+            "token": token,
+        },
+    ),
+    (
+        {"token": token},
+        {
+            "endpoint": get_config().ws_endpoint,
+            "token": token,
+        },
+    ),
+    (
+        {
+            "endpoint": endpoint,
+        },
+        {
+            "endpoint": endpoint,
+            "token": get_kbase_auth_token(),
+        },
+    ),
+    (
+        {},
+        {
+            "endpoint": get_config().ws_endpoint,
+            "token": get_kbase_auth_token(),
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("config, expected", configs)
+def test_build_client_from_config_with_params(config, expected):
+    client = Workspace(**config)
+    assert client._endpoint == expected["endpoint"]
+    assert client._headers["Authorization"] == expected["token"]
+
 
 def test_get_ws_info(mock_kbase_client_call, ws_client):
     ws_id = 123
-    ws_info = [
-        ws_id,
-        "my_workspace",
-        "me",
-        "some_date",
-        11000,
-        "o",
-        "n",
-        "n",
-        {}
-    ]
+    ws_info = [ws_id, "my_workspace", "me", "some_date", 11000, "o", "n", "n", {}]
     mock_kbase_client_call(ws_client, ws_info)
     expected_info = WorkspaceInfo(ws_info)
     ret_info = ws_client.get_workspace_info(ws_id)
     assert str(expected_info) == str(ret_info)
+
 
 def test_list_workspace_objects(mock_kbase_client_call, ws_client):
     """
@@ -40,9 +77,45 @@ def test_list_workspace_objects(mock_kbase_client_call, ws_client):
     ws_id = 123456
     ws_info = [ws_id, "mine", "me", "123", 3, "o", "n", "n", {}]
     expected_infos = [
-        [1, "foo1", "Object.Type", "123", 4, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}],
-        [2, "foo2", "Object.Type", "123", 5, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}],
-        [3, "foo3", "Object.Type", "123", 6, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}]
+        [
+            1,
+            "foo1",
+            "Object.Type",
+            "123",
+            4,
+            "me",
+            123456,
+            "nope",
+            "noway",
+            1231234,
+            {"some": "meta"},
+        ],
+        [
+            2,
+            "foo2",
+            "Object.Type",
+            "123",
+            5,
+            "me",
+            123456,
+            "nope",
+            "noway",
+            1231234,
+            {"some": "meta"},
+        ],
+        [
+            3,
+            "foo3",
+            "Object.Type",
+            "123",
+            6,
+            "me",
+            123456,
+            "nope",
+            "noway",
+            1231234,
+            {"some": "meta"},
+        ],
     ]
     mock_kbase_client_call(ws_client, ws_info, "get_workspace_info")
     mock_kbase_client_call(ws_client, expected_infos, "list_objects")
@@ -62,20 +135,57 @@ def test_get_object_upas(mock_kbase_client_call, ws_client):
     ws_id = 123456
     ws_info = [ws_id, "mine", "me", "123", 3, "o", "n", "n", {}]
     object_infos = [
-        [1, "foo1", "Object.Type", "123", 4, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}],
-        [2, "foo2", "Object.Type", "123", 5, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}],
-        [3, "foo3", "Object.Type", "123", 6, "me", 123456, "nope", "noway", 1231234, {"some": "meta"}]
+        [
+            1,
+            "foo1",
+            "Object.Type",
+            "123",
+            4,
+            "me",
+            123456,
+            "nope",
+            "noway",
+            1231234,
+            {"some": "meta"},
+        ],
+        [
+            2,
+            "foo2",
+            "Object.Type",
+            "123",
+            5,
+            "me",
+            123456,
+            "nope",
+            "noway",
+            1231234,
+            {"some": "meta"},
+        ],
+        [
+            3,
+            "foo3",
+            "Object.Type",
+            "123",
+            6,
+            "me",
+            123456,
+            "nope",
+            "noway",
+            1231234,
+            {"some": "meta"},
+        ],
     ]
     expected = [
         WorkspaceObjectId.from_upa("123456/1/4"),
         WorkspaceObjectId.from_upa("123456/2/5"),
-        WorkspaceObjectId.from_upa("123456/3/6")
+        WorkspaceObjectId.from_upa("123456/3/6"),
     ]
     mock_kbase_client_call(ws_client, ws_info, "get_workspace_info")
     mock_kbase_client_call(ws_client, object_infos, "list_objects")
     received = ws_client.get_object_upas(ws_id)
     for idx, upa in enumerate(received):
         assert str(upa) == str(expected[idx])
+
 
 def test_get_objects(mock_kbase_client_call, ws_client):
     """
@@ -106,6 +216,7 @@ def test_get_objects(mock_kbase_client_call, ws_client):
     assert ws_client.get_objects(refs) == expected_objs
     assert ws_client.get_objects(refs, ["some/data/paths"]) == expected_objs
 
+
 def test_save_objects(mock_kbase_client_call, ws_client):
     """
     Returns an object info in real life. For the unit test, we're kinda testing
@@ -115,9 +226,22 @@ def test_save_objects(mock_kbase_client_call, ws_client):
     make up some size_bytes field and so on, but it's not worth it.
     If we ever do some integration tests, that belongs there.
     """
-    obj_info = [1, "foo", "bar", "123", 2, "me", 3, "nope", "noway", 1231234, {"some": "meta"}]
+    obj_info = [
+        1,
+        "foo",
+        "bar",
+        "123",
+        2,
+        "me",
+        3,
+        "nope",
+        "noway",
+        1231234,
+        {"some": "meta"},
+    ]
     mock_kbase_client_call(ws_client, [obj_info])
     assert ws_client.save_objects(3, [{"myobject": "lives_here"}]) == [obj_info]
+
 
 def test_obj_info_to_json():
     obj_id = 1
@@ -130,7 +254,19 @@ def test_obj_info_to_json():
     saved = "123123123123"
     saved_by = "me"
     size_bytes = 123456
-    info = [obj_id, name, obj_type, saved, ver, saved_by, ws_id, ws_name, "nope", size_bytes, metadata]
+    info = [
+        obj_id,
+        name,
+        obj_type,
+        saved,
+        ver,
+        saved_by,
+        ws_id,
+        ws_name,
+        "nope",
+        size_bytes,
+        metadata,
+    ]
     assert Workspace.obj_info_to_json(info) == {
         "ws_id": ws_id,
         "obj_id": obj_id,
@@ -141,5 +277,5 @@ def test_obj_info_to_json():
         "saved": saved,
         "version": ver,
         "saved_by": saved_by,
-        "size_bytes": size_bytes
+        "size_bytes": size_bytes,
     }
