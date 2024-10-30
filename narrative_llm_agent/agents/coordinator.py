@@ -2,6 +2,7 @@ from crewai import Agent
 from narrative_llm_agent.agents.kbase_agent import KBaseAgent
 from langchain_core.language_models.llms import LLM
 
+
 class CoordinatorAgent(KBaseAgent):
     role: str = "Project coordinator"
     goal: str = (
@@ -29,11 +30,11 @@ class CoordinatorAgent(KBaseAgent):
 
     def __init_agent(self: "CoordinatorAgent") -> None:
         self.agent = Agent(
-            role = self.role,
-            goal = self.goal,
-            backstory = self.backstory,
+            role=self.role,
+            goal=self.goal,
+            backstory=self.backstory,
             tools=[],
-            verbose = True,
+            verbose=True,
             llm=self._llm,
             allow_delegation=True,
             memory=True,

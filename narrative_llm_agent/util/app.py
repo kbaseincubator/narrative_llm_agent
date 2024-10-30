@@ -5,6 +5,7 @@ import random
 import re
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 
+
 def get_processed_app_spec_params(app_spec: dict) -> dict:
     """
     This processes the given KBase app spec and returns the
@@ -29,11 +30,14 @@ def get_processed_app_spec_params(app_spec: dict) -> dict:
     used_keys = ["id", "ui_name", "short_hint"]
     processed_params = {}
     for param in app_spec["parameters"]:
-        proc_param = { key: param[key] for key in used_keys }
+        proc_param = {key: param[key] for key in used_keys}
         proc_param["is_output_object"] = False
         param_type, allowed_values = process_param_type(param)
         proc_param["type"] = param_type
-        if param_type == "data_object" and param.get("text_options", {}).get("is_output_name", 0) == 1:
+        if (
+            param_type == "data_object"
+            and param.get("text_options", {}).get("is_output_name", 0) == 1
+        ):
             proc_param["is_output_object"] = True
         proc_param["allowed"] = allowed_values
         proc_param["multiple"] = True if param["allow_multiple"] == 1 else False
@@ -47,6 +51,7 @@ def get_processed_app_spec_params(app_spec: dict) -> dict:
                 proc_param["default_value"] = None
         processed_params[proc_param["id"]] = proc_param
     return processed_params
+
 
 def process_param_type(param: dict) -> tuple:
     """
@@ -65,15 +70,21 @@ def process_param_type(param: dict) -> tuple:
         elif "validate_as" in opts and opts["validate_as"] is not None:
             valid_type = opts["validate_as"]
             field_type = valid_type
-            allowed_values = [opts.get(f"min_{valid_type}"), opts.get(f"max_{valid_type}")]
+            allowed_values = [
+                opts.get(f"min_{valid_type}"),
+                opts.get(f"max_{valid_type}"),
+            ]
     if field_type == "dropdown" and "dropdown_options" in param:
-        allowed_values = [opt["display"] for opt in param["dropdown_options"].get("options", [])]
+        allowed_values = [
+            opt["display"] for opt in param["dropdown_options"].get("options", [])
+        ]
     # TODO types-
     # textsubdata
     # dynamic_dropdown
     # these both depend on external data sources.
     # not exactly necessary to start with, I don't think.
     return (field_type, allowed_values)
+
 
 def get_ws_object_refs(app_spec: dict, params: dict) -> list:
     spec_params = get_processed_app_spec_params(app_spec)
@@ -87,7 +98,14 @@ def get_ws_object_refs(app_spec: dict, params: dict) -> list:
                 ws_objects.append(param_value)
     return ws_objects
 
-def build_run_job_params(app_spec: dict, params: dict, narrative_id: int, ws_client: Workspace, release_tag: str = "release") -> dict:
+
+def build_run_job_params(
+    app_spec: dict,
+    params: dict,
+    narrative_id: int,
+    ws_client: Workspace,
+    release_tag: str = "release",
+) -> dict:
     """
     This process the parameters along with the app spec to build the
     packet that gets sent to the Execution Engine's run_job command.
@@ -105,18 +123,17 @@ def build_run_job_params(app_spec: dict, params: dict, narrative_id: int, ws_cli
         "params": processed_params,
         "app_id": app_spec["info"]["id"],
         "wsid": int(narrative_id),
-        "meta": {
-            "cell_id": cell_id,
-            "run_id": run_id,
-            "tag": release_tag
-        }
+        "meta": {"cell_id": cell_id, "run_id": run_id, "tag": release_tag},
     }
     if len(ws_objects):
         job_params["source_ws_objects"] = ws_objects
 
     return job_params
 
-def map_app_params(app_spec: dict, params: dict, ws_id: int, ws_client: Workspace) -> dict:
+
+def map_app_params(
+    app_spec: dict, params: dict, ws_id: int, ws_client: Workspace
+) -> dict:
     """
     Processes the given parameters to run the app. This returns
     the validated structure that can be passed along to the Execution
@@ -176,8 +193,8 @@ def map_app_params(app_spec: dict, params: dict, ws_id: int, ws_client: Workspac
                 # This is case when slashes in target_prop separate
                 # elements in nested maps. We ignore escaped slashes
                 # (separate backslashes should be escaped as well).
-                bck_slash = "\u244A"
-                fwd_slash = "\u20EB"
+                bck_slash = "\u244a"
+                fwd_slash = "\u20eb"
                 temp_string = target_prop.replace("\\\\", bck_slash)
                 temp_string = temp_string.replace("\\/", fwd_slash)
                 temp_path = []
@@ -210,8 +227,13 @@ def map_app_params(app_spec: dict, params: dict, ws_id: int, ws_client: Workspac
         inputs_list.append(inputs_dict[k])
     return inputs_list
 
+
 def transform_param_value(
-    transform_type: Optional[str], value: Any, spec_param: Optional[dict], ws_id: int, ws_client: Workspace
+    transform_type: Optional[str],
+    value: Any,
+    spec_param: Optional[dict],
+    ws_id: int,
+    ws_client: Workspace,
 ) -> Any:
     """
     Transforms an input according to the rules given in
@@ -299,7 +321,10 @@ def transform_param_value(
         "upa",
     ] or (is_input_object_param and transform_type is None):
         if isinstance(value, list):
-            return [transform_object_value(transform_type, v, ws_id, ws_client) for v in value]
+            return [
+                transform_object_value(transform_type, v, ws_id, ws_client)
+                for v in value
+            ]
         return transform_object_value(transform_type, value, ws_id, ws_client)
 
     if transform_type == "int":
@@ -321,7 +346,10 @@ def transform_param_value(
         # make it a list of transformed types.
         list_type = transform_type[5:-1]
         if isinstance(value, list):
-            return [transform_param_value(list_type, v, None, ws_id, ws_client) for v in value]
+            return [
+                transform_param_value(list_type, v, None, ws_id, ws_client)
+                for v in value
+            ]
         return [transform_param_value(list_type, value, None, ws_id, ws_client)]
 
     else:
@@ -329,7 +357,10 @@ def transform_param_value(
 
 
 def transform_object_value(
-    transform_type: Optional[str], value: Optional[str], ws_id: int, ws_client: Workspace
+    transform_type: Optional[str],
+    value: Optional[str],
+    ws_id: int,
+    ws_client: Workspace,
 ) -> Optional[str]:
     """
     Cases:
@@ -407,7 +438,7 @@ def transform_object_value(
     return value
 
 
-def generate_input(generator: dict={}) -> str:
+def generate_input(generator: dict = {}) -> str:
     """
     Generates an input value using rules given by
     NarrativeMethodStore.AutoGeneratedValue.
@@ -438,7 +469,9 @@ def generate_input(generator: dict={}) -> str:
     return ret
 
 
-def system_variable(var: str, narrative_id: int, ws_client: Workspace) -> str | int | None:
+def system_variable(
+    var: str, narrative_id: int, ws_client: Workspace
+) -> str | int | None:
     """
     Returns a KBase system variable. Just a little wrapper.
 
@@ -471,6 +504,7 @@ def system_variable(var: str, narrative_id: int, ws_client: Workspace) -> str | 
         return int(time.time())
     return None
 
+
 def is_valid_upa(upa: str) -> bool:
     """
     Returns True if the given upa string is valid, False, otherwise.
@@ -478,6 +512,7 @@ def is_valid_upa(upa: str) -> bool:
     if not isinstance(upa, str):
         return False
     return re.match(r"^\d+(\/\d+){2}(;\d+(\/\d+){2})*$", upa) is not None
+
 
 def is_valid_ref(ref: str) -> bool:
     """
@@ -502,7 +537,10 @@ def is_valid_ref(ref: str) -> bool:
             return False
     return True
 
-def _map_group_inputs(value: Any, spec_param: dict, spec_params: list, ws_id: int, ws_client: Workspace) -> dict:
+
+def _map_group_inputs(
+    value: Any, spec_param: dict, spec_params: list, ws_id: int, ws_client: Workspace
+) -> dict:
     if isinstance(value, list):
         return [_map_group_inputs(v, spec_param, spec_params, ws_client) for v in value]
 
@@ -533,6 +571,7 @@ def _map_group_inputs(value: Any, spec_param: dict, spec_params: list, ws_id: in
         mapped_value[target_key] = target_val
     return mapped_value
 
+
 def resolve_single_ref(value: str, ws_id: int, ws_client: Workspace) -> str:
     # TODO: fix this. It's weird and likely broken.
     ret = None
@@ -544,7 +583,9 @@ def resolve_single_ref(value: str, ws_id: int, ws_client: Workspace) -> str:
                     f"Object reference {value} has too many slashes - should be ws/object/version"
                 )
         info = ws_client.get_object_info(value)
-        path_items[len(path_items) - 1] = f"{info['ws_id']}/{info['obj_id']}/{info['version']}"
+        path_items[len(path_items) - 1] = (
+            f"{info['ws_id']}/{info['obj_id']}/{info['version']}"
+        )
         ret = ";".join(path_items)
     # Otherwise, assume it's a name, not a reference.
     else:
@@ -553,7 +594,9 @@ def resolve_single_ref(value: str, ws_id: int, ws_client: Workspace) -> str:
     return ret
 
 
-def resolve_ref(value: str | list[str], ws_id: int, ws_client: Workspace) -> str | list[str]:
+def resolve_ref(
+    value: str | list[str], ws_id: int, ws_client: Workspace
+) -> str | list[str]:
     """
     Resolves a Workspace object reference (or list of references). A "reference" is a
     string with a workspace id (or name), object id (or name), and an optional version.
@@ -568,7 +611,9 @@ def resolve_ref(value: str | list[str], ws_id: int, ws_client: Workspace) -> str
         return resolve_single_ref(value, ws_id, ws_client)
 
 
-def resolve_ref_if_typed(value: str | list[str], spec_param: dict, ws_id: int, ws_client: Workspace) -> str | list[str]:
+def resolve_ref_if_typed(
+    value: str | list[str], spec_param: dict, ws_id: int, ws_client: Workspace
+) -> str | list[str]:
     """
     For a given value and associated spec, if this is not an output param,
     then ensure that the reference points to an object in the current
@@ -578,6 +623,7 @@ def resolve_ref_if_typed(value: str | list[str], spec_param: dict, ws_id: int, w
     if spec_param["type"] == "data_object" and not is_output:
         return resolve_ref(value, ws_id, ws_client)
     return value
+
 
 def map_inputs_from_job(job_inputs: dict | list, app_spec: dict) -> dict:
     """
@@ -639,7 +685,9 @@ def map_inputs_from_job(job_inputs: dict | list, app_spec: dict) -> dict:
 
 
 def _untransform(transform_type: str, value: str) -> str:
-    if transform_type in ["ref", "putative-ref", "unresolved-ref"] and isinstance(value, str):
+    if transform_type in ["ref", "putative-ref", "unresolved-ref"] and isinstance(
+        value, str
+    ):
         # shear off everything before the first '/' - there should just be one.
         slash = value.find("/")
         if slash == -1:

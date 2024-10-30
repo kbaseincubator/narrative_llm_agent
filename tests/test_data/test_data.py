@@ -1,7 +1,10 @@
 import json
 from pathlib import Path
 
-def load_test_data_json(file_path: Path | str, parse_json: bool=True) -> str | list | dict:
+
+def load_test_data_json(
+    file_path: Path | str, parse_json: bool = True
+) -> str | list | dict:
     """
     Loads some JSON test data. If parse_json == False, this just returns the
     file contents as a string and doesn't parse the JSON.
@@ -15,10 +18,14 @@ def load_test_data_json(file_path: Path | str, parse_json: bool=True) -> str | l
         return json.loads(data)
     return data
 
+
 def get_test_narrative(as_dict=False) -> str | dict:
     return load_test_data_json(Path("test_narrative.json"), parse_json=as_dict)
 
-def get_test_report(report_type: str, file_url: str=None, html_url: str=None) -> dict:
+
+def get_test_report(
+    report_type: str, file_url: str = None, html_url: str = None
+) -> dict:
     """
     Allowed report types:
     fastqc

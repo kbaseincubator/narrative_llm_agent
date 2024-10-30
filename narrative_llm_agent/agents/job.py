@@ -5,26 +5,42 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
-from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.clients.narrative_method_store import (
+    NarrativeMethodStore,
+)
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.app import (
     get_processed_app_spec_params,
-    build_run_job_params
+    build_run_job_params,
 )
 import time
 from langchain.agents import load_tools
 
+
 class JobInput(BaseModel):
-    job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
+    job_id: str = Field(
+        description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string."
+    )
+
 
 class AppInput(BaseModel):
-    app_id: str = Field(description="The unique identifier for a KBase app. This must be a string. Most app ids have a single '/' character in them.")
+    app_id: str = Field(
+        description="The unique identifier for a KBase app. This must be a string. Most app ids have a single '/' character in them."
+    )
+
 
 class JobStart(BaseModel):
-    narrative_id: int = Field(description="The unique id for a KBase narrative. This should be a number.")
-    app_id: str = Field(description="The unique identifier for a KBase app. This must be a string. Most app ids have a single '/' character in them.")
-    params: dict = Field(description="The set of parameters to pass to a KBase app. This must be a dictionary. Each key is the parameter id, and each value is the expected value given to each parameter. Values can be lists, strings, or numbers.")
+    narrative_id: int = Field(
+        description="The unique id for a KBase narrative. This should be a number."
+    )
+    app_id: str = Field(
+        description="The unique identifier for a KBase app. This must be a string. Most app ids have a single '/' character in them."
+    )
+    params: dict = Field(
+        description="The set of parameters to pass to a KBase app. This must be a dictionary. Each key is the parameter id, and each value is the expected value given to each parameter. Values can be lists, strings, or numbers."
+    )
+
 
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
@@ -34,12 +50,13 @@ class JobAgent(KBaseAgent):
         KBase applications using the Execution Engine. You work with the rest of your crew to run bioinformatics and
         data science analyses, handle job states, and return results."""
 
-    def __init__(self: "JobAgent", llm: LLM, token: str=None) -> "JobAgent":
+    def __init__(self: "JobAgent", llm: LLM, token: str = None) -> "JobAgent":
         super().__init__(llm, token=token)
         self.__init_agent()
 
     def __init_agent(self: "JobAgent") -> None:
         human_tools = load_tools(["human"])
+
         @tool(args_schema=JobInput, return_direct=False)
         def job_status(job_id: str) -> str:
             """Looks up and returns the status of a KBase job. Returns the status as a
@@ -50,9 +67,7 @@ class JobAgent(KBaseAgent):
             return self._job_status(process_tool_input(job_id, "job_id"))
 
         @tool(args_schema=JobStart, return_direct=False)
-        def start_job(narrative_id: int,
-                      app_id: str,
-                      params: dict) -> str:
+        def start_job(narrative_id: int, app_id: str, params: dict) -> str:
             """This starts a new job in KBase, running the given App with the given
             parameters in the given Narrative. If the app with app_id doesn't exist, this
             raises a AppNotFound error. If the narrative_id doesn't exist, or the user
@@ -67,9 +82,11 @@ class JobAgent(KBaseAgent):
 
             if isinstance(params, str):
                 params = json.loads(params)
-            return self._start_job(process_tool_input(narrative_id, "narrative_id"),
-                                   process_tool_input(app_id, "app_id"),
-                                   params)
+            return self._start_job(
+                process_tool_input(narrative_id, "narrative_id"),
+                process_tool_input(app_id, "app_id"),
+                params,
+            )
 
         @tool(args_schema=AppInput, return_direct=False)
         def get_app_params(app_id: str) -> str:
@@ -95,7 +112,7 @@ class JobAgent(KBaseAgent):
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools = [ job_status, start_job, get_app_params, monitor_job ] + human_tools,
+            tools=[job_status, start_job, get_app_params, monitor_job] + human_tools,
             llm=self._llm,
             allow_delegation=False,
             memory=True,
@@ -108,7 +125,9 @@ class JobAgent(KBaseAgent):
             return str(status)
         return status
 
-    def _start_job(self: "JobAgent", narrative_id: int, app_id: str, params: dict) -> str:
+    def _start_job(
+        self: "JobAgent", narrative_id: int, app_id: str, params: dict
+    ) -> str:
         print("starting JobAgent._start_job")
         print(f"narrative_id: {narrative_id}")
         print(f"app_id: {app_id}")
@@ -126,7 +145,7 @@ class JobAgent(KBaseAgent):
         spec = nms.get_app_spec(app_id, include_full_info=True)
         return json.dumps(get_processed_app_spec_params(spec))
 
-    def _monitor_job(self: "JobAgent", job_id: str, interval: int=10) -> str:
+    def _monitor_job(self: "JobAgent", job_id: str, interval: int = 10) -> str:
         is_complete = False
         while not is_complete:
             status = self._job_status(job_id, as_str=False)

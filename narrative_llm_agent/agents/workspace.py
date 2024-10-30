@@ -9,20 +9,28 @@ from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.util.workspace import WorkspaceUtil
 from narrative_llm_agent.util.tool import process_tool_input
 
+
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
 
+
 class UpaInput(BaseModel):
-    upa: str = Field(description="""An object UPA (unique permanent address)
+    upa: str = Field(
+        description="""An object UPA (unique permanent address)
                      representing the location of a Workspace data object.
                      Should be a string of the format ws_id/obj_id/ver.
-                     For example, '11/22/33'.""")
+                     For example, '11/22/33'."""
+    )
+
 
 class JobInput(BaseModel):
-    job_id: str = Field(description="""The unique identifier for a job running
+    job_id: str = Field(
+        description="""The unique identifier for a job running
                         in the KBase Execution Engine. This must be a 24 character
                         hexadecimal string. This must not be a dictionary or
-                        JSON-formatted string.""")
+                        JSON-formatted string."""
+    )
+
 
 class WorkspaceAgent(KBaseAgent):
     role: str = "Workspace Manager"
@@ -32,7 +40,9 @@ class WorkspaceAgent(KBaseAgent):
     These interactions will include uploading and downloading data, running analyses, and retrieving results.
     You are closely familiar with the Workspace service and all of its functionality."""
 
-    def __init__(self: "WorkspaceAgent", llm: LLM, token:str = None) -> "WorkspaceAgent":
+    def __init__(
+        self: "WorkspaceAgent", llm: LLM, token: str = None
+    ) -> "WorkspaceAgent":
         super().__init__(llm, token=token)
         self.__init_agent()
 
@@ -54,8 +64,7 @@ class WorkspaceAgent(KBaseAgent):
 
         @tool(args_schema=JobInput, return_direct=False)
         def get_report_from_job_id(job_id: str) -> str:
-            """Fetch a report object from a KBase Narrative.
-            """
+            """Fetch a report object from a KBase Narrative."""
             return self._get_report_from_job_id(process_tool_input(job_id, "job_id"))
 
         @tool(args_schema=UpaInput, return_direct=False)
@@ -66,11 +75,11 @@ class WorkspaceAgent(KBaseAgent):
             return self._get_object(process_tool_input(upa, "upa"))
 
         self.agent = Agent(
-            role = self.role,
-            goal = self.goal,
-            backstory = self.backstory,
-            verbose = True,
-            tools = [
+            role=self.role,
+            goal=self.goal,
+            backstory=self.backstory,
+            verbose=True,
+            tools=[
                 list_objects,
                 get_object,
                 get_report,
@@ -121,7 +130,9 @@ class WorkspaceAgent(KBaseAgent):
         if state.status in ["queued", "running"]:
             return "The job is not yet complete"
         if state.status in ["terminated", "error"]:
-            return "The job did not finish successfully, so there is no report to return."
+            return (
+                "The job did not finish successfully, so there is no report to return."
+            )
         if state.status != "completed":
             return f"Unknown job status '{state.status}'"
         if state.job_output is not None:
@@ -130,11 +141,15 @@ class WorkspaceAgent(KBaseAgent):
             # used as "magic values" in the narrative to denote a report object. So really we just need
             # to look for the report_ref one. They're both present in each app that makes a report.
             # So, we need to some sifting here
-            if "result" in state.job_output and isinstance(state.job_output["result"], list):
+            if "result" in state.job_output and isinstance(
+                state.job_output["result"], list
+            ):
                 if "report_ref" in state.job_output["result"][0]:
                     return self._get_report(state.job_output["result"][0]["report_ref"])
                 else:
                     return "No report object was found in the job results."
             else:
-                return "The job output seems to be malformed, there is no 'result' field."
+                return (
+                    "The job output seems to be malformed, there is no 'result' field."
+                )
         return "The job was completed, but no job output was found."
