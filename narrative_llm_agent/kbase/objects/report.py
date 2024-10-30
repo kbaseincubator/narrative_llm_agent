@@ -2,6 +2,7 @@ import json
 
 REPORT_TYPE = "KBaseReport.Report"
 
+
 class LinkedFile:
     handle: str
     description: str
@@ -12,6 +13,7 @@ class LinkedFile:
     def __init__(self, file_link: dict) -> None:
         for key in ["handle", "description", "name", "label", "URL"]:
             self.__setattr__(key.lower(), file_link.get(key, ""))
+
 
 class KBaseReport:
     raw: dict
@@ -32,8 +34,12 @@ class KBaseReport:
         self.direct_html_link_index = report_obj.get("direct_html_link_index", None)
         self.warnings = report_obj.get("warnings", [])
 
-        self.html_links = [LinkedFile(link) for link in report_obj.get("html_links", [])]
-        self.file_links = [LinkedFile(link) for link in report_obj.get("file_links", [])]
+        self.html_links = [
+            LinkedFile(link) for link in report_obj.get("html_links", [])
+        ]
+        self.file_links = [
+            LinkedFile(link) for link in report_obj.get("file_links", [])
+        ]
 
     def __str__(self):
         return json.dumps(self.raw)
@@ -43,4 +49,3 @@ def is_report(obj_type: str) -> bool:
     if not isinstance(obj_type, str):
         return False
     return REPORT_TYPE in obj_type
-

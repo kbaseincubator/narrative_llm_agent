@@ -12,21 +12,25 @@ from narrative_llm_agent.kbase.objects.narrative import (
     RawCell,
     Narrative,
     NarrativeMetadata,
-    is_narrative
+    is_narrative,
 )
 from tests.test_data.test_data import load_test_data_json
 import json
 import pytest
 
-@pytest.mark.parametrize("type_str,expected", [
-    ("KBaseNarrative.Narrative", True),
-    ("KBaseNarrative.Narrative-1.0", True),
-    ("NotANarrative", False),
-    (None, False),
-    (1, False),
-    (["not", "a", "narrative"], False),
-    ({"not": "a narrative"}, False)
-])
+
+@pytest.mark.parametrize(
+    "type_str,expected",
+    [
+        ("KBaseNarrative.Narrative", True),
+        ("KBaseNarrative.Narrative-1.0", True),
+        ("NotANarrative", False),
+        (None, False),
+        (1, False),
+        (["not", "a", "narrative"], False),
+        ({"not": "a narrative"}, False),
+    ],
+)
 def test_is_narrative(type_str, expected):
     assert is_narrative(type_str) == expected
 
@@ -47,7 +51,9 @@ class TestCell:
         cell = Cell("test_cell", cell_dict)
         assert cell.to_dict() == cell_dict
 
+
 # Similarly, write tests for CodeCell, RawCell, MarkdownCell, KBaseCell, and their subclasses
+
 
 class TestCodeCell:
     def test_init_with_outputs(self):
@@ -65,6 +71,7 @@ class TestCodeCell:
         cell = CodeCell({})
         assert cell.get_info_str() == "jupyter.code"
 
+
 class TestMarkdownCell:
     def test_init(self):
         cell_dict = {"source": "some markdown"}
@@ -75,6 +82,7 @@ class TestMarkdownCell:
     def test_get_info_str(self):
         cell = MarkdownCell({})
         assert cell.get_info_str() == "jupyter.markdown"
+
 
 class TestRawCell:
     def test_init(self):
@@ -87,7 +95,9 @@ class TestRawCell:
         cell = RawCell({})
         assert cell.get_info_str() == "jupyter.raw"
 
+
 # Continue with similar tests for RawCell, MarkdownCell
+
 
 class TestAppCell:
     @pytest.fixture
@@ -99,12 +109,7 @@ class TestAppCell:
                         "app": {
                             "id": "app_id",
                             "gitCommitHash": "commit_hash",
-                            "spec": {
-                                "info": {
-                                    "id": "app_id",
-                                    "name": "App Name"
-                                }
-                            }
+                            "spec": {"info": {"id": "app_id", "name": "App Name"}},
                         }
                     }
                 }
@@ -113,7 +118,10 @@ class TestAppCell:
 
     def test_init(self, sample_cell_dict):
         cell = AppCell(sample_cell_dict)
-        assert cell.app_spec == sample_cell_dict["metadata"]["kbase"]["appCell"]["app"]["spec"]
+        assert (
+            cell.app_spec
+            == sample_cell_dict["metadata"]["kbase"]["appCell"]["app"]["spec"]
+        )
         assert cell.app_id == "app_id"
         assert cell.app_name == "App Name"
         assert cell.job_state is None  # TODO
@@ -123,6 +131,7 @@ class TestAppCell:
     def test_get_info_str(self, sample_cell_dict):
         cell = AppCell(sample_cell_dict)
         assert cell.get_info_str() == "method.app_id/commit_hash"
+
 
 class TestBulkImportCell:
     def test_init(self):
@@ -134,6 +143,7 @@ class TestBulkImportCell:
         cell = BulkImportCell({})
         assert cell.get_info_str() == "kbase.bulk_import"
 
+
 class TestDataCell:
     def test_init(self):
         cell = DataCell({})
@@ -143,6 +153,7 @@ class TestDataCell:
     def test_get_info_str(self):
         cell = DataCell({})
         assert cell.get_info_str() == "kbase.data_viewer"
+
 
 class TestOutputCell:
     def test_init(self):
@@ -154,8 +165,10 @@ class TestOutputCell:
         cell = OutputCell({})
         assert cell.get_info_str() == "kbase.app_output"
 
+
 class TestKBaseCell:
     kb_type = "some_kbase_cell"
+
     def test_init(self):
         cell = KBaseCell(self.kb_type, {})
         assert cell.cell_type == "code"
@@ -164,6 +177,7 @@ class TestKBaseCell:
     def test_get_info_str(self):
         cell = KBaseCell(self.kb_type, {})
         assert cell.get_info_str() == "kbase." + self.kb_type
+
 
 class TestNarrativeMetadata:
     @pytest.fixture
@@ -175,7 +189,7 @@ class TestNarrativeMetadata:
             "description": "Sample description",
             "format": "ipynb",
             "name": "Sample Narrative",
-            "is_temporary": True
+            "is_temporary": True,
         }
 
     def test_init(self, sample_narrative_metadata):
@@ -183,7 +197,10 @@ class TestNarrativeMetadata:
         narr_meta = NarrativeMetadata(sample_narrative_metadata)
 
         assert narr_meta.creator == sample_narrative_metadata["creator"]
-        assert narr_meta.data_dependencies == sample_narrative_metadata["data_dependencies"]
+        assert (
+            narr_meta.data_dependencies
+            == sample_narrative_metadata["data_dependencies"]
+        )
         assert narr_meta.description == sample_narrative_metadata["description"]
         assert narr_meta.format == sample_narrative_metadata["format"]
         assert narr_meta.name == sample_narrative_metadata["name"]
@@ -205,6 +222,7 @@ class TestNarrativeMetadata:
         """Test the to_dict method."""
         narr_meta = NarrativeMetadata(sample_narrative_metadata)
         assert narr_meta.to_dict() == sample_narrative_metadata
+
 
 class TestNarrative:
     def test_init(self, sample_narrative_json):
@@ -239,16 +257,14 @@ class TestNarrative:
 
     def test_add_code_cell(self, sample_narrative_json):
         test_source = "print('this is valid code.')"
-        outputs = [{
-            "data": {
-                "text/plain": [
-                    "'this is valid code.'"
-                ]
-            },
-            "execution_count": 5,
-            "metadata": {},
-            "output_type": "execute_result"
-        }]
+        outputs = [
+            {
+                "data": {"text/plain": ["'this is valid code.'"]},
+                "execution_count": 5,
+                "metadata": {},
+                "output_type": "execute_result",
+            }
+        ]
         narr = Narrative(json.loads(sample_narrative_json))
         num_cells = len(narr.cells)
         new_cell = narr.add_code_cell(test_source, outputs=outputs)
@@ -279,7 +295,9 @@ class TestNarrative:
     def test_add_app_cell(self, sample_narrative_json, app_spec):
         narr = Narrative(json.loads(sample_narrative_json))
         num_cells = len(narr.cells)
-        job_state = JobState(load_test_data_json(Path("app_spec_data") / "app_spec_job_state.json"))
+        job_state = JobState(
+            load_test_data_json(Path("app_spec_data") / "app_spec_job_state.json")
+        )
         new_cell = narr.add_app_cell(job_state, app_spec)
         assert new_cell.app_id == app_spec["info"]["id"]
         assert new_cell.app_name == app_spec["info"]["name"]

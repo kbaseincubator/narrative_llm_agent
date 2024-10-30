@@ -7,19 +7,27 @@ from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
-from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.clients.narrative_method_store import (
+    NarrativeMethodStore,
+)
 from narrative_llm_agent.kbase.objects.narrative import Narrative
+
 
 class NarrativeInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
+
 
 class MarkdownCellInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
     markdown_text: str = Field(description="The markdown text. Must be a string.")
 
+
 class AppCellFromJobInput(BaseModel):
     narrative_id: int = Field(description="The narrative id. Should be numeric.")
-    job_id: str = Field(description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string.")
+    job_id: str = Field(
+        description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string."
+    )
+
 
 class NarrativeAgent(KBaseAgent):
     role: str = "Narrative Manager"
@@ -31,7 +39,9 @@ class NarrativeAgent(KBaseAgent):
     for your use to help facilitate this role.
     """
 
-    def __init__(self: "NarrativeAgent", llm: LLM, token:str=None) -> "NarrativeAgent":
+    def __init__(
+        self: "NarrativeAgent", llm: LLM, token: str = None
+    ) -> "NarrativeAgent":
         super().__init__(llm, token=token)
         self.__init_agent()
 
@@ -50,7 +60,9 @@ class NarrativeAgent(KBaseAgent):
             recent version of the Narrative document with the given id in a reduced format that can be
             more easily interpreted by an LLM with less confusion. The narrative_id input must be
             numeric. Do not input a dictionary or JSON-formatted string."""
-            return self._get_narrative_state(process_tool_input(narrative_id, "narrative_id"))
+            return self._get_narrative_state(
+                process_tool_input(narrative_id, "narrative_id")
+            )
 
         @tool(args_schema=MarkdownCellInput, return_direct=False)
         def add_markdown_cell(narrative_id: int, markdown_text: str) -> str:
@@ -75,22 +87,19 @@ class NarrativeAgent(KBaseAgent):
             return self._add_app_cell(narrative_id, job_id)
 
         self.agent = Agent(
-            role = self.role,
-            goal = self.goal,
-            backstory = self.backstory,
-            verbose = True,
-            tools = [
-                get_narrative,
-                add_app_cell,
-                add_markdown_cell,
-                get_narrative_state
-            ],
+            role=self.role,
+            goal=self.goal,
+            backstory=self.backstory,
+            verbose=True,
+            tools=[get_narrative, add_app_cell, add_markdown_cell, get_narrative_state],
             llm=self._llm,
             allow_delegation=False,
             memory=True,
         )
 
-    def _get_narrative(self, narrative_id: int, as_json: bool=True) -> str | Narrative:
+    def _get_narrative(
+        self, narrative_id: int, as_json: bool = True
+    ) -> str | Narrative:
         """
         Fetch a Narrative object from the Workspace service with given narrative id.
         This is returned as a JSON string.

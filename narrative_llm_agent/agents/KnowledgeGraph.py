@@ -13,19 +13,24 @@ from langchain.agents import load_tools
 import os
 from langchain_core.runnables import RunnableConfig
 import chainlit as cl
-#from langchain_community.tools import HumanInputRun
+
+# from langchain_community.tools import HumanInputRun
 from narrative_llm_agent.tools.human_tool import HumanInputChainlit
+
 
 class KGInput(BaseModel):
     input: str = Field(description="query to look up KBase Knowledge Graph")
 
+
 class KGAgent(KBaseAgent):
-    role="Knowledge Graph retrieval"
-    goal="Use the knowledge graph to find the latest and updated information about the KBase apps."
-    backstory="""You are an expert in utilizing the Knowledge Graph tools available to you to answer questions related to the KBase Knowledge Graph """
+    role = "Knowledge Graph retrieval"
+    goal = "Use the knowledge graph to find the latest and updated information about the KBase apps."
+    backstory = """You are an expert in utilizing the Knowledge Graph tools available to you to answer questions related to the KBase Knowledge Graph """
     _openai_key: str
 
-    def __init__(self: "KGAgent", llm: LLM, token: str=None, openai_api_key: str = None):
+    def __init__(
+        self: "KGAgent", llm: LLM, token: str = None, openai_api_key: str = None
+    ):
         super().__init__(llm, token=token)
         self.__setup_openai_api_key(openai_api_key)
         self.__init_agent()
@@ -41,17 +46,18 @@ class KGAgent(KBaseAgent):
     def __init_agent(self: "KGAgent") -> None:
         cfg = RunnableConfig()
         # Check if running with Chainlit
-        if os.getenv('CHAINLIT_RUN'):
+        if os.getenv("CHAINLIT_RUN"):
             cfg["callbacks"] = [cl.LangchainCallbackHandler()]
             human_tools = [HumanInputChainlit()]
         else:
             human_tools = load_tools(["human"])
 
-        @tool("KG retrieval tool", args_schema = KGInput, return_direct=True)
+        @tool("KG retrieval tool", args_schema=KGInput, return_direct=True)
         def KGretrieval_tool(input: str):
             """This tool has the KBase app Knowledge Graph. Useful for when you need to find the KBase applications and their tooltip, version, category and data objects.
-            The input should always be a KBase app name and should not include any special characters or version number. """
-            return self._create_KG_agent().invoke({"input": input})['output']
+            The input should always be a KBase app name and should not include any special characters or version number."""
+            return self._create_KG_agent().invoke({"input": input})["output"]
+
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
@@ -59,15 +65,16 @@ class KGAgent(KBaseAgent):
             verbose=True,
             allow_delegation=True,
             llm=self._llm,
-            tools=[KGretrieval_tool]+human_tools,
+            tools=[KGretrieval_tool] + human_tools,
             memory=True,
         )
 
     def _create_KG_agent(self):
-
         tools = [InformationTool()]
 
-        llm_with_tools = self._llm.bind(functions=[format_tool_to_openai_function(t) for t in tools])
+        llm_with_tools = self._llm.bind(
+            functions=[format_tool_to_openai_function(t) for t in tools]
+        )
 
         prompt = ChatPromptTemplate.from_messages(
             [

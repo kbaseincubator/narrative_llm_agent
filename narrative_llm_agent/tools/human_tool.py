@@ -2,6 +2,7 @@ from langchain.tools import BaseTool
 import chainlit as cl
 from chainlit import run_sync
 
+
 class HumanInputChainlit(BaseTool):
     """Tool that adds the capability to ask user for input."""
 
@@ -20,7 +21,7 @@ class HumanInputChainlit(BaseTool):
         """Use the Human input tool."""
 
         res = run_sync(cl.AskUserMessage(content=query).send())
-    
+
         return res["output"]
 
     async def _arun(
