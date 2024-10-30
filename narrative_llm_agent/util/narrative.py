@@ -2,10 +2,11 @@ from narrative_llm_agent.kbase.objects.narrative import (
     Narrative,
     NARRATIVE_ID_KEY,
     NARRATIVE_TYPE,
-    is_narrative
+    is_narrative,
 )
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 import json
+
 
 class NarrativeUtil:
     _ws: Workspace
@@ -32,7 +33,9 @@ class NarrativeUtil:
         narr_ref = self.get_narrative_ref_from_wsid(ws_id)
         narr_obj = self._ws.get_objects([narr_ref])[0]
         if not is_narrative(narr_obj["info"][2]):
-            raise ValueError(f"The object with reference {narr_ref} is not a KBase Narrative.")
+            raise ValueError(
+                f"The object with reference {narr_ref} is not a KBase Narrative."
+            )
         return Narrative(narr_obj["data"])
 
     def save_narrative(self, narrative: Narrative, ws_id: int) -> list:
@@ -49,11 +52,13 @@ class NarrativeUtil:
             "data": narr_obj,
             "objid": obj_id,
             "meta": self._build_save_metadata(narrative),
-            "provenance": [{
-                "service": "narrative_llm_agent",
-                "description": "Saved by a KBase Assistant",
-                "service_ver": "0.0.1"  # TODO: put this somewhere reasonable
-            }]
+            "provenance": [
+                {
+                    "service": "narrative_llm_agent",
+                    "description": "Saved by a KBase Assistant",
+                    "service_ver": "0.0.1",  # TODO: put this somewhere reasonable
+                }
+            ],
         }
         obj_info = self._ws.save_objects(ws_id, [ws_save_obj])[0]
         return obj_info
@@ -64,10 +69,24 @@ class NarrativeUtil:
         Needs to be in string-string key-value-pairs for the Workspace service to allow it.
         """
         narr_meta = narrative.metadata
-        string_keys = ["creator", "is_temporary", "format", "name", "description", "type", "ws_name"]
+        string_keys = [
+            "creator",
+            "is_temporary",
+            "format",
+            "name",
+            "description",
+            "type",
+            "ws_name",
+        ]
         obj_keys = {
             "data_dependencies": [],
-            "job_info": {"queue_time": 0, "run_time": 0, "running": 0, "completed": 0, "error": 0}
+            "job_info": {
+                "queue_time": 0,
+                "run_time": 0,
+                "running": 0,
+                "completed": 0,
+                "error": 0,
+            },
         }
         meta = {}
         for key in string_keys:

@@ -3,6 +3,7 @@ from ..service_client import ServiceClient
 import json
 from narrative_llm_agent.config import get_config
 
+
 class NarrativeCellInfo:
     cell_id: str
     run_id: str
@@ -18,6 +19,7 @@ class NarrativeCellInfo:
         for key, value in vars(self).items():
             dict_form[key] = value
         return dict_form
+
 
 class JobInput:
     method: str
@@ -63,6 +65,7 @@ class JobInput:
     def __str__(self) -> str:
         return json.dumps(self.to_dict())
 
+
 class JsonRpcError:
     name: str
     code: int
@@ -76,7 +79,8 @@ class JsonRpcError:
         self.error = error
 
     def to_dict(self):
-        return { key: getattr(self, key) for key in ["name", "code", "message", "error"] }
+        return {key: getattr(self, key) for key in ["name", "code", "message", "error"]}
+
 
 class JobState:
     job_id: str
@@ -109,7 +113,9 @@ class JobState:
         required_fields = ["job_id", "status"]
         missing = [field for field in required_fields if field not in data]
         if len(missing):
-            raise KeyError(f"JobState data is missing required field(s) {','.join(missing)}")
+            raise KeyError(
+                f"JobState data is missing required field(s) {','.join(missing)}"
+            )
 
         self.job_id = data["job_id"]
         self.ws_id = data.get("wsid")
@@ -127,7 +133,9 @@ class JobState:
         self.updated = data.get("updated", 0)
         if "error" in data:
             err = data["error"]
-            self.error = JsonRpcError(err.get("name"), err.get("code"), err.get("message"), err.get("error"))
+            self.error = JsonRpcError(
+                err.get("name"), err.get("code"), err.get("message"), err.get("error")
+            )
         else:
             self.error = None
         self.error_code = data.get("error_code")
@@ -140,12 +148,19 @@ class JobState:
         self.retry_ids = data.get("retry_ids", [])
 
     def to_dict(self) -> dict:
-        required = ["job_id", "user", "status", "child_jobs", "batch_job"]
+        required = ["job_id", "user", "status", "child_jobs", "batch_job", "job_output"]
         dict_form = {key: getattr(self, key) for key in required}
 
         dict_form["wsid"] = self.ws_id
 
-        time_keys = ["created", "queued", "estimating", "running", "finished", "updated"]
+        time_keys = [
+            "created",
+            "queued",
+            "estimating",
+            "running",
+            "finished",
+            "updated",
+        ]
         for key in time_keys:
             if getattr(self, key) is not None and getattr(self, key) > 0:
                 dict_form[key] = getattr(self, key)
@@ -169,10 +184,13 @@ class JobState:
             return False
         return self.to_dict() == other.to_dict()
 
+
 class ExecutionEngine(ServiceClient):
     _service: str = "execution_engine2"
 
-    def __init__(self: "ExecutionEngine", token: str=None, endpoint: str=None) -> None:
+    def __init__(
+        self: "ExecutionEngine", token: str = None, endpoint: str = None
+    ) -> None:
         if endpoint is None:
             endpoint = get_config().ee_endpoint
         super().__init__(endpoint, self._service, token=token)

@@ -1,9 +1,8 @@
 import requests
 
+
 def check_token(token: str, auth_endpoint: str) -> dict[str, str]:
-    headers = {
-        "Authorization": token
-    }
+    headers = {"Authorization": token}
     resp = requests.get(auth_endpoint, headers=headers, allow_redirects=True)
     try:
         resp.raise_for_status()

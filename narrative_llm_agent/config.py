@@ -16,6 +16,7 @@ import os
 DEFAULT_CONFIG_FILE = "config.cfg"
 ENV_CONFIG_FILE = "NARRATIVE_LLM_AGENT_CONFIG"
 
+
 class AgentConfig:
     def __init__(self: "AgentConfig") -> None:
         config_file = os.environ.get(ENV_CONFIG_FILE, DEFAULT_CONFIG_FILE)
@@ -34,13 +35,18 @@ class AgentConfig:
         self.ws_endpoint = None
         self.ee_endpoint = None
         self.nms_endpoint = None
+        self.blobstore_endpoint = None
         if self.service_endpoint is not None:
             if "workspace" in kb_cfg:
                 self.ws_endpoint = self.service_endpoint + kb_cfg["workspace"]
             if "execution_engine" in kb_cfg:
                 self.ee_endpoint = self.service_endpoint + kb_cfg["execution_engine"]
             if "narrative_method_store" in kb_cfg:
-                self.nms_endpoint = self.service_endpoint + kb_cfg["narrative_method_store"]
+                self.nms_endpoint = (
+                    self.service_endpoint + kb_cfg["narrative_method_store"]
+                )
+            if "blobstore" in kb_cfg:
+                self.blobstore_endpoint = self.service_endpoint + kb_cfg["blobstore"]
 
         self.auth_token_env = kb_cfg.get("auth_token_env")
         self.openai_key_env = kb_cfg.get("openai_key_env")
@@ -49,7 +55,9 @@ class AgentConfig:
         self.neo4j_password_env = kb_cfg.get("neo4j_password")
         self.cborg_key_env = kb_cfg.get("cborg_key_env")
 
+
 __config: AgentConfig = None
+
 
 def get_config() -> AgentConfig:
     global __config
@@ -57,9 +65,11 @@ def get_config() -> AgentConfig:
         __config = AgentConfig()
     return __config
 
+
 def clear_config() -> None:
     global __config
     __config = None
+
 
 def get_kbase_auth_token() -> str:
     env_var = get_config().auth_token_env

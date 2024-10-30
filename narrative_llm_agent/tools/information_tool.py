@@ -26,6 +26,7 @@ WITH m, context + "\n" + "App name: " + m.name + "\n" + "Tooltip: " + m.tooltip 
 RETURN final_context LIMIT 1
 """
 
+
 def get_information(entity: str, type: str) -> str:
     candidates = get_candidates(entity, type)
     if not candidates:
@@ -39,7 +40,7 @@ def get_information(entity: str, type: str) -> str:
     data = graph.query(
         description_query, params={"candidate": candidates[0]["candidate"]}
     )
-    print("candidate name provided=",candidates)
+    print("candidate name provided=", candidates)
     return data[0]["final_context"]
 
 
@@ -52,9 +53,7 @@ class InformationInput(BaseModel):
 
 class InformationTool(BaseTool):
     name = "Information"
-    description = (
-        "useful for when you need to answer questions about KBase apps"
-    )
+    description = "useful for when you need to answer questions about KBase apps"
     args_schema: Type[BaseModel] = InformationInput
 
     def _run(

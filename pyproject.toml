@@ -17,6 +17,7 @@ neo4j = "^5.18.0"
 streamlit = "^1.32.2"
 dash = "^2.16.1"
 chainlit = "^1.0.401"
+langchain-chroma = "^0.1.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

@@ -9,16 +9,25 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 from crewai_tools import tool, BaseTool
 import json
 
+
 class MetadataInput(BaseModel):
     obj_upa: str = "UPA for reads data object"
 
+
 class StoreConversationInput(BaseModel):
-    narrative_id: int = Field(..., description="id of the Narrative to store the conversation in")
-    json_conversation: str = Field(..., description="JSON format of the conversation to store")
+    narrative_id: int = Field(
+        ..., description="id of the Narrative to store the conversation in"
+    )
+    json_conversation: str = Field(
+        ..., description="JSON format of the conversation to store"
+    )
+
 
 class StoreConversationTool(BaseTool):
     name: str = "Conversation storage tool"
-    description: str = "Securely store the results of a conversation in a KBase Narrative."
+    description: str = (
+        "Securely store the results of a conversation in a KBase Narrative."
+    )
     args_schema: Type[BaseModel] = StoreConversationInput
     storage_fn: Callable
 
@@ -30,6 +39,7 @@ class StoreConversationTool(BaseTool):
         print(f"stored in narrative {narrative_id}")
         print("-------------")
         self.storage_fn(narrative_id, json_conversation)
+
 
 class MetadataAgent(KBaseAgent):
     initial_prompts = [
@@ -47,7 +57,12 @@ class MetadataAgent(KBaseAgent):
         "information to make sure a project is successful before it begins."
     )
 
-    def __init__(self: "MetadataAgent", llm: LLM, token:str = None, initial_prompts:list[str]=None) -> None:
+    def __init__(
+        self: "MetadataAgent",
+        llm: LLM,
+        token: str = None,
+        initial_prompts: list[str] = None,
+    ) -> None:
         super().__init__(llm, token=token)
         if initial_prompts is None:
             initial_prompts = []
@@ -71,7 +86,11 @@ class MetadataAgent(KBaseAgent):
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools = [conversation_tool, get_object_metadata, StoreConversationTool(storage_fn=self._store_conversation)],
+            tools=[
+                conversation_tool,
+                get_object_metadata,
+                StoreConversationTool(storage_fn=self._store_conversation),
+            ],
             llm=self._llm,
             allow_delegation=False,
             memory=True,
@@ -88,7 +107,9 @@ class MetadataAgent(KBaseAgent):
         print(obj_info)
         return json.dumps(obj_info["metadata"])
 
-    def _store_conversation(self: "MetadataAgent", narrative_id: int, json_conversation: str) -> str:
+    def _store_conversation(
+        self: "MetadataAgent", narrative_id: int, json_conversation: str
+    ) -> str:
         """Stores JSON-formatted results of a conversation in a Narrative markdown cell."""
         ws = Workspace(token=self._token)
         narr_util = NarrativeUtil(ws)
