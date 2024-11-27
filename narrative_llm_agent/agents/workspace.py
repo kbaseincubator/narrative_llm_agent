@@ -97,7 +97,7 @@ class WorkspaceAgent(KBaseAgent):
         narrative_id - int - the id of the narrative (workspace)
         """
         ws = Workspace(token=self._token)
-        return json.dumps(ws.list_workspace_objects(narrative_id))
+        return json.dumps(ws.list_workspace_objects(narrative_id, as_dict=True))
 
     def _get_object(self: "WorkspaceAgent", upa: str) -> dict:
         """
