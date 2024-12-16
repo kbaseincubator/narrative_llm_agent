@@ -5,11 +5,32 @@ from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
 from pydantic import BaseModel
 
-class StartupOutput(BaseModel):
+class GenomeAnnotationInput(BaseModel):
     narrative_id: int
     reads_object: str
 
-class JobCrew:
+class GenomeReadsMetadata(BaseModel):
+    organism: str | None
+    read_length: int | None
+    insert_size: int | None
+    library_type: str | None
+    paired_end: bool | None
+    platform: str | None
+    sequencing_depth: float | None
+    genome_size: int | None
+    ploidy: int | None
+    coverage: float | None
+    additional_notes: dict | None
+    preferred_assembler: str | None
+    preferred_annotator: str | None
+    preferred_qc_tools: list[str] | None
+
+class StartupOutput(BaseModel):
+    metadata: GenomeReadsMetadata
+    narrative_id: int
+    reads_object: str # UPA of the reads object
+
+class StartupCrew:
     _token: str
     _llm: LLM
 
@@ -33,6 +54,10 @@ class JobCrew:
             verbose=True,
         )
         results = crew.kickoff()
+        return StartupOutput(
+            metadata=results.tasks_output[2].json_dict,
+            **results.tasks_output[1].json_dict
+        )
 
     def build_tasks(self) -> list[Task]:
         startup_objective = """
@@ -64,7 +89,7 @@ class JobCrew:
 
         get_reads_task = Task(
             description = get_reads_objective,
-            output_json = StartupOutput,
+            output_json = GenomeAnnotationInput,
             expected_output = "Return JSON with narrative_id and reads_object keys. reads_object should be an UPA",
             context = [startup_task],
             agent = self._coordinator.agent
@@ -72,7 +97,8 @@ class JobCrew:
 
         metadata_task = Task(
             description = metadata_objective,
-            expected_output = "Return the assembled metadata as a string.",
+            expected_output = "Return JSON of the assembled metadata, matching the schema. Null values are allowed.",
+            output_json = GenomeReadsMetadata,
             agent = self._metadata.agent,
             context = [get_reads_task]
         )
