@@ -1,7 +1,7 @@
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
