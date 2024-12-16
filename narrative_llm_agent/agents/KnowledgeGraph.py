@@ -1,7 +1,7 @@
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain.tools import tool
 from narrative_llm_agent.tools.information_tool import InformationTool
 from langchain.tools.render import format_tool_to_openai_function
@@ -12,7 +12,7 @@ from langchain.agents import AgentExecutor
 from langchain.agents import load_tools
 import os
 from langchain_core.runnables import RunnableConfig
-import chainlit as cl
+# import chainlit as cl
 
 # from langchain_community.tools import HumanInputRun
 from narrative_llm_agent.tools.human_tool import HumanInputChainlit
@@ -44,13 +44,13 @@ class KGAgent(KBaseAgent):
             raise KeyError("Missing environment variable OPENAI_API_KEY")
 
     def __init_agent(self: "KGAgent") -> None:
-        cfg = RunnableConfig()
-        # Check if running with Chainlit
-        if os.getenv("CHAINLIT_RUN"):
-            cfg["callbacks"] = [cl.LangchainCallbackHandler()]
-            human_tools = [HumanInputChainlit()]
-        else:
-            human_tools = load_tools(["human"])
+        # cfg = RunnableConfig()
+        # # Check if running with Chainlit
+        # if os.getenv("CHAINLIT_RUN"):
+        #     cfg["callbacks"] = [cl.LangchainCallbackHandler()]
+        #     human_tools = [HumanInputChainlit()]
+        # else:
+        human_tools = load_tools(["human"])
 
         @tool("KG retrieval tool", args_schema=KGInput, return_direct=True)
         def KGretrieval_tool(input: str):
@@ -95,7 +95,7 @@ class KGAgent(KBaseAgent):
         agent = (
             {
                 "input": lambda x: x["input"],
-                "chat_history": lambda x: _format_chat_history(x["chat_history"])
+                "chat_history": lambda x: x["chat_history"] #_format_chat_history(x["chat_history"])
                 if x.get("chat_history")
                 else [],
                 "agent_scratchpad": lambda x: format_to_openai_function_messages(

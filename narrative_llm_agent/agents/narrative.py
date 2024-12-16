@@ -1,7 +1,7 @@
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain.tools import tool
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.narrative import NarrativeUtil
