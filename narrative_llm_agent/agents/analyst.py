@@ -1,22 +1,23 @@
+from narrative_llm_agent.kbase.service_client import ServerError
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from langchain_openai import OpenAIEmbeddings
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.chains import RetrievalQA
 from crewai_tools import tool
 import os
 from pathlib import Path
-from langchain_core.runnables import RunnableConfig
-import chainlit as cl
-from narrative_llm_agent.tools.human_tool import HumanInputChainlit
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+# from langchain_core.runnables import RunnableConfig
+# import chainlit as cl
+# from narrative_llm_agent.tools.human_tool import HumanInputChainlit
 from narrative_llm_agent.config import get_config
 
-
 class AnalystInput(BaseModel):
-    input: str = Field(
+    query: str = Field(
         description="query to look up KBase documentation, catalog or tutorials"
     )
 
@@ -100,38 +101,48 @@ class AnalystAgent(KBaseAgent):
         raise KeyError("Missing environment variable OPENAI_API_KEY")
 
     def __init_agent(self: "AnalystAgent") -> None:
-        cfg = RunnableConfig()
+        # cfg = RunnableConfig()
         # Check if running with Chainlit
         additional_tools = []
-        if os.getenv("CHAINLIT_RUN"):
-            cfg["callbacks"] = [cl.LangchainCallbackHandler()]
-            additional_tools = [HumanInputChainlit()]
+        # if os.getenv("CHAINLIT_RUN"):
+        #     cfg["callbacks"] = [cl.LangchainCallbackHandler()]
+        #     additional_tools = [HumanInputChainlit()]
 
-        @tool(
-            "KBase documentation retrieval tool",
-            # args_schema=AnalystInput,
-            # return_direct=True,
-        )
-        def kbase_docs_retrieval_tool(input: str):
+        @tool("KBase documentation retrieval tool")
+        def kbase_docs_retrieval_tool(query: str):
             """This tool searches the KBase documentation. It is useful for answering questions about how to use
             KBase applications. It does not contain a list of KBase apps. Do not use it to search for KBase app
             presence. Input should be a fully formed question."""
             return self._create_doc_chain(persist_directory=self._docs_db_dir).invoke(
-                {"query": input}
+                {"query": query}
             )
 
-        @tool(
-            "KBase app catalog retrieval tool",
-            # args_schema=AnalystInput,
-            # return_direct=True,
-        )
-        def kbase_app_catalog_retrieval_tool(input: str):
+        @tool("KBase app catalog retrieval tool")
+        def kbase_app_catalog_retrieval_tool(query: str):
             """Use this tool to search the KBase app catalog. This will provide apps that are available in KBase.
             All apps in the catalog also have a name, version, tooltip, categories, and description to help you
             to decide which app to use. Input should be a fully formed question."""
-            return self._create_doc_chain(
+            print("running query against the catalog retrieval tool:")
+            print(query)
+            result = self._create_doc_chain(
                 persist_directory=self._catalog_db_dir
-            ).invoke({"query": input})
+            ).invoke({"query": query})
+            print("got result")
+            print(result)
+            return result
+
+        @tool("KBase app validator")
+        def kbase_app_validator(app_id: str) -> bool:
+            """Use this tool to validate if an app is available in KBase.
+
+            Input should be a single app id with format module_name/app_name."""
+            try:
+                nms = NarrativeMethodStore()
+                nms.get_app_full_info(app_id)
+            except ServerError:
+                return False
+            return True
+
 
         self.agent = Agent(
             role=self.role,
@@ -140,7 +151,7 @@ class AnalystAgent(KBaseAgent):
             verbose=True,
             allow_delegation=True,
             llm=self._llm,
-            tools=[kbase_app_catalog_retrieval_tool, kbase_docs_retrieval_tool]
+            tools=[kbase_app_catalog_retrieval_tool, kbase_docs_retrieval_tool, kbase_app_validator]
             + additional_tools,
             memory=True,
         )
