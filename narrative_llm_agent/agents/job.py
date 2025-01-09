@@ -113,7 +113,12 @@ class JobAgent(KBaseAgent):
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools=[job_status, start_job, get_app_params, monitor_job], # + human_tools,
+            tools=[
+                job_status,
+                start_job,
+                get_app_params,
+                monitor_job,
+            ],  # + human_tools,
             llm=self._llm,
             allow_delegation=False,
             memory=True,
