@@ -1,3 +1,4 @@
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
@@ -112,7 +113,7 @@ class JobAgent(KBaseAgent):
             goal=self.goal,
             backstory=self.backstory,
             verbose=True,
-            tools=[job_status, start_job, get_app_params, monitor_job] + human_tools,
+            tools=[job_status, start_job, get_app_params, monitor_job], # + human_tools,
             llm=self._llm,
             allow_delegation=False,
             memory=True,
@@ -136,14 +137,14 @@ class JobAgent(KBaseAgent):
         nms = NarrativeMethodStore()
         ws = Workspace(token=self._token)
         spec = nms.get_app_spec(app_id)
-        job_submission = build_run_job_params(spec, params, narrative_id, ws)
+        job_submission = build_run_job_params(AppSpec(**spec), params, narrative_id, ws)
         print(job_submission)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
         nms = NarrativeMethodStore()
         spec = nms.get_app_spec(app_id, include_full_info=True)
-        return json.dumps(get_processed_app_spec_params(spec))
+        return json.dumps(get_processed_app_spec_params(AppSpec(**spec)))
 
     def _monitor_job(self: "JobAgent", job_id: str, interval: int = 10) -> str:
         is_complete = False
