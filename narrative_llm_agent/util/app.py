@@ -4,9 +4,52 @@ import time
 import random
 import re
 from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec, AppParameter
 
 
 def get_processed_app_spec_params(app_spec: dict) -> dict:
+    """
+    TODO: check all existing specs to see if parameters show up in multiple groups.
+    'cause if so, that's going to give me a headache. Assume for now that they don't.
+    """
+    spec = AppSpec(**app_spec)
+    used_keys = ["id", "ui_name", "short_hint"]
+    processed_params = {}
+    for param in spec.parameters:
+        proc_param = {key: getattr(param, key) for key in used_keys}
+        proc_param["is_output_object"] = False
+        param_type, allowed_values = process_param_type(param)
+        proc_param["type"] = param_type
+        if (
+            param_type == "data_object"
+            and param.text_options is not None
+            and param.text_options.is_output_name == 1
+        ):
+            proc_param["is_output_object"] = True
+        proc_param["allowed"] = allowed_values
+        proc_param["multiple"] = True if param.allow_multiple == 1 else False
+        if param.default_values is not None and len(param.default_values):
+            proc_param["default_value"] = param.default_values[0]
+        else:
+            proc_param["default_value"] = None
+        processed_params[proc_param["id"]] = proc_param
+    processed_param_groups = {}
+    if spec.parameter_groups is not None:
+        for group in spec.parameter_groups:
+            param_group = {
+                "id": group.id,
+                "ui_name": group.ui_name,
+                "short_hint": group.short_hint,
+                "params": {param_id: processed_params[param_id] for param_id in group.parameter_ids},
+                "optional": True if group.optional == 1 else False,
+                "as_list": True if group.allow_multiple == 1 else False
+            }
+            for param_id in group.parameter_ids:
+                del processed_params[param_id]
+            processed_param_groups[group.id] = param_group
+    return processed_params | processed_param_groups
+
+def get_processed_app_spec_params_old(app_spec: dict) -> dict:
     """
     This processes the given KBase app spec and returns the
     parameter structure out of it in a way that a fairly dim LLM
@@ -53,7 +96,39 @@ def get_processed_app_spec_params(app_spec: dict) -> dict:
     return processed_params
 
 
-def process_param_type(param: dict) -> tuple:
+def process_param_type(param: AppParameter) -> tuple:
+    """
+    Processes the type of parameter this is.
+    Expands on the KBase typespec to include "data_object" and others
+    """
+    field_type = param.field_type
+    allowed_values = []
+    # allowed field_type values text | textarea | textsubdata | intslider |
+    # floatslider | checkbox | dropdown | radio | tab | file | dynamic_dropdown
+    if field_type == "text" and param.text_options is not None:
+        opts = param.text_options
+        if opts.valid_ws_types is not None:
+            field_type = "data_object"
+            allowed_values = opts.valid_ws_types
+        elif opts.validate_as is not None:
+            valid_type = opts.validate_as
+            field_type = valid_type
+            allowed_values = [
+                getattr(opts, f"min_{valid_type}"),
+                getattr(opts, f"max_{valid_type}")
+            ]
+    if field_type == "dropdown" and param.dropdown_options is not None:
+        allowed_values = [
+            opt.display for opt in param.dropdown_options.options
+        ]
+    # TODO types-
+    # textsubdata
+    # dynamic_dropdown
+    # these both depend on external data sources.
+    # not exactly necessary to start with, I don't think.
+    return (field_type, allowed_values)
+
+def process_param_type_old(param: dict) -> tuple:
     """
     Processes the type of parameter this is.
     Expands on the KBase typespec to include "data_object" and others
