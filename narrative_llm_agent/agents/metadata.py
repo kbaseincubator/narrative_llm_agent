@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from crewai_tools import tool, BaseTool
+from crewai.tools import tool, BaseTool
 import json
 
 

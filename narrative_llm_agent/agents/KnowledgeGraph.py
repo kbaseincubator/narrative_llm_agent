@@ -95,7 +95,9 @@ class KGAgent(KBaseAgent):
         agent = (
             {
                 "input": lambda x: x["input"],
-                "chat_history": lambda x: x["chat_history"] #_format_chat_history(x["chat_history"])
+                "chat_history": lambda x: x[
+                    "chat_history"
+                ]  # _format_chat_history(x["chat_history"])
                 if x.get("chat_history")
                 else [],
                 "agent_scratchpad": lambda x: format_to_openai_function_messages(

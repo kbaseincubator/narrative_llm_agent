@@ -153,5 +153,5 @@ class Workspace(ServiceClient):
             "version": obj_info[4],
             "saved_by": obj_info[5],
             "size_bytes": obj_info[9],
-            "upa": f"{obj_info[6]}/{obj_info[0]}/{obj_info[4]}"
+            "upa": f"{obj_info[6]}/{obj_info[0]}/{obj_info[4]}",
         }

@@ -5,9 +5,11 @@ from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
 from pydantic import BaseModel
 
+
 class GenomeAnnotationInput(BaseModel):
     narrative_id: int
     reads_object: str
+
 
 class GenomeReadsMetadata(BaseModel):
     organism: str | None
@@ -25,16 +27,18 @@ class GenomeReadsMetadata(BaseModel):
     preferred_annotator: str | None
     preferred_qc_tools: list[str] | None
 
+
 class StartupOutput(BaseModel):
     metadata: GenomeReadsMetadata
     narrative_id: int
-    reads_object: str # UPA of the reads object
+    reads_object: str  # UPA of the reads object
+
 
 class StartupCrew:
     _token: str
     _llm: LLM
 
-    def __init__(self, llm: LLM, token: str=None) -> None:
+    def __init__(self, llm: LLM, token: str = None) -> None:
         self._token = token
         self._llm = llm
         self._workspace = WorkspaceAgent(llm, token=token)
@@ -56,7 +60,7 @@ class StartupCrew:
         results = crew.kickoff()
         return StartupOutput(
             metadata=results.tasks_output[2].json_dict,
-            **results.tasks_output[1].json_dict
+            **results.tasks_output[1].json_dict,
         )
 
     def build_tasks(self) -> list[Task]:
@@ -82,25 +86,25 @@ class StartupCrew:
         """
 
         startup_task = Task(
-            description = startup_objective,
-            expected_output = "Return the numeric narrative id. Return only a number.",
-            agent = self._coordinator.agent
+            description=startup_objective,
+            expected_output="Return the numeric narrative id. Return only a number.",
+            agent=self._coordinator.agent,
         )
 
         get_reads_task = Task(
-            description = get_reads_objective,
-            output_json = GenomeAnnotationInput,
-            expected_output = "Return JSON with narrative_id and reads_object keys. reads_object should be an UPA",
-            context = [startup_task],
-            agent = self._coordinator.agent
+            description=get_reads_objective,
+            output_json=GenomeAnnotationInput,
+            expected_output="Return JSON with narrative_id and reads_object keys. reads_object should be an UPA",
+            context=[startup_task],
+            agent=self._coordinator.agent,
         )
 
         metadata_task = Task(
-            description = metadata_objective,
-            expected_output = "Return JSON of the assembled metadata, matching the schema. Null values are allowed.",
-            output_json = GenomeReadsMetadata,
-            agent = self._metadata.agent,
-            context = [get_reads_task]
+            description=metadata_objective,
+            expected_output="Return JSON of the assembled metadata, matching the schema. Null values are allowed.",
+            output_json=GenomeReadsMetadata,
+            agent=self._metadata.agent,
+            context=[get_reads_task],
         )
 
         return [startup_task, get_reads_task, metadata_task]
