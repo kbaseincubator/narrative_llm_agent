@@ -7,14 +7,18 @@ from pydantic import BaseModel, Field
 from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.chains import RetrievalQA
-from crewai_tools import tool
+from crewai.tools import tool
 import os
 from pathlib import Path
-from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.clients.narrative_method_store import (
+    NarrativeMethodStore,
+)
+
 # from langchain_core.runnables import RunnableConfig
 # import chainlit as cl
 # from narrative_llm_agent.tools.human_tool import HumanInputChainlit
 from narrative_llm_agent.config import get_config
+
 
 class AnalystInput(BaseModel):
     query: str = Field(
@@ -143,7 +147,6 @@ class AnalystAgent(KBaseAgent):
                 return False
             return True
 
-
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
@@ -151,7 +154,11 @@ class AnalystAgent(KBaseAgent):
             verbose=True,
             allow_delegation=True,
             llm=self._llm,
-            tools=[kbase_app_catalog_retrieval_tool, kbase_docs_retrieval_tool, kbase_app_validator]
+            tools=[
+                kbase_app_catalog_retrieval_tool,
+                kbase_docs_retrieval_tool,
+                kbase_app_validator,
+            ]
             + additional_tools,
             memory=True,
         )

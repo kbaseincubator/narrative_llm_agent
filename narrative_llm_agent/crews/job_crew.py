@@ -12,7 +12,7 @@ class JobCrew:
     _token: str
     _llm: LLM
 
-    def __init__(self, llm: LLM, token: str=None) -> None:
+    def __init__(self, llm: LLM, token: str = None) -> None:
         self._token = token
         self._llm = llm
         self._analyst = AnalystAgent(llm, token=token)
@@ -39,15 +39,17 @@ class JobCrew:
         )
         crew.kickoff()
 
-    def build_tasks(self, app_name: str, narrative_id: int, reads_upa: str) -> list[Task]:
+    def build_tasks(
+        self, app_name: str, narrative_id: int, reads_upa: str
+    ) -> list[Task]:
         get_reads_qc_app_task = Task(
-            description = f"Get the app id for the KBase {app_name} app. Return only the app id. This can be found in the catalog.",
-            expected_output = "An app id with the format module/app, with a single forward-slash",
-            agent=self._coordinator.agent
+            description=f"Get the app id for the KBase {app_name} app. Return only the app id. This can be found in the catalog.",
+            expected_output="An app id with the format module/app, with a single forward-slash",
+            agent=self._coordinator.agent,
         )
 
         get_app_params_task = Task(
-            description = f"""
+            description=f"""
             From the given KBase app id, fetch the list of parameters needed to run it. Use the App and Job manager agent
             for assistance. With the knowledge that there is
             a paired-end reads object with id "{reads_upa}", populate a dictionary with the parameters where the keys
@@ -56,36 +58,36 @@ class JobCrew:
             Do not add comments or other text. The dictionary of inputs and the app id must not be combined into a single
             dictionary.
             """,
-            expected_output = "A dictionary of parameters used to run the app with the given id.",
-            agent=self._coordinator.agent
+            expected_output="A dictionary of parameters used to run the app with the given id.",
+            agent=self._coordinator.agent,
         )
 
         start_job_task = Task(
-            description = f"""
+            description=f"""
             Using the app parameters and app id, use provided tools to start a new KBase app, which will return a job id.
             Use that job id to create a new App Cell in the narrative with id {narrative_id}. The Return only the
             job id.
             """,
-            expected_output = "A KBase job id string.",
-            agent=self._job.agent
+            expected_output="A KBase job id string.",
+            agent=self._job.agent,
         )
 
         make_app_cell_task = Task(
-            description = f"""
+            description=f"""
             Using the job id, create an app cell in narrative {narrative_id}. The add_app_cell tool is useful here.
             """,
-            expected_output = "A note with either success or failure of saving the new cell",
-            agent=self._narr.agent
+            expected_output="A note with either success or failure of saving the new cell",
+            agent=self._narr.agent,
         )
 
         monitor_job_task = Task(
-            description = """
+            description="""
             Using the job id, monitor the progress of the running job. The monitor_job tool is helpful here.
             If completed, continue to the next task. If in an error state, summarize the error for the user and stop.
             """,
-            expected_output = "Return either a note saying that the job has completed, or a summary of the job error.",
+            expected_output="Return either a note saying that the job has completed, or a summary of the job error.",
             agent=self._job.agent,
-            context=[start_job_task]
+            context=[start_job_task],
         )
 
         job_completion_task = Task(
@@ -96,9 +98,9 @@ class JobCrew:
             You must always use a tool when interacting with KBase services or databases. If this is delegated, make sure
             the delegated agent uses a tool when interacting with KBase.
             """,
-            expected_output = "An UPA of the format 'number/number/number', representing the output of a KBase job, or an error.",
+            expected_output="An UPA of the format 'number/number/number', representing the output of a KBase job, or an error.",
             agent=self._job.agent,
-            context = [start_job_task]
+            context=[start_job_task],
         )
 
         report_retrieval_task = Task(
@@ -107,23 +109,23 @@ class JobCrew:
             The Workspace Manager will be helpful here. Make sure the delegated agent uses a tool for interacting with KBase.
             Return the full report text. Your final answer MUST be the report text.
             """,
-            expected_output = "The text of a KBase app report object",
-            agent=self._workspace.agent
+            expected_output="The text of a KBase app report object",
+            agent=self._workspace.agent,
         )
 
         report_analysis_task = Task(
             description="""Analyze the report text and derive some insight into the result. Write a brief summary, including bullet points
             when appropriate, formatted in markdown. Your final answer MUST be the summary of the report.""",
-            expected_output = "A summary of the report from the previous task",
-            agent=self._coordinator.agent
+            expected_output="A summary of the report from the previous task",
+            agent=self._coordinator.agent,
         )
 
         save_analysis_task = Task(
             description=f"""Save the analysis by adding a markdown cell to the Narrative with id {narrative_id}. The markdown text must
             be the analysis text. If not successful, say so and stop.""",
-            expected_output = "A note with either success or failure of saving the new cell",
+            expected_output="A note with either success or failure of saving the new cell",
             agent=self._narr.agent,
-            extra_content=narrative_id
+            extra_content=narrative_id,
         )
 
         return [
@@ -135,5 +137,5 @@ class JobCrew:
             job_completion_task,
             report_retrieval_task,
             report_analysis_task,
-            save_analysis_task
+            save_analysis_task,
         ]
