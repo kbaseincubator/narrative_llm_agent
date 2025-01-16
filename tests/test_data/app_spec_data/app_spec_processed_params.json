@@ -9,7 +9,8 @@
         ],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": false
     },
     "actual_output_object": {
         "id": "actual_output_object",
@@ -21,7 +22,8 @@
         ],
         "multiple": false,
         "default_value": null,
-        "is_output_object": true
+        "is_output_object": true,
+        "optional": false
     },
     "single_int": {
         "id": "single_int",
@@ -34,7 +36,8 @@
         ],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "list_of_ints": {
         "id": "list_of_ints",
@@ -47,7 +50,8 @@
         ],
         "multiple": true,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "single_float": {
         "id": "single_float",
@@ -60,7 +64,8 @@
         ],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "list_of_floats": {
         "id": "list_of_floats",
@@ -73,7 +78,8 @@
         ],
         "multiple": true,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "single_string": {
         "id": "single_string",
@@ -83,7 +89,8 @@
         "allowed": [],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "list_of_strings": {
         "id": "list_of_strings",
@@ -93,7 +100,8 @@
         "allowed": [],
         "multiple": true,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "single_ws_object": {
         "id": "single_ws_object",
@@ -106,7 +114,8 @@
         ],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "list_of_ws_objects": {
         "id": "list_of_ws_objects",
@@ -119,7 +128,8 @@
         ],
         "multiple": true,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "dropdown_selection": {
         "id": "dropdown_selection",
@@ -133,7 +143,8 @@
         ],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "list_of_dropdown_selections": {
         "id": "list_of_dropdown_selections",
@@ -147,7 +158,8 @@
         ],
         "multiple": true,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "single_checkbox": {
         "id": "single_checkbox",
@@ -157,7 +169,8 @@
         "allowed": [],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "single_textarea": {
         "id": "single_textarea",
@@ -167,7 +180,8 @@
         "allowed": [],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "list_of_textareas": {
         "id": "list_of_textareas",
@@ -177,7 +191,8 @@
         "allowed": [],
         "multiple": true,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "model_for_subdata": {
         "id": "model_for_subdata",
@@ -189,7 +204,8 @@
         ],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     },
     "single_textsubdata": {
         "id": "single_textsubdata",
@@ -199,6 +215,7 @@
         "allowed": [],
         "multiple": false,
         "default_value": null,
-        "is_output_object": false
+        "is_output_object": false,
+        "optional": true
     }
 }

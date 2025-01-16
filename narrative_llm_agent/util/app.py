@@ -33,6 +33,7 @@ def get_processed_app_spec_params(
             proc_param["is_output_object"] = True
         proc_param["allowed"] = allowed_values
         proc_param["multiple"] = True if param.allow_multiple == 1 else False
+        proc_param["optional"] = True if param.optional == 1 else False
 
         defaults = param.default_values
         if defaults is not None:
