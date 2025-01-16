@@ -1,4 +1,9 @@
+from typing import Callable
+from pytest_mock import MockerFixture
 from narrative_llm_agent.agents.narrative import NarrativeAgent, NarrativeUtil
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec
+from narrative_llm_agent.kbase.objects.narrative import Narrative
+from tests.conftest import MockLLM
 from tests.test_data.test_data import load_test_data_json
 from pathlib import Path
 from narrative_llm_agent.config import get_config
@@ -6,12 +11,12 @@ from narrative_llm_agent.config import get_config
 token = "not_a_token"
 
 
-def test_init(mock_llm):
+def test_init(mock_llm: MockLLM):
     na = NarrativeAgent(mock_llm, token=token)
     assert na.role == "Narrative Manager"
 
 
-def test_get_narrative(mock_llm, mocker, test_narrative_object):
+def test_get_narrative(mock_llm: MockLLM, mocker: MockerFixture, test_narrative_object: Narrative):
     wsid = 123
     mock = mocker.patch.object(
         NarrativeUtil, "get_narrative_from_wsid", return_value=test_narrative_object
@@ -22,7 +27,7 @@ def test_get_narrative(mock_llm, mocker, test_narrative_object):
     mock.assert_called_once_with(wsid)
 
 
-def test_add_markdown_cell(mock_llm, mocker, test_narrative_object):
+def test_add_markdown_cell(mock_llm: MockLLM, mocker: MockerFixture, test_narrative_object: Narrative):
     wsid = 123
     md_test = "# Foo\n ## Bar"
     get_mock = mocker.patch.object(
@@ -40,7 +45,7 @@ def test_add_markdown_cell(mock_llm, mocker, test_narrative_object):
 
 
 def test_add_app_cell(
-    mock_llm, mocker, mock_kbase_jsonrpc_1_call, test_narrative_object, app_spec
+    mock_llm: MockLLM, mocker: MockerFixture, mock_kbase_jsonrpc_1_call: Callable, test_narrative_object: Narrative, app_spec: AppSpec
 ):
     wsid = 123
     job_id = "this_is_a_job_id_to_test"
@@ -53,7 +58,7 @@ def test_add_app_cell(
     # Digging into too many details here, but good enough.
     config = get_config()
     mock_kbase_jsonrpc_1_call(config.ee_endpoint, state_dict)
-    mock_kbase_jsonrpc_1_call(config.nms_endpoint, [app_spec])
+    mock_kbase_jsonrpc_1_call(config.nms_endpoint, [app_spec.model_dump()])
     num_cells = len(test_narrative_object.cells)
     resp = na._add_app_cell(wsid, job_id)
     assert resp == "success"

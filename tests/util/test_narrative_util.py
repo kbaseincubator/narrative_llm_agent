@@ -63,13 +63,11 @@ class MockWorkspace(Workspace):
             {
                 "creator": "me",
                 "data_dependencies": "[]",
-                "is_temporary": "false",
                 "method.kb_fastqc/runFastQC/b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4": "1",
                 "job_info": '{"queue_time": 0, "run_time": 0, "running": 0, "completed": 0, "error": 0}',
                 "format": "ipynb",
                 "name": "My Fancy Narrative",
                 "description": "",
-                "type": "KBaseNarrative.Narrative",
                 "ws_name": "some_ws",
             },
         ]
@@ -148,12 +146,9 @@ def test_save_narrative(mocker):
     ]
     expected_keys = [
         "creator",
-        "is_temporary",
         "format",
         "name",
         "description",
-        "type",
-        "ws_name",
         "data_dependencies",
         "job_info",
     ]
