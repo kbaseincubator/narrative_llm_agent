@@ -1,5 +1,7 @@
+from typing import Any
 import pytest
 from unittest.mock import Mock
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.narrative import Narrative
 from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
 from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
@@ -233,15 +235,15 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
 
 
 @pytest.fixture
-def mock_job_states() -> dict[str, dict[str, any]]:
+def mock_job_states() -> dict[str, dict[str, Any]]:
     return load_test_data_json("job_states.json")
 
 
 @pytest.fixture
-def app_spec() -> dict[str, any]:
+def app_spec() -> AppSpec:
     """
     Loads an app spec for testing. This is the NarrativeTest/test_input_params app spec.
     """
     app_spec_path = Path("app_spec_data") / "test_app_spec.json"
     spec = load_test_data_json(app_spec_path)
-    return spec
+    return AppSpec(**spec)

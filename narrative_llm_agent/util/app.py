@@ -33,10 +33,17 @@ def get_processed_app_spec_params(
             proc_param["is_output_object"] = True
         proc_param["allowed"] = allowed_values
         proc_param["multiple"] = True if param.allow_multiple == 1 else False
-        if param.default_values is not None and len(param.default_values):
-            proc_param["default_value"] = param.default_values[0]
-        else:
-            proc_param["default_value"] = None
+        proc_param["optional"] = True if param.optional == 1 else False
+
+        defaults = param.default_values
+        if defaults is not None:
+            if param.allow_multiple == 1:
+                proc_param["default_value"] = defaults
+            if len(defaults) and len(defaults[0]):
+                proc_param["default_value"] = defaults[0]
+            else:
+                proc_param["default_value"] = None
+
         processed_params[proc_param["id"]] = proc_param
     processed_param_groups = {}
     if spec.parameter_groups is not None:
@@ -676,7 +683,7 @@ def map_inputs_from_job(job_inputs: dict | list, app_spec: dict) -> dict:
             value = value.get(prop, None)
 
         # that's the value. Now, if it was transformed, try to transform it back.
-        if "target_type_transform" in param:
+        if param.get("target_type_transform") is not None:
             transform_type = param["target_type_transform"]
             if transform_type.startswith("list") and isinstance(value, list):
                 inner_transform = transform_type[5:-1]

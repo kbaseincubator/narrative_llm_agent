@@ -1,5 +1,6 @@
 from pathlib import Path
 from narrative_llm_agent.kbase.clients.execution_engine import JobState
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.narrative import (
     AppCell,
     BulkImportCell,
@@ -292,15 +293,15 @@ class TestNarrative:
         total_cells = sum(list(counts.values()))
         assert total_cells == len(narr.cells)
 
-    def test_add_app_cell(self, sample_narrative_json, app_spec):
+    def test_add_app_cell(self, sample_narrative_json: str, app_spec: AppSpec):
         narr = Narrative(json.loads(sample_narrative_json))
         num_cells = len(narr.cells)
         job_state = JobState(
             load_test_data_json(Path("app_spec_data") / "app_spec_job_state.json")
         )
-        new_cell = narr.add_app_cell(job_state, app_spec)
-        assert new_cell.app_id == app_spec["info"]["id"]
-        assert new_cell.app_name == app_spec["info"]["name"]
+        new_cell = narr.add_app_cell(job_state, app_spec.model_dump())
+        assert new_cell.app_id == app_spec.info.id
+        assert new_cell.app_name == app_spec.info.name
         assert new_cell.cell_type == "code"
         assert new_cell.kb_cell_type == "KBaseApp"
         assert len(narr.cells) == num_cells + 1

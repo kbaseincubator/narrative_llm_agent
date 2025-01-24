@@ -16,8 +16,7 @@ from narrative_llm_agent.util.app import (
     build_run_job_params,
 )
 import time
-from langchain.agents import load_tools
-
+from langchain_community.agent_toolkits.load_tools import load_tools
 
 class JobInput(BaseModel):
     job_id: str = Field(

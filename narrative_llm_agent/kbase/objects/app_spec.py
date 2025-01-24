@@ -59,7 +59,7 @@ class RegexMatcher(BaseModel):
 class TextOptions(BaseModel, extra="ignore"):
     valid_ws_types: list[str] | None = None
     validate_as: str | None = None
-    is_output_name: int  # bool
+    is_output_name: int = 0  # bool
     placeholder: str | None = None
     min_int: int | None = None
     max_int: int | None = None
@@ -96,7 +96,7 @@ class DropdownOption(BaseModel):
 
 class DropdownOptions(BaseModel):
     options: list[DropdownOption]
-    multiselection: int  # bool
+    multiselection: int = 0 # bool
 
 
 class DynamicDropdownOptions(BaseModel):

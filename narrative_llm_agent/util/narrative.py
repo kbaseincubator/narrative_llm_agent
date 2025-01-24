@@ -71,12 +71,9 @@ class NarrativeUtil:
         narr_meta = narrative.metadata
         string_keys = [
             "creator",
-            "is_temporary",
             "format",
             "name",
             "description",
-            "type",
-            "ws_name",
         ]
         obj_keys = {
             "data_dependencies": [],
@@ -90,7 +87,7 @@ class NarrativeUtil:
         }
         meta = {}
         for key in string_keys:
-            meta[key] = narr_meta.raw.get(key)
+            meta[key] = narr_meta.raw.get(key, "")
         for key in obj_keys:
             if key in narr_meta.raw:
                 meta[key] = json.dumps(narr_meta.raw.get(key))

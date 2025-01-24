@@ -26,7 +26,7 @@ def test_list_objects_tool(mock_llm, mocker):
     )
     wa = WorkspaceAgent(mock_llm)
     assert wa._list_objects(ws_id) == json.dumps(obj_list)
-    mock.assert_called_once_with(ws_id)
+    mock.assert_called_once_with(ws_id, as_dict=True)
 
 
 def test_get_object_tool(mock_llm, mocker):
