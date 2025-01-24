@@ -1,3 +1,4 @@
+from typing import Any
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from .kbase_agent import KBaseAgent
 from crewai import Agent
@@ -17,6 +18,8 @@ from narrative_llm_agent.util.app import (
 )
 import time
 from langchain_community.agent_toolkits.load_tools import load_tools
+from narrative_llm_agent.config import get_config
+from narrative_llm_agent.kbase.clients.debug_mock import KBaseMock
 
 class JobInput(BaseModel):
     job_id: str = Field(
@@ -41,6 +44,10 @@ class JobStart(BaseModel):
         description="The set of parameters to pass to a KBase app. This must be a dictionary. Each key is the parameter id, and each value is the expected value given to each parameter. Values can be lists, strings, or numbers."
     )
 
+class AppStartInfo(BaseModel):
+    app_id: str
+    app_params: dict[str, Any]
+    narrative_id: int
 
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
@@ -66,8 +73,10 @@ class JobAgent(KBaseAgent):
             """
             return self._job_status(process_tool_input(job_id, "job_id"))
 
-        @tool(args_schema=JobStart, return_direct=False)
-        def start_job(narrative_id: int, app_id: str, params: dict) -> str:
+        # @tool(args_schema=JobStart, return_direct=False)
+        # def start_job(narrative_id: int, app_id: str, params: dict) -> str:
+        @tool()
+        def start_job(info: str) -> str:
             """This starts a new job in KBase, running the given App with the given
             parameters in the given Narrative. If the app with app_id doesn't exist, this
             raises a AppNotFound error. If the narrative_id doesn't exist, or the user
@@ -75,6 +84,12 @@ class JobAgent(KBaseAgent):
             parameters are malformed, or refer to data objects that do not exist, this
             returns a ValueError. If the app starts, this returns a JSON-formatted
             dictionary with cell_id and job_id fields."""
+            print(info)
+            inputs = json.loads(info)
+            print(inputs)
+            narrative_id = inputs["narrative_id"]
+            params = inputs["app_params"]
+            app_id = inputs["app_id"]
             print("starting start_job tool")
             print(f"narrative_id: {narrative_id}")
             print(f"app_id: {app_id}")
@@ -125,7 +140,10 @@ class JobAgent(KBaseAgent):
 
     def _job_status(self: "JobAgent", job_id: str, as_str=True) -> str | JobState:
         ee = ExecutionEngine(token=self._token)
-        status = ee.check_job(job_id)
+        if get_config().debug:
+            status = KBaseMock().check_mock_job(job_id)
+        else:
+            status = ee.check_job(job_id)
         if as_str:
             return str(status)
         return status
@@ -143,6 +161,8 @@ class JobAgent(KBaseAgent):
         spec = nms.get_app_spec(app_id)
         job_submission = build_run_job_params(AppSpec(**spec), params, narrative_id, ws)
         print(job_submission)
+        if get_config().debug:
+            return KBaseMock().mock_run_job(narrative_id, app_id, params, job_submission)
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
