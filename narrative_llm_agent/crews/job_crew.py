@@ -1,12 +1,11 @@
 from narrative_llm_agent.agents.analyst import AnalystAgent
-from narrative_llm_agent.agents.job import JobAgent
+from narrative_llm_agent.agents.job import JobAgent, AppStartInfo
 from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
 from narrative_llm_agent.agents.metadata import MetadataAgent
 from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
-
 
 class JobCrew:
     _token: str
@@ -31,13 +30,13 @@ class JobCrew:
         ]
 
     def start_job(self, app_name: str, reads_upa: str, narrative_id: int) -> None:
-        tasks = self.build_tasks(app_name, narrative_id, reads_upa)
+        self._tasks = self.build_tasks(app_name, narrative_id, reads_upa)
         crew = Crew(
             agents=self._agents,
-            tasks=tasks,
+            tasks=self._tasks,
             verbose=True,
         )
-        crew.kickoff()
+        self._last_result = crew.kickoff()
 
     def build_tasks(
         self, app_name: str, narrative_id: int, reads_upa: str
@@ -51,25 +50,26 @@ class JobCrew:
         get_app_params_task = Task(
             description=f"""
             From the given KBase app id, fetch the list of parameters needed to run it. Use the App and Job manager agent
-            for assistance. With the knowledge that there is
-            a paired-end reads object with id "{reads_upa}", populate a dictionary with the parameters where the keys
-            are parameter ids, and values are the proper parameter values, or their default values if no value
-            can be found or calculated. Return only the dictionary of inputs and the app id for use in the next task.
-            Do not add comments or other text. The dictionary of inputs and the app id must not be combined into a single
-            dictionary.
+            for assistance. With the knowledge that there is a data object with id "{reads_upa}", populate a dictionary
+            with the parameters where the keys are parameter ids, and values are the proper parameter values, or their
+            default values if no value can be found or calculated. Return the dictionary of inputs, the app id, and the
+            narrative id {narrative_id}  for use in the next task. Do not add comments or other text. The dictionary of
+            inputs and the app id must not be combined into a single dictionary.
             """,
-            expected_output="A dictionary of parameters used to run the app with the given id.",
+            expected_output="A dictionary of parameters used to run the app with the given id along with the narrative id.",
+            output_pydantic=AppStartInfo,
             agent=self._coordinator.agent,
         )
 
         start_job_task = Task(
             description=f"""
             Using the app parameters and app id, use provided tools to start a new KBase app, which will return a job id.
-            Use that job id to create a new App Cell in the narrative with id {narrative_id}. The Return only the
+            Use that job id to create a new App Cell in the narrative such that narrative_id={narrative_id}. Return only the
             job id.
             """,
             expected_output="A KBase job id string.",
             agent=self._job.agent,
+            context=[get_app_params_task]
         )
 
         make_app_cell_task = Task(
@@ -92,9 +92,11 @@ class JobCrew:
 
         job_completion_task = Task(
             description="""Use a tool to fetch the status of KBase job with the given job id.
-            If it is completed without being an error, retrieve the job results.
+            If it is completed without an error, retrieve the job results.
             If the job results contain a reference to a report, with an UPA (a string with format number/number/number),
             return it. Do not add any additional text, just return only the UPA.
+            If the job results contain an "error" key, stop and return a message saying an error has occurred.
+            Do not return an UPA, only an error message.
             You must always use a tool when interacting with KBase services or databases. If this is delegated, make sure
             the delegated agent uses a tool when interacting with KBase.
             """,
