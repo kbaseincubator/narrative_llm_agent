@@ -1,4 +1,3 @@
-import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.blobstore import Blobstore
 
@@ -8,10 +7,8 @@ import io
 from pathlib import Path
 from narrative_llm_agent.kbase.objects.report import (
     KBaseReport,
-    # LinkedFile,
     is_report,
 )
-# from narrative_llm_agent.config import get_config
 
 
 class WorkspaceUtil:
@@ -55,10 +52,14 @@ class WorkspaceUtil:
             )
         # check report source from provenance and process based on its service and method
         report_source = self._get_report_source(obj["provenance"])
+        report = KBaseReport(**obj["data"])
         if report_source == "fastqc":
-            return self.translate_fastqc_report(KBaseReport(obj["data"]))
+            return self.translate_fastqc_report(report)
         else:
-            return json.dumps(obj)
+            return self.default_translate_report(report)
+
+    def default_translate_report(self, report: KBaseReport) -> str:
+        return report.model_dump_json()
 
     def translate_fastqc_report(self, report: KBaseReport) -> str:
         """
@@ -69,7 +70,7 @@ class WorkspaceUtil:
         target_file_name = "fastqc_data.txt"
         blobstore = Blobstore(token=self._token)
         for report_file in report.file_links:
-            resp = blobstore.download_report_file(report_file.url)
+            resp = blobstore.download_report_file(report_file.URL)
             # resp = self._download_report_file(report_file, self._token)
             comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
             foi = None
@@ -82,6 +83,6 @@ class WorkspaceUtil:
                     report_data[report_file.name] = infile.read().decode("utf-8")
         report_result = []
         for idx, [name, value] in enumerate(report_data.items()):
-            report_result.append(f"file {idx+1}: {name}:")
+            report_result.append(f"file {idx + 1}: {name}:")
             report_result.append(value)
         return "\n".join(report_result)

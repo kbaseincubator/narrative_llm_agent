@@ -7,7 +7,6 @@ import json
 
 # just need to mock a single workspace call
 token = "not_a_token"
-# endpoint = "https://notreal.kbase.us/services/"
 
 
 @pytest.fixture
@@ -50,7 +49,7 @@ def test_get_report_fastqc_ok(mocked_ws_util, requests_mock):
         report_text = report_file.read()
     expected_report = []
     for idx, file in enumerate(report["data"]["file_links"]):
-        expected_report.append(f"file {idx+1}: {file['name']}:")
+        expected_report.append(f"file {idx + 1}: {file['name']}:")
         expected_report.append(report_text)
     assert ws_util.get_report("1/2/3") == "\n".join(expected_report)
 
@@ -88,4 +87,4 @@ def test_get_report_bad_type(mocked_ws_util):
 def test_get_other_report(mocked_ws_util):
     report = get_test_report("other")
     ws_util = mocked_ws_util(report)
-    assert ws_util.get_report("1/2/3") == json.dumps(report)
+    assert json.loads(ws_util.get_report("1/2/3")) == report["data"]

@@ -18,6 +18,7 @@ from narrative_llm_agent.util.app import (
 import time
 from langchain_community.agent_toolkits.load_tools import load_tools
 
+
 class JobInput(BaseModel):
     job_id: str = Field(
         description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string."

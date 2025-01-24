@@ -35,7 +35,11 @@ def test_init(mock_llm: MockLLM):
     assert ja.role == "Job and App Manager"
 
 
-def test_job_status_tool(mock_llm: MockLLM, mock_kbase_jsonrpc_1_call: Callable, mock_job_states: dict[str, dict[str, Any]]):
+def test_job_status_tool(
+    mock_llm: MockLLM,
+    mock_kbase_jsonrpc_1_call: Callable,
+    mock_job_states: dict[str, dict[str, Any]],
+):
     ja = JobAgent(mock_llm)
     for job_id, state in mock_job_states.items():
         mock_kbase_jsonrpc_1_call(get_config().ee_endpoint, state)
@@ -54,7 +58,11 @@ def test_get_app_params_tool(mock_llm: MockLLM, app_spec: AppSpec, mock_nms_clie
 
 
 def test_start_job_tool(
-    mock_llm: MockLLM, app_spec: AppSpec, mock_nms_client, mock_ee_client, mock_ws_client
+    mock_llm: MockLLM,
+    app_spec: AppSpec,
+    mock_nms_client,
+    mock_ee_client,
+    mock_ws_client,
 ):
     job_id = "fake_job_id"
     narrative_id = 123

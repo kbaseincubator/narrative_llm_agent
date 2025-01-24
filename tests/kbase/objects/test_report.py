@@ -1,6 +1,5 @@
 from narrative_llm_agent.kbase.objects.report import KBaseReport, LinkedFile, is_report
 import pytest
-import json
 
 
 @pytest.mark.parametrize(
@@ -28,12 +27,12 @@ def test_linked_file():
         "URL": "https://totally-a-file.com",
     }
 
-    linked = LinkedFile(my_file)
+    linked = LinkedFile(**my_file)
     assert linked.handle == my_file["handle"]
     assert linked.description == my_file["description"]
     assert linked.name == my_file["name"]
     assert linked.label == my_file["label"]
-    assert linked.url == my_file["URL"]
+    assert linked.URL == my_file["URL"]
 
 
 @pytest.fixture
@@ -51,7 +50,7 @@ def sample_report_obj():
 
 def test_report_init(sample_report_obj):
     """Test the initialization of KBaseReport."""
-    report = KBaseReport(sample_report_obj)
+    report = KBaseReport(**sample_report_obj)
 
     assert report.text_message == sample_report_obj["text_message"]
     assert report.direct_html == sample_report_obj["direct_html"]
@@ -64,7 +63,7 @@ def test_report_init(sample_report_obj):
 def test_report_init_with_missing_fields():
     """Test the initialization with missing fields in the report object."""
     report_obj = {}
-    report = KBaseReport(report_obj)
+    report = KBaseReport(**report_obj)
 
     assert report.text_message == ""
     assert report.direct_html == ""
@@ -72,9 +71,3 @@ def test_report_init_with_missing_fields():
     assert report.warnings == []
     assert report.html_links == []
     assert report.file_links == []
-
-
-def test_report_str(sample_report_obj):
-    """Test the string representation of KBaseReport."""
-    report = KBaseReport(sample_report_obj)
-    assert str(report) == json.dumps(sample_report_obj)

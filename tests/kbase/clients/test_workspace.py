@@ -278,5 +278,5 @@ def test_obj_info_to_json():
         "version": ver,
         "saved_by": saved_by,
         "size_bytes": size_bytes,
-        "upa": "123/1/456"
+        "upa": "123/1/456",
     }

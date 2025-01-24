@@ -96,7 +96,7 @@ class DropdownOption(BaseModel):
 
 class DropdownOptions(BaseModel):
     options: list[DropdownOption]
-    multiselection: int = 0 # bool
+    multiselection: int = 0  # bool
 
 
 class DynamicDropdownOptions(BaseModel):
