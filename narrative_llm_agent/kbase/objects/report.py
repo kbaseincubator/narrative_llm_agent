@@ -4,6 +4,11 @@ from pydantic import BaseModel
 REPORT_TYPE = "KBaseReport.Report"
 
 
+class CreatedObject(BaseModel):
+    description: str | None = ""
+    ref: str | None = ""
+
+
 class LinkedFile(BaseModel):
     handle: str | None = None
     description: str | None = None
@@ -20,7 +25,7 @@ class KBaseReport(BaseModel):
     direct_html_link_index: int | None = None
     warnings: list[str] | None = []
     html_window_height: int | None = None
-    objects_created: list[str] | None = []
+    objects_created: list[CreatedObject] | None = []
     summary_window_height: int | None = None
 
 
