@@ -31,7 +31,12 @@ def get_processed_app_spec_params(
             and param.text_options.is_output_name == 1
         ):
             proc_param["is_output_object"] = True
-        proc_param["allowed"] = allowed_values
+        allowed_key = "allowed"
+        if param_type == "int" or param_type == "float":
+            allowed_key = "allowed_range"
+        if param_type == "data_object":
+            allowed_key = "allowed_data_type"
+        proc_param[allowed_key] = allowed_values
         proc_param["multiple"] = True if param.allow_multiple == 1 else False
         proc_param["optional"] = True if param.optional == 1 else False
 
@@ -84,10 +89,13 @@ def process_param_type(param: AppParameter) -> tuple:
         elif opts.validate_as is not None:
             valid_type = opts.validate_as
             field_type = valid_type
-            allowed_values = [
-                getattr(opts, f"min_{valid_type}"),
-                getattr(opts, f"max_{valid_type}"),
-            ]
+            min_val = getattr(opts, f"min_{valid_type}")
+            if min_val is None:
+                min_val = float('-inf')
+            max_val = getattr(opts, f"max_{valid_type}")
+            if max_val is None:
+                max_val = float('inf')
+            allowed_values = [min_val, max_val]
     if field_type == "dropdown" and param.dropdown_options is not None:
         allowed_values = [opt.display for opt in param.dropdown_options.options]
     # TODO types-

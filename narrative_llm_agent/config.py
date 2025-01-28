@@ -16,6 +16,7 @@ import os
 DEFAULT_CONFIG_FILE = "config.cfg"
 ENV_CONFIG_FILE = "NARRATIVE_LLM_AGENT_CONFIG"
 
+DEBUG = False
 
 class AgentConfig:
     def __init__(self: "AgentConfig") -> None:
@@ -54,6 +55,7 @@ class AgentConfig:
         self.neo4j_username_env = kb_cfg.get("neo4j_username")
         self.neo4j_password_env = kb_cfg.get("neo4j_password")
         self.cborg_key_env = kb_cfg.get("cborg_key_env")
+        self.debug = DEBUG
 
 
 __config: AgentConfig = None
