@@ -16,7 +16,9 @@ def test_init(mock_llm: MockLLM):
     assert na.role == "Narrative Manager"
 
 
-def test_get_narrative(mock_llm: MockLLM, mocker: MockerFixture, test_narrative_object: Narrative):
+def test_get_narrative(
+    mock_llm: MockLLM, mocker: MockerFixture, test_narrative_object: Narrative
+):
     wsid = 123
     mock = mocker.patch.object(
         NarrativeUtil, "get_narrative_from_wsid", return_value=test_narrative_object
@@ -27,7 +29,9 @@ def test_get_narrative(mock_llm: MockLLM, mocker: MockerFixture, test_narrative_
     mock.assert_called_once_with(wsid)
 
 
-def test_add_markdown_cell(mock_llm: MockLLM, mocker: MockerFixture, test_narrative_object: Narrative):
+def test_add_markdown_cell(
+    mock_llm: MockLLM, mocker: MockerFixture, test_narrative_object: Narrative
+):
     wsid = 123
     md_test = "# Foo\n ## Bar"
     get_mock = mocker.patch.object(
@@ -45,7 +49,11 @@ def test_add_markdown_cell(mock_llm: MockLLM, mocker: MockerFixture, test_narrat
 
 
 def test_add_app_cell(
-    mock_llm: MockLLM, mocker: MockerFixture, mock_kbase_jsonrpc_1_call: Callable, test_narrative_object: Narrative, app_spec: AppSpec
+    mock_llm: MockLLM,
+    mocker: MockerFixture,
+    mock_kbase_jsonrpc_1_call: Callable,
+    test_narrative_object: Narrative,
+    app_spec: AppSpec,
 ):
     wsid = 123
     job_id = "this_is_a_job_id_to_test"

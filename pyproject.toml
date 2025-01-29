@@ -20,6 +20,7 @@ langchain-chroma = "*"
 # lightrag-hku = "^1.0.5"
 aioboto3 = "^13.2.0"
 beautifulsoup4 = "^4.12.3"
+pydantic = "^2.10.6"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

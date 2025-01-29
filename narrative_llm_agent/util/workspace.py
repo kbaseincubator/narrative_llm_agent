@@ -1,4 +1,3 @@
-import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.blobstore import Blobstore
 
@@ -8,10 +7,9 @@ import io
 from pathlib import Path
 from narrative_llm_agent.kbase.objects.report import (
     KBaseReport,
-    # LinkedFile,
+    LinkedFile,
     is_report,
 )
-# from narrative_llm_agent.config import get_config
 
 
 class WorkspaceUtil:
@@ -31,11 +29,12 @@ class WorkspaceUtil:
         Tuned for fastqc right now. Others to come!
         """
         recent = provenance[0]
-        if (
-            recent.get("method", "").lower() == "runfastqc"
-            and recent.get("service", "").lower() == "kb_fastqc"
-        ):
+        method = recent.get("method", "").lower()
+        service = recent.get("service", "").lower()
+        if method == "runfastqc" and service == "kb_fastqc":
             return "fastqc"
+        elif method == "runtrimmomatic" and service == "kb_trimmomatic":
+            return "trimmomatic"
         return "other"
 
     def get_report(self, upa: str) -> str:
@@ -55,10 +54,40 @@ class WorkspaceUtil:
             )
         # check report source from provenance and process based on its service and method
         report_source = self._get_report_source(obj["provenance"])
+        report = KBaseReport(**obj["data"])
         if report_source == "fastqc":
-            return self.translate_fastqc_report(KBaseReport(obj["data"]))
+            return self.translate_fastqc_report(report)
+        elif report_source == "trimmomatic":
+            return self.translate_trimmomatic_report(report)
         else:
-            return json.dumps(obj)
+            return self.default_translate_report(report)
+
+    def default_translate_report(self, report: KBaseReport) -> str:
+        """
+        The default version of a report fetcher. This tries to help the LLM
+        by fetching report information. It does this by concatenating together
+        different bits of report information. In order of appearance, these are:
+        1. text message
+        2. direct html
+        3. HTML scraped from html links, with direct_html_link_index being first,
+          if applicable
+        """
+        message = report.text_message
+        direct_html = report.direct_html
+        html_texts = []
+        for link in report.html_links:
+            html_texts.append(link.label + ":\n" + self._fetch_html_file(link))
+        html_text = "\n".join(html_texts)
+        return "\n".join(
+            [
+                f"message: {message}",
+                f"direct_html: {direct_html}",
+                f"html report: {html_text}",
+            ]
+        )
+
+    def translate_trimmomatic_report(self, report: KBaseReport) -> str:
+        return self.default_translate_report(report)
 
     def translate_fastqc_report(self, report: KBaseReport) -> str:
         """
@@ -69,7 +98,7 @@ class WorkspaceUtil:
         target_file_name = "fastqc_data.txt"
         blobstore = Blobstore(token=self._token)
         for report_file in report.file_links:
-            resp = blobstore.download_report_file(report_file.url)
+            resp = blobstore.download_report_file(report_file.URL)
             # resp = self._download_report_file(report_file, self._token)
             comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
             foi = None
@@ -78,10 +107,25 @@ class WorkspaceUtil:
                     foi = data_file
                     break
             if foi is not None:
-                with comp_file.open(data_file) as infile:
+                with comp_file.open(foi) as infile:
                     report_data[report_file.name] = infile.read().decode("utf-8")
         report_result = []
         for idx, [name, value] in enumerate(report_data.items()):
-            report_result.append(f"file {idx+1}: {name}:")
+            report_result.append(f"file {idx + 1}: {name}:")
             report_result.append(value)
         return "\n".join(report_result)
+
+    def _fetch_html_file(self, html_file: LinkedFile) -> str:
+        """
+        Uses the information in the given LinkedFile to fetch the html report
+        and return it as a string.
+        """
+        blobstore = Blobstore(token=self._token)
+        resp = blobstore.download_report_file(html_file.URL)
+        comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
+        # skim through and find the file with the given name in the zip
+        for data_file in comp_file.filelist:
+            if Path(data_file.filename).name == html_file.name:
+                with comp_file.open(data_file) as infile:
+                    return infile.read().decode("utf-8")
+        return ""
