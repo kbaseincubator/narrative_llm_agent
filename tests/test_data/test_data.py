@@ -34,8 +34,10 @@ def get_test_report(
 
     if report_type == "fastqc":
         report_path = Path("test_fastqc_report.json")
-    elif report_type == "other":
-        report_path = Path("test_other_report.json")
+    elif report_type == "files":
+        report_path = Path("test_report_file_links.json")
+    elif report_type == "html":
+        report_path = Path("test_report_html_links.json")
     else:
         raise ValueError(f"unknown report type {report_type}")
     report = load_test_data_json(report_path)

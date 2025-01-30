@@ -33,8 +33,6 @@ class WorkspaceUtil:
         service = recent.get("service", "").lower()
         if method == "runfastqc" and service == "kb_fastqc":
             return "fastqc"
-        elif method == "runtrimmomatic" and service == "kb_trimmomatic":
-            return "trimmomatic"
         return "other"
 
     def get_report(self, upa: str) -> str:
@@ -57,8 +55,6 @@ class WorkspaceUtil:
         report = KBaseReport(**obj["data"])
         if report_source == "fastqc":
             return self.translate_fastqc_report(report)
-        elif report_source == "trimmomatic":
-            return self.translate_trimmomatic_report(report)
         else:
             return self.default_translate_report(report)
 
@@ -72,8 +68,8 @@ class WorkspaceUtil:
         3. HTML scraped from html links, with direct_html_link_index being first,
           if applicable
         """
-        message = report.text_message
-        direct_html = report.direct_html
+        message = report.text_message or ""
+        direct_html = report.direct_html or ""
         html_texts = []
         for link in report.html_links:
             html_texts.append(link.label + ":\n" + self._fetch_html_file(link))
@@ -81,13 +77,10 @@ class WorkspaceUtil:
         return "\n".join(
             [
                 f"message: {message}",
-                f"direct_html: {direct_html}",
+                f"direct html: {direct_html}",
                 f"html report: {html_text}",
             ]
         )
-
-    def translate_trimmomatic_report(self, report: KBaseReport) -> str:
-        return self.default_translate_report(report)
 
     def translate_fastqc_report(self, report: KBaseReport) -> str:
         """

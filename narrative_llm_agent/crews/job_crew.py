@@ -7,6 +7,7 @@ from narrative_llm_agent.agents.metadata import MetadataAgent
 from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
 
+
 class JobCrew:
     _token: str
     _llm: LLM
@@ -69,7 +70,7 @@ class JobCrew:
             """,
             expected_output="A KBase job id string.",
             agent=self._job.agent,
-            context=[get_app_params_task]
+            context=[get_app_params_task],
         )
 
         make_app_cell_task = Task(

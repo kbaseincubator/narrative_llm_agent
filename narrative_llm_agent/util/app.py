@@ -91,10 +91,10 @@ def process_param_type(param: AppParameter) -> tuple:
             field_type = valid_type
             min_val = getattr(opts, f"min_{valid_type}")
             if min_val is None:
-                min_val = float('-inf')
+                min_val = float("-inf")
             max_val = getattr(opts, f"max_{valid_type}")
             if max_val is None:
-                max_val = float('inf')
+                max_val = float("inf")
             allowed_values = [min_val, max_val]
     if field_type == "dropdown" and param.dropdown_options is not None:
         allowed_values = [opt.display for opt in param.dropdown_options.options]
