@@ -45,10 +45,12 @@ class JobStart(BaseModel):
         description="The set of parameters to pass to a KBase app. This must be a dictionary. Each key is the parameter id, and each value is the expected value given to each parameter. Values can be lists, strings, or numbers."
     )
 
+
 class AppStartInfo(BaseModel):
     app_id: str
     app_params: dict[str, Any]
     narrative_id: int
+
 
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
@@ -163,7 +165,9 @@ class JobAgent(KBaseAgent):
         job_submission = build_run_job_params(AppSpec(**spec), params, narrative_id, ws)
         print(job_submission)
         if get_config().debug:
-            return KBaseMock().mock_run_job(narrative_id, app_id, params, job_submission)
+            return KBaseMock().mock_run_job(
+                narrative_id, app_id, params, job_submission
+            )
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:
