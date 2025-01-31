@@ -18,6 +18,7 @@ ENV_CONFIG_FILE = "NARRATIVE_LLM_AGENT_CONFIG"
 
 DEBUG = False
 
+
 class AgentConfig:
     def __init__(self: "AgentConfig") -> None:
         config_file = os.environ.get(ENV_CONFIG_FILE, DEFAULT_CONFIG_FILE)

@@ -4,7 +4,7 @@
         "ui_name": "Genome to be duplicated",
         "short_hint": "Should be a genome (KBaseGenomes.Genome)",
         "type": "data_object",
-        "allowed": [
+        "allowed_data_type": [
             "KBaseGenomes.Genome"
         ],
         "multiple": false,
@@ -17,7 +17,7 @@
         "ui_name": "Name of new Genome",
         "short_hint": "The name of the new Genome object that gets created (a KBaseGenomes.Genome)",
         "type": "data_object",
-        "allowed": [
+        "allowed_data_type": [
             "KBaseGenomes.Genome"
         ],
         "multiple": false,
@@ -30,7 +30,7 @@
         "ui_name": "Single integer",
         "short_hint": "Only accept a single integer between [-100, 100]",
         "type": "int",
-        "allowed": [
+        "allowed_range": [
             -100,
             100
         ],
@@ -44,7 +44,7 @@
         "ui_name": "Multiple integers",
         "short_hint": "Accept multiple integers between [-100, 100]",
         "type": "int",
-        "allowed": [
+        "allowed_range": [
             -100,
             100
         ],
@@ -58,7 +58,7 @@
         "ui_name": "Single floating point number",
         "short_hint": "Only accept a single float between [-55.5, 55.5]",
         "type": "float",
-        "allowed": [
+        "allowed_range": [
             -55.5,
             55.5
         ],
@@ -72,7 +72,7 @@
         "ui_name": "Multiple floating point numbers",
         "short_hint": "Accept multiple floating point numbers between [-55.5, 55.5]",
         "type": "float",
-        "allowed": [
+        "allowed_range": [
             -55.5,
             55.5
         ],
@@ -108,7 +108,7 @@
         "ui_name": "A single ws object",
         "short_hint": "Accepts both KBaseGenomes.Genome or KBaseFBA.FBAModel",
         "type": "data_object",
-        "allowed": [
+        "allowed_data_type": [
             "KBaseGenomes.Genome",
             "KBaseFBA.FBAModel"
         ],
@@ -122,7 +122,7 @@
         "ui_name": "Multiple ws objects",
         "short_hint": "Accepts both KBaseGenomes.Genome or KBaseFBA.FBAModel",
         "type": "data_object",
-        "allowed": [
+        "allowed_data_type": [
             "KBaseGenomes.Genome",
             "KBaseFBA.FBAModel"
         ],
@@ -199,7 +199,7 @@
         "ui_name": "A single FBA model for subdata selection",
         "short_hint": "This is the FBA model that will be used for populating subdata selection",
         "type": "data_object",
-        "allowed": [
+        "allowed_data_type": [
             "KBaseFBA.FBAModel"
         ],
         "multiple": false,

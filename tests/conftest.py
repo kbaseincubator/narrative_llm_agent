@@ -247,3 +247,11 @@ def app_spec() -> AppSpec:
     app_spec_path = Path("app_spec_data") / "test_app_spec.json"
     spec = load_test_data_json(app_spec_path)
     return AppSpec(**spec)
+
+
+@pytest.fixture
+def test_data_path() -> Path:
+    """
+    Returns an absolute path to the test data directory.
+    """
+    return Path(__file__).parent / "test_data"
