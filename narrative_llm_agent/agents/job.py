@@ -52,6 +52,12 @@ class AppStartInfo(BaseModel):
     narrative_id: int
 
 
+class AppOutputInfo(BaseModel):
+    app_id: str
+    output_object: str | None = None
+    report: str | None = None
+    app_error: str | None = None
+
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
     goal: str = """Manage app and job running and tracking in the KBase system.
