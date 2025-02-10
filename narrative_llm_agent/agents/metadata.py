@@ -1,4 +1,4 @@
-from typing import Type, Callable
+# from typing import Type, Callable
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from crewai.tools import tool, BaseTool
+from langchain.tools import tool
+# from crewai.tools import BaseTool
 import json
 
 
@@ -23,22 +24,22 @@ class StoreConversationInput(BaseModel):
     )
 
 
-class StoreConversationTool(BaseTool):
-    name: str = "Conversation storage tool"
-    description: str = (
-        "Securely store the results of a conversation in a KBase Narrative."
-    )
-    args_schema: Type[BaseModel] = StoreConversationInput
-    storage_fn: Callable
+# class StoreConversationTool(BaseTool):
+#     name: str = "Conversation storage tool"
+#     description: str = (
+#         "Securely store the results of a conversation in a KBase Narrative."
+#     )
+#     args_schema: Type[BaseModel] = StoreConversationInput
+#     storage_fn: Callable
 
-    def _run(self, **kwargs) -> str:
-        narrative_id = kwargs.get("narrative_id")
-        json_conversation = kwargs.get("json_conversation", "no conversation supplied")
-        print("this is the JSON:\n----------\n")
-        print(json.loads(json_conversation))
-        print(f"stored in narrative {narrative_id}")
-        print("-------------")
-        self.storage_fn(narrative_id, json_conversation)
+#     def _run(self, **kwargs) -> str:
+#         narrative_id = kwargs.get("narrative_id")
+#         json_conversation = kwargs.get("json_conversation", "no conversation supplied")
+#         print("this is the JSON:\n----------\n")
+#         print(json.loads(json_conversation))
+#         print(f"stored in narrative {narrative_id}")
+#         print("-------------")
+#         self.storage_fn(narrative_id, json_conversation)
 
 
 class MetadataAgent(KBaseAgent):
@@ -70,16 +71,25 @@ class MetadataAgent(KBaseAgent):
         self.__init_agent()
 
     def __init_agent(self) -> None:
-        @tool("User Conversation Tool")
+        @tool("conversation-tool")
         def conversation_tool(argument: str) -> str:
             """Converse with the user until all questions are fully answered."""
             print(argument)
             return input()
 
-        @tool("Get object metadata")
+        @tool("get-object-metadata")
         def get_object_metadata(obj_upa: str) -> str:
             """Return the metadata for a KBase Workspace object with the given UPA."""
             return self._get_object_metadata(process_tool_input(obj_upa, "obj_upa"))
+
+        @tool("store-conversation", args_schema=StoreConversationInput)
+        def store_conversation_tool(narrative_id: int, json_conversation: str) -> str:
+            """Store Conversation Tool. This securely stores the results of a conversation in a KBase Narrative."""
+            print("this is the JSON:\n----------\n")
+            print(json.loads(json_conversation))
+            print(f"stored in narrative {narrative_id}")
+            print("-------------")
+            self._store_conversation(narrative_id, json_conversation)
 
         self.agent = Agent(
             role=self.role,
@@ -89,7 +99,8 @@ class MetadataAgent(KBaseAgent):
             tools=[
                 conversation_tool,
                 get_object_metadata,
-                StoreConversationTool(storage_fn=self._store_conversation),
+                store_conversation_tool,
+                # StoreConversationTool(storage_fn=self._store_conversation),
             ],
             llm=self._llm,
             allow_delegation=False,

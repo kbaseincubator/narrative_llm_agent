@@ -9,7 +9,7 @@ packages = [{include = "narrative_llm_agent"},{include='tests'}]
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
 langchain = "*"
-crewai = {extras = ["tools"], version = "*"}
+crewai = "*"
 requests = "*"
 chromadb = "*"
 neo4j = "*"
@@ -21,6 +21,8 @@ langchain-chroma = "*"
 aioboto3 = "^13.2.0"
 beautifulsoup4 = "^4.12.3"
 pydantic = "^2.10.6"
+langchain-openai = "^0.3.4"
+langchain-community = "^0.3.17"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

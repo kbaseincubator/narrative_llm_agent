@@ -68,9 +68,12 @@ class JobCrew:
             From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
             for assistance. With the knowledge that there is a data object with id "{input_object_upa}", populate a dictionary
             with the parameters where the keys are parameter ids, and values are the proper parameter values, or their
-            default values if no value can be found or calculated. Return the dictionary of inputs, the app id, and the
-            narrative id {narrative_id}  for use in the next task. Do not add comments or other text. The dictionary of
-            inputs and the app id must not be combined into a single dictionary.
+            default values if no value can be found or calculated. Be sure to make sure there is a non-null value for any parameter that is not optional.
+            Any parameter that has a true value for "is_output_object" must have a valid name for the new object. The new object name should be based on
+            the input object name, not its upa. Only alphanumeric characters and underscores are allowed in new object names.
+            Return the dictionary of inputs, the app id, and the
+            narrative id {narrative_id} for use in the next task. Do not add comments or other text. If the parameters are rejected, examine the reason why and
+            reform them. The dictionary of inputs and the app id must not be combined into a single dictionary.
             """,
             expected_output="A dictionary of parameters used to run the app with the given id along with the narrative id.",
             output_pydantic=AppStartInfo,
@@ -113,7 +116,8 @@ class JobCrew:
             If the job results contain a reference to a report, with an UPA (a string with format number/number/number),
             return it as "report".
             If the job results contain a newly created data object, return that as "output_object". This should ideally be an UPA, but might just be
-            the name of the object.
+            the name of the object. If there are no output objects in the job results, there may have been an output object name set in the app
+            input parameters. Use that as the result object instead.
             If the job results contain an "error" key, return the error.
             These results must fit the requested format.
             You must always use a tool when interacting with KBase services or databases. If this is delegated, make sure
@@ -122,7 +126,7 @@ class JobCrew:
             expected_output="The output of the job including the app id, UPA of any output objects, and UPA of a report object. Or an error.",
             output_pydantic=AppOutputInfo,
             agent=self._job.agent,
-            context=[start_job_task, monitor_job_task],
+            context=[get_app_params_task, start_job_task, monitor_job_task],
         )
 
         report_retrieval_task = Task(
@@ -145,10 +149,12 @@ class JobCrew:
 
         save_analysis_task = Task(
             description=f"""Save the analysis by adding a markdown cell to the Narrative with id {narrative_id}. The markdown text must
-            be the analysis text. If not successful, say so and stop.""",
+            be the analysis text. If not successful, say so and stop. In the end, return the results of the job completion task.""",
             expected_output="A note with either success or failure of saving the new cell",
+            output_pydantic=AppOutputInfo,
             agent=self._narr.agent,
             extra_content=narrative_id,
+            context=[job_completion_task]
         )
 
         return [
