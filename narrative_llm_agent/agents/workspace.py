@@ -47,14 +47,14 @@ class WorkspaceAgent(KBaseAgent):
         self.__init_agent()
 
     def __init_agent(self: "WorkspaceAgent"):
-        @tool(args_schema=NarrativeInput, return_direct=False)
+        @tool("list-objects", args_schema=NarrativeInput, return_direct=False)
         def list_objects(narrative_id: int) -> str:
             """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted
             list of all objects in a narrative. The narrative_id input must be an integer. Do not
             pass in a dictionary or a JSON-formatted string."""
             return self._list_objects(process_tool_input(narrative_id, "narrative_id"))
 
-        @tool(args_schema=UpaInput, return_direct=False)
+        @tool("get-report", args_schema=UpaInput, return_direct=False)
         def get_report(upa: str) -> str:
             """Fetch a report object from a KBase Narrative. This returns the full report in plain text.
             It should be an informational summary of the result of a bioinformatics application. The upa
@@ -62,12 +62,12 @@ class WorkspaceAgent(KBaseAgent):
             JSON-formatted string. This might take a moment to run, as it fetches data from a database."""
             return self._get_report(process_tool_input(upa, "upa"))
 
-        @tool(args_schema=JobInput, return_direct=False)
+        @tool("get-report-from-job-id", args_schema=JobInput, return_direct=False)
         def get_report_from_job_id(job_id: str) -> str:
             """Fetch a report object from a KBase Narrative."""
             return self._get_report_from_job_id(process_tool_input(job_id, "job_id"))
 
-        @tool(args_schema=UpaInput, return_direct=False)
+        @tool("get-object", args_schema=UpaInput, return_direct=False)
         def get_object(upa: str) -> str:
             """Fetch a particular object from a KBase Narrative. This returns a JSON-formatted data object
             from the Workspace service. Its format is dependent on the data type. The upa input must be a

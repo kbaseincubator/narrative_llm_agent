@@ -45,10 +45,18 @@ class JobStart(BaseModel):
         description="The set of parameters to pass to a KBase app. This must be a dictionary. Each key is the parameter id, and each value is the expected value given to each parameter. Values can be lists, strings, or numbers."
     )
 
+
 class AppStartInfo(BaseModel):
+    narrative_id: int
     app_id: str
     app_params: dict[str, Any]
-    narrative_id: int
+
+
+class AppOutputInfo(BaseModel):
+    app_id: str
+    output_object: str | None = None
+    report: str | None = None
+    app_error: str | None = None
 
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
@@ -65,7 +73,7 @@ class JobAgent(KBaseAgent):
     def __init_agent(self: "JobAgent") -> None:
         human_tools = load_tools(["human"])
 
-        @tool(args_schema=JobInput, return_direct=False)
+        @tool("job-status", args_schema=JobInput, return_direct=False)
         def job_status(job_id: str) -> str:
             """Looks up and returns the status of a KBase job. Returns the status as a
             JSON-formatted string. If the job does not exist, or the user doesn't have
@@ -76,8 +84,8 @@ class JobAgent(KBaseAgent):
 
         # @tool(args_schema=JobStart, return_direct=False)
         # def start_job(narrative_id: int, app_id: str, params: dict) -> str:
-        @tool()
-        def start_job(info: str) -> str:
+        @tool("start-job", args_schema=JobStart, return_direct=False)
+        def start_job(narrative_id: int, app_id: str, params: dict) -> str:
             """This starts a new job in KBase, running the given App with the given
             parameters in the given Narrative. If the app with app_id doesn't exist, this
             raises a AppNotFound error. If the narrative_id doesn't exist, or the user
@@ -85,12 +93,12 @@ class JobAgent(KBaseAgent):
             parameters are malformed, or refer to data objects that do not exist, this
             returns a ValueError. If the app starts, this returns a JSON-formatted
             dictionary with cell_id and job_id fields."""
-            print(info)
-            inputs = json.loads(info)
-            print(inputs)
-            narrative_id = inputs["narrative_id"]
-            params = inputs["app_params"]
-            app_id = inputs["app_id"]
+            # print(info)
+            # inputs = json.loads(info)
+            # print(inputs)
+            # narrative_id = inputs["narrative_id"]
+            # params = inputs["app_params"]
+            # app_id = inputs["app_id"]
             print("starting start_job tool")
             print(f"narrative_id: {narrative_id}")
             print(f"app_id: {app_id}")
@@ -104,7 +112,7 @@ class JobAgent(KBaseAgent):
                 params,
             )
 
-        @tool(args_schema=AppInput, return_direct=False)
+        @tool("get-app-parameters", args_schema=AppInput, return_direct=False)
         def get_app_params(app_id: str) -> str:
             """
             This returns the set of parameters for a KBase app. This is returned as a
@@ -113,7 +121,7 @@ class JobAgent(KBaseAgent):
             """
             return self._get_app_params(app_id)
 
-        @tool(args_schema=JobInput, return_direct=False)
+        @tool("monitor-job", args_schema=JobInput, return_direct=False)
         def monitor_job(job_id: str) -> str:
             """
             This monitors a running job in KBase. It will check the job status every 10 seconds.
@@ -163,7 +171,9 @@ class JobAgent(KBaseAgent):
         job_submission = build_run_job_params(AppSpec(**spec), params, narrative_id, ws)
         print(job_submission)
         if get_config().debug:
-            return KBaseMock().mock_run_job(narrative_id, app_id, params, job_submission)
+            return KBaseMock().mock_run_job(
+                narrative_id, app_id, params, job_submission
+            )
         return ee.run_job(job_submission)
 
     def _get_app_params(self: "JobAgent", app_id: str) -> str:

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.chains import RetrievalQA
-from crewai.tools import tool
+from langchain.tools import tool
 import os
 from pathlib import Path
 from narrative_llm_agent.kbase.clients.narrative_method_store import (

@@ -1,5 +1,5 @@
 from narrative_llm_agent.agents.analyst import AnalystAgent
-from narrative_llm_agent.agents.job import JobAgent, AppStartInfo
+from narrative_llm_agent.agents.job import JobAgent, AppStartInfo, AppOutputInfo
 from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
@@ -9,10 +9,20 @@ from crewai import Crew, Task
 
 
 class JobCrew:
+    """
+    Initializes and runs a CrewAI Crew that will run a single KBase job from start to finish,
+    analyze, and interpret the results, saving a summary in a Narrative.
+
+    TODO: add context from the original metadata task
+    TODO: add context from previous app runs
+    TODO: add some context about the input object and goals of the app run
+    """
     _token: str
     _llm: LLM
+    _crew_results: list
 
     def __init__(self, llm: LLM, token: str = None) -> None:
+        self._crew_results = []
         self._token = token
         self._llm = llm
         self._analyst = AnalystAgent(llm, token=token)
@@ -30,19 +40,24 @@ class JobCrew:
             self._metadata.agent,
         ]
 
-    def start_job(self, app_name: str, reads_upa: str, narrative_id: int) -> None:
-        self._tasks = self.build_tasks(app_name, narrative_id, reads_upa)
+    def start_job(self, app_name: str, input_object_upa: str, narrative_id: int, app_id: str|None=None) -> None:
+        """
+        Starts the job from a given app name (note this isn't the ID. Name like "Prokka" not id like "ProkkaAnnotation/annotate_contigs")
+        and input object to be run in a given narrative.
+        """
+        self._tasks = self.build_tasks(app_name, narrative_id, input_object_upa, app_id)
         crew = Crew(
             agents=self._agents,
             tasks=self._tasks,
             verbose=True,
         )
-        self._last_result = crew.kickoff()
+        self._crew_results.append(crew.kickoff())
+        return self._crew_results[-1]
 
     def build_tasks(
-        self, app_name: str, narrative_id: int, reads_upa: str
+        self, app_name: str, narrative_id: int, input_object_upa: str, app_id: str | None
     ) -> list[Task]:
-        get_reads_qc_app_task = Task(
+        get_app_task = Task(
             description=f"Get the app id for the KBase {app_name} app. Return only the app id. This can be found in the catalog.",
             expected_output="An app id with the format module/app, with a single forward-slash",
             agent=self._coordinator.agent,
@@ -50,16 +65,20 @@ class JobCrew:
 
         get_app_params_task = Task(
             description=f"""
-            From the given KBase app id, fetch the list of parameters needed to run it. Use the App and Job manager agent
-            for assistance. With the knowledge that there is a data object with id "{reads_upa}", populate a dictionary
+            From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
+            for assistance. With the knowledge that there is a data object with id "{input_object_upa}", populate a dictionary
             with the parameters where the keys are parameter ids, and values are the proper parameter values, or their
-            default values if no value can be found or calculated. Return the dictionary of inputs, the app id, and the
-            narrative id {narrative_id}  for use in the next task. Do not add comments or other text. The dictionary of
-            inputs and the app id must not be combined into a single dictionary.
+            default values if no value can be found or calculated. Be sure to make sure there is a non-null value for any parameter that is not optional.
+            Any parameter that has a true value for "is_output_object" must have a valid name for the new object. The new object name should be based on
+            the input object name, not its upa. Only alphanumeric characters and underscores are allowed in new object names.
+            Return the dictionary of inputs, the app id, and the
+            narrative id {narrative_id} for use in the next task. Do not add comments or other text. If the parameters are rejected, examine the reason why and
+            reform them. The dictionary of inputs and the app id must not be combined into a single dictionary.
             """,
             expected_output="A dictionary of parameters used to run the app with the given id along with the narrative id.",
             output_pydantic=AppStartInfo,
             agent=self._coordinator.agent,
+            context=[get_app_task]
         )
 
         start_job_task = Task(
@@ -95,25 +114,30 @@ class JobCrew:
             description="""Use a tool to fetch the status of KBase job with the given job id.
             If it is completed without an error, retrieve the job results.
             If the job results contain a reference to a report, with an UPA (a string with format number/number/number),
-            return it. Do not add any additional text, just return only the UPA.
-            If the job results contain an "error" key, stop and return a message saying an error has occurred.
-            Do not return an UPA, only an error message.
+            return it as "report".
+            If the job results contain a newly created data object, return that as "output_object". This should ideally be an UPA, but might just be
+            the name of the object. If there are no output objects in the job results, there may have been an output object name set in the app
+            input parameters. Use that as the result object instead.
+            If the job results contain an "error" key, return the error.
+            These results must fit the requested format.
             You must always use a tool when interacting with KBase services or databases. If this is delegated, make sure
             the delegated agent uses a tool when interacting with KBase.
             """,
-            expected_output="An UPA of the format 'number/number/number', representing the output of a KBase job, or an error.",
+            expected_output="The output of the job including the app id, UPA of any output objects, and UPA of a report object. Or an error.",
+            output_pydantic=AppOutputInfo,
             agent=self._job.agent,
-            context=[start_job_task],
+            context=[get_app_params_task, start_job_task, monitor_job_task],
         )
 
         report_retrieval_task = Task(
-            description="""Using the provided UPA (a string with format number/number/number),
+            description="""Using the provided report UPA (a string with format number/number/number),
             use a tool to get the report object from the Workspace service. UPAs are unique permanent addresses used to identify data objects.
             The Workspace Manager will be helpful here. Make sure the delegated agent uses a tool for interacting with KBase.
             Return the full report text. Your final answer MUST be the report text.
             """,
             expected_output="The text of a KBase app report object",
             agent=self._workspace.agent,
+            context=[job_completion_task]
         )
 
         report_analysis_task = Task(
@@ -125,14 +149,16 @@ class JobCrew:
 
         save_analysis_task = Task(
             description=f"""Save the analysis by adding a markdown cell to the Narrative with id {narrative_id}. The markdown text must
-            be the analysis text. If not successful, say so and stop.""",
+            be the analysis text. If not successful, say so and stop. In the end, return the results of the job completion task.""",
             expected_output="A note with either success or failure of saving the new cell",
+            output_pydantic=AppOutputInfo,
             agent=self._narr.agent,
             extra_content=narrative_id,
+            context=[job_completion_task]
         )
 
         return [
-            get_reads_qc_app_task,
+            # get_app_task,
             get_app_params_task,
             start_job_task,
             make_app_cell_task,
