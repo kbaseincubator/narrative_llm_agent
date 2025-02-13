@@ -45,6 +45,7 @@ class JobCrew:
         Starts the job from a given app name (note this isn't the ID. Name like "Prokka" not id like "ProkkaAnnotation/annotate_contigs")
         and input object to be run in a given narrative.
         """
+        # TODO: convert UPA to name, pass both to build_tasks
         self._tasks = self.build_tasks(app_name, narrative_id, input_object_upa, app_id)
         crew = Crew(
             agents=self._agents,
@@ -63,6 +64,7 @@ class JobCrew:
             agent=self._coordinator.agent,
         )
 
+        # TODO: make sure that input objects are ALWAYS UPAs
         get_app_params_task = Task(
             description=f"""
             From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
@@ -110,6 +112,7 @@ class JobCrew:
             context=[start_job_task],
         )
 
+        # TODO: always transform the output object name to an UPA
         job_completion_task = Task(
             description="""Use a tool to fetch the status of KBase job with the given job id.
             If it is completed without an error, retrieve the job results.

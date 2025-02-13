@@ -6,10 +6,14 @@ from crewai import Crew, Task
 from pydantic import BaseModel
 
 
+class InitialReadsOutput(BaseModel):
+    narrative_id: int
+    reads_object_name: str
+    reads_object_upa: str
+
 class GenomeAnnotationInput(BaseModel):
     narrative_id: int
     reads_object: str
-
 
 class GenomeReadsMetadata(BaseModel):
     organism: str | None
@@ -69,11 +73,11 @@ class StartupCrew:
         """
 
         get_reads_objective = """
-            Use the Workspace Manager to get a list of available reads data objects from the user's narrative.
-            Do not ask the user directly, use a tool.
+            Use the Workspace Manager to get a list of available reads data objects from the user's narrative. The narrative id is available in
+            the task context. Do not ask the user for the list of objects directly, use a tool.
             You will need the UPA for each reads, but should tell the user the names.
-            Ask the user with set of reads they want to assemble and annotate. Return the narrative id and the UPA of
-            the user's chosen reads object.
+            Ask the user with set of reads they want to assemble and annotate. Return the narrative id, the UPA of
+            the user's chosen reads object, and the name of the reads object.
         """
 
         metadata_objective = """
@@ -87,7 +91,7 @@ class StartupCrew:
 
         startup_task = Task(
             description=startup_objective,
-            expected_output="Return the numeric narrative id. Return only a number.",
+            expected_output="The numeric narrative id. This should be only a number.",
             agent=self._coordinator.agent,
         )
 
@@ -95,6 +99,7 @@ class StartupCrew:
             description=get_reads_objective,
             output_json=GenomeAnnotationInput,
             expected_output="Return JSON with narrative_id and reads_object keys. reads_object should be an UPA",
+            pydantic_output=InitialReadsOutput,
             context=[startup_task],
             agent=self._coordinator.agent,
         )

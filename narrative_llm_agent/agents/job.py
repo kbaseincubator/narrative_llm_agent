@@ -54,8 +54,8 @@ class AppStartInfo(BaseModel):
 
 class AppOutputInfo(BaseModel):
     app_id: str
-    output_object: str | None = None
-    report: str | None = None
+    output_object_upa: str | None = None
+    report_upa: str | None = None
     app_error: str | None = None
 
 class JobAgent(KBaseAgent):
