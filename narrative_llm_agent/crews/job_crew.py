@@ -157,7 +157,7 @@ class JobCrew:
             output_pydantic=AppOutputInfo,
             agent=self._narr.agent,
             extra_content=narrative_id,
-            context=[job_completion_task]
+            context=[report_analysis_task, job_completion_task]
         )
 
         return [
