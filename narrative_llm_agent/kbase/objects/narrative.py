@@ -202,7 +202,11 @@ class Narrative:
         """
         Adds a markdown cell to the Narrative and returns it.
         """
-        cell_dict = self._create_cell_dict("markdown", "markdown", text)
+        cell_dict = {
+            "cell_type": "markdown",
+            "source": text,
+            "metadata": {"kbase": self._create_kbase_meta("markdown")}
+        }
         new_cell = MarkdownCell(cell_dict)
         self._add_cell(new_cell)
         return new_cell
@@ -312,9 +316,10 @@ class Narrative:
                 "title": title,
                 "icon": icon,
             },
-            "cellState": {"toggleMinMax": "maximized"},
-            "type": kbase_cell_type,
+            "cellState": {"toggleMinMax": "maximized"}
         }
+        if kbase_cell_type not in ["markdown"]:
+            meta["type"] = kbase_cell_type
         return meta
 
     def _get_cell_job_state(self, state: JobState) -> dict:
