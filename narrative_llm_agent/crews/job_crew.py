@@ -4,35 +4,8 @@ from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
 from narrative_llm_agent.agents.metadata import MetadataAgent
-from narrative_llm_agent.kbase.clients.workspace import Workspace
 from langchain_core.language_models.llms import LLM
-from langchain.tools import tool
 from crewai import Crew, Task
-
-@tool()
-def normalize_object_info(
-    narrative_id: int,
-    output_object_name: str | None = None,
-    output_object_upa: str | None = None
-) -> dict[str, str|None]:
-    """
-    Normalize object info by ensuring both the UPA and name are provided.
-    If one of them is missing, this tool will look up the missing value.
-    """
-    if output_object_upa and not output_object_name:
-        # Simulate looking up the name based on UPA
-        ws = Workspace()
-        info = ws.get_object_info(output_object_upa)
-        output_object_name = info["name"]
-    elif output_object_name and not output_object_upa:
-        # Simulate looking up the UPA based on name
-        ws = Workspace()
-        info = ws.get_object_info(f"{narrative_id}/{output_object_name}")
-        output_object_upa = info["upa"]
-    return {
-        "output_object_upa": output_object_upa,
-        "output_object_name": output_object_name
-    }
 
 class JobCrew:
     """
