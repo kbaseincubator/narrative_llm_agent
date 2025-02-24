@@ -74,6 +74,12 @@ class WorkspaceAgent(KBaseAgent):
             string with format number/number/number. Do not input a dictionary or a JSON-formatted string."""
             return self._get_object(process_tool_input(upa, "upa"))
 
+        @tool("Get object name", return_direct=False)
+        def get_object_name(upa: str) -> str:
+            """Get the name of a data object from its UPA. This returns the name string. An UPA input must
+            be a string with the format number/number/number."""
+            return self._get_object_name(upa)
+
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
@@ -84,6 +90,7 @@ class WorkspaceAgent(KBaseAgent):
                 get_object,
                 get_report,
                 get_report_from_job_id,
+                get_object_name,
             ],
             llm=self._llm,
             allow_delegation=False,
@@ -153,3 +160,8 @@ class WorkspaceAgent(KBaseAgent):
                     "The job output seems to be malformed, there is no 'result' field."
                 )
         return "The job was completed, but no job output was found."
+
+    def _get_object_name(self: "WorkspaceAgent", upa: str) -> str:
+        ws = Workspace(token=self._token)
+        info = ws.get_object_info(upa)
+        return info["name"]

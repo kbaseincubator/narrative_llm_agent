@@ -7,7 +7,6 @@ from narrative_llm_agent.agents.metadata import MetadataAgent
 from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
 
-
 class JobCrew:
     """
     Initializes and runs a CrewAI Crew that will run a single KBase job from start to finish,
@@ -45,13 +44,24 @@ class JobCrew:
         Starts the job from a given app name (note this isn't the ID. Name like "Prokka" not id like "ProkkaAnnotation/annotate_contigs")
         and input object to be run in a given narrative.
         """
+        print("")
+        print("starting job")
+        print("\t" + app_name)
+        print("\t" + input_object_upa)
+        print("\t" + str(narrative_id))
+        print("\t" + app_id)
+        # TODO: convert UPA to name, pass both to build_tasks
         self._tasks = self.build_tasks(app_name, narrative_id, input_object_upa, app_id)
+        print(self._tasks)
         crew = Crew(
             agents=self._agents,
             tasks=self._tasks,
             verbose=True,
         )
+        print(crew)
         self._crew_results.append(crew.kickoff())
+        print("done")
+        print(self._crew_results)
         return self._crew_results[-1]
 
     def build_tasks(
@@ -63,14 +73,17 @@ class JobCrew:
             agent=self._coordinator.agent,
         )
 
+        # TODO: make sure that input objects are ALWAYS UPAs
         get_app_params_task = Task(
             description=f"""
             From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
-            for assistance. With the knowledge that there is a data object with id "{input_object_upa}", populate a dictionary
+            for assistance. With the knowledge that there is a data object with UPA "{input_object_upa}", populate a dictionary
             with the parameters where the keys are parameter ids, and values are the proper parameter values, or their
-            default values if no value can be found or calculated. Be sure to make sure there is a non-null value for any parameter that is not optional.
+            default values if no value can be found or calculated. Any input object parameter must be the input object UPA.
+            Be sure to make sure there is a non-null value for any parameter that is not optional.
             Any parameter that has a true value for "is_output_object" must have a valid name for the new object. The new object name should be based on
-            the input object name, not its upa. Only alphanumeric characters and underscores are allowed in new object names.
+            the input object name, not its UPA. If the input object name is not available, the Workspace Manager can assist.
+            Only alphanumeric characters and underscores are allowed in new object names.
             Return the dictionary of inputs, the app id, and the
             narrative id {narrative_id} for use in the next task. Do not add comments or other text. If the parameters are rejected, examine the reason why and
             reform them. The dictionary of inputs and the app id must not be combined into a single dictionary.
@@ -110,6 +123,7 @@ class JobCrew:
             context=[start_job_task],
         )
 
+        # TODO: always transform the output object name to an UPA
         job_completion_task = Task(
             description="""Use a tool to fetch the status of KBase job with the given job id.
             If it is completed without an error, retrieve the job results.
@@ -123,7 +137,7 @@ class JobCrew:
             You must always use a tool when interacting with KBase services or databases. If this is delegated, make sure
             the delegated agent uses a tool when interacting with KBase.
             """,
-            expected_output="The output of the job including the app id, UPA of any output objects, and UPA of a report object. Or an error.",
+            expected_output="The output of the job including the app id, narrative id, UPA of any output objects, and UPA of a report object. Or an error.",
             output_pydantic=AppOutputInfo,
             agent=self._job.agent,
             context=[get_app_params_task, start_job_task, monitor_job_task],
@@ -145,16 +159,20 @@ class JobCrew:
             when appropriate, formatted in markdown. Your final answer MUST be the summary of the report.""",
             expected_output="A summary of the report from the previous task",
             agent=self._coordinator.agent,
+            context=[report_retrieval_task]
         )
 
         save_analysis_task = Task(
             description=f"""Save the analysis by adding a markdown cell to the Narrative with id {narrative_id}. The markdown text must
-            be the analysis text. If not successful, say so and stop. In the end, return the results of the job completion task.""",
+            be the analysis text. If not successful, say so and stop. Ensure that there is both an UPA and name for the output object, if available.
+            In the end, return the results of the job completion task with both UPA and name for output object. The return result must be normalized to contain
+            both the UPA and output object name, if either are present. If the app has neither an output object name or UPA, both of these
+            fields may be None.""",
             expected_output="A note with either success or failure of saving the new cell",
             output_pydantic=AppOutputInfo,
             agent=self._narr.agent,
             extra_content=narrative_id,
-            context=[job_completion_task]
+            context=[report_analysis_task, job_completion_task],
         )
 
         return [
