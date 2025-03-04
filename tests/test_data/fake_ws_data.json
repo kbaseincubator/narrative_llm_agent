@@ -1,5 +1,5 @@
 {
-    "info": [
+    "ws_info": [
         1000,
         "test_workspace",
         "test_user",
@@ -10,10 +10,71 @@
         "n",
         {}
     ],
-    "data": {
-        "2": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo"},
-        "foo": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo"},
-        "3": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar"},
-        "bar": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar"}
+    "object_info": {
+        "2": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo", "upa": "1000/2/3"},
+        "3": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar", "upa": "1000/3/4"},
+        "4": {"ws_id": 1000, "obj_id": 4, "version": 1, "name": "genome", "upa": "1000/4/1"},
+        "5": {"ws_id": 1000, "obj_id": 5, "version": 1, "name": "new_genome", "upa": "1000/5/1"},
+        "6": {"ws_id": 1000, "obj_id": 6, "version": 1, "name": "some_app_report", "upa": "1000/6/1"}
+    },
+    "object_data": {
+        "6": {
+            "data": {
+                "direct_html": "",
+                "direct_html_link_index": 0,
+                "file_links": [],
+                "html_links": [
+                    {
+                        "URL": "https://ci.kbase.us/services/shock-api/node/1d62842b-910f-4a44-9db5-bf43ebd6d6a7",
+                        "description": null,
+                        "handle": "KBH_738870",
+                        "label": "output_reads HTML",
+                        "name": "output_reads.html"
+                    }
+                ],
+                "html_window_height": 220,
+                "objects_created": [
+                    {
+                        "description": "New Genome",
+                        "ref": "1000/5/1"
+                    }
+                ],
+                "summary_window_height": null,
+                "text_message": "",
+                "warnings": []
+            },
+            "info": [
+                13,
+                "some_app_report",
+                "KBaseReport.Report-3.0",
+                "2025-01-23T17:27:37+0000",
+                1,
+                "wjriehl",
+                74706,
+                "wjriehl:narrative_1714065046758",
+                "fb92cc3f810a388725c6bd23d8756469",
+                420,
+                {
+                    "Size(characters)": "0",
+                    "Objects Created": "1",
+                    "Warnings": "0"
+                }
+            ],
+            "path": ["1000/6/1"],
+            "provenance": [{}],
+            "creator": "wjriehl",
+            "orig_wsid": 1000,
+            "created": "2025-01-23T17:27:37+0000",
+            "epoch": 1737653257173,
+            "refs": [
+                "1000/15/1"
+            ],
+            "copy_source_inaccessible": 0,
+            "extracted_ids": {
+                "handle": [
+                    "KBH_738870"
+                ]
+            }
+        }
     }
 }
