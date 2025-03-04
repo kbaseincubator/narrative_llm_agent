@@ -126,7 +126,7 @@ class JobAgent(KBaseAgent):
             return self._get_app_params(app_id)
 
         @tool("monitor-job", args_schema=JobInput, return_direct=False)
-        def monitor_job(job_id: str) -> str:
+        def monitor_job(job_id: str) -> CompletedJob:
             """
             This monitors a running job in KBase. It will check the job status every 10 seconds.
             When complete, this returns the final job status as a JSON-formatted string. The
