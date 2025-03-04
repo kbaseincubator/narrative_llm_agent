@@ -1,0 +1,115 @@
+{
+    "info": {
+        "id": "fake_app/run_fake_app",
+        "module_name": "fake_app",
+        "git_commit_hash": "a17cce938a979c42022cb5e9d416604f87d8a69d",
+        "name": "Fake App",
+        "ver": "0.0.1",
+        "subtitle": "A fake app.",
+        "tooltip": "A fake app.",
+        "categories": [
+            "active"
+        ],
+        "authors": [
+            "wjriehl"
+        ],
+        "input_types": [
+            "KBaseGenomes.Genome"
+        ],
+        "output_types": [
+            "KBaseGenomes.Genome"
+        ],
+        "app_type": "app",
+        "namespace": "fake_app"
+    },
+    "widgets": {
+        "input": "null",
+        "output": "kbaseReportView"
+    },
+    "parameters": [
+        {
+            "id": "input_object_upa",
+            "ui_name": "An input genome",
+            "short_hint": "Should be a genome (KBaseGenomes.Genome)",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 0,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "input",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "valid_ws_types": [
+                    "KBaseGenomes.Genome"
+                ],
+                "is_output_name": 0,
+                "placeholder": "",
+                "regex_constraint": []
+            }
+        },
+        {
+            "id": "output_object_name",
+            "ui_name": "Name of new Genome",
+            "short_hint": "The name of the new Genome object that gets created (a KBaseGenomes.Genome)",
+            "description": "",
+            "field_type": "text",
+            "allow_multiple": 0,
+            "optional": 0,
+            "advanced": 0,
+            "disabled": 0,
+            "ui_class": "output",
+            "default_values": [
+                ""
+            ],
+            "text_options": {
+                "valid_ws_types": [
+                    "KBaseGenomes.Genome"
+                ],
+                "is_output_name": 1,
+                "placeholder": "",
+                "regex_constraint": []
+            }
+        }
+    ],
+    "fixed_parameters": [],
+    "behavior": {
+        "kb_service_url": "",
+        "kb_service_name": "fake_app",
+        "kb_service_version": "a17cce938a979c42022cb5e9d416604f87d8a69d",
+        "kb_service_method": "run_fake_app",
+        "kb_service_input_mapping": [
+            {
+                "narrative_system_variable": "workspace",
+                "target_property": "input_ws"
+            },
+            {
+                "input_parameter": "input_object_upa",
+                "target_property": "input_object_upa"
+            },
+            {
+                "input_parameter": "output_object_name",
+                "target_property": "output_object_name"
+            }
+        ],
+        "kb_service_output_mapping": [
+            {
+                "service_method_output_path": [
+                    "0",
+                    "report_name"
+                ],
+                "target_property": "report_name"
+            },
+            {
+                "service_method_output_path": [
+                    "0",
+                    "report_ref"
+                ],
+                "target_property": "report_ref"
+            }
+        ]
+    },
+    "job_id_output_field": "docker"
+}

@@ -1,7 +1,6 @@
 from typing import Any
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
-from narrative_llm_agent.kbase.objects.report import KBaseReport
-from narrative_llm_agent.kbase.service_client import ServerError
+from narrative_llm_agent.tools.job_tools import CompletedJob, summarize_completed_job
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
@@ -22,7 +21,6 @@ import time
 from langchain_community.agent_toolkits.load_tools import load_tools
 from narrative_llm_agent.config import get_config
 from narrative_llm_agent.kbase.clients.debug_mock import KBaseMock
-from narrative_llm_agent.util.app import get_processed_app_spec_params
 
 
 class JobInput(BaseModel):
@@ -63,19 +61,6 @@ class AppOutputInfo(BaseModel):
     app_error: str | None = None
     narrative_id: int
 
-class CreatedObject(BaseModel):
-    object_upa: str
-    object_name: str
-
-    model_config = {"frozen": True}
-
-
-class CompletedJob(BaseModel):
-    job_id: str
-    job_status: str
-    created_objects: list[CreatedObject] = []
-    job_error: str | None = None
-    report_upa: str
 
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
@@ -160,7 +145,7 @@ class JobAgent(KBaseAgent):
                 start_job,
                 get_app_params,
                 monitor_job,
-            ],  # + human_tools,
+            ], # + human_tools,
             llm=self._llm,
             allow_delegation=False,
             memory=True,
@@ -200,7 +185,7 @@ class JobAgent(KBaseAgent):
         spec = nms.get_app_spec(app_id, include_full_info=True)
         return json.dumps(get_processed_app_spec_params(AppSpec(**spec)))
 
-    def _monitor_job(self: "JobAgent", job_id: str, interval: int = 10) -> str:
+    def _monitor_job(self: "JobAgent", job_id: str, interval: int = 10) -> CompletedJob:
         is_complete = False
         while not is_complete:
             status = self._job_status(job_id, as_str=False)
@@ -208,65 +193,4 @@ class JobAgent(KBaseAgent):
                 is_complete = True
             else:
                 time.sleep(interval)
-        return self._process_completed_job(job_id)
-
-    def _process_completed_job(self: "JobAgent", job_state: JobState) -> str:
-        # get the output
-        # get the report object
-        # get the objects created bit of the report
-        # make this structure:
-        if job_state.status not in {"completed", "error", "terminated"}:
-            raise RuntimeError(f"Job {job_state.job_id} is not complete")
-
-        processed = {
-            "job_id": job_state.job_id,
-            "job_status": job_state.status,
-            "created_objects": set()
-        }
-        error = None
-        if job_state.status == "error":
-            error = job_state.errormsg
-        processed["job_error"] = error
-        result = {}
-        report_upa = None
-        if "result" in job_state.job_output:
-            result = job_state.job_output["result"][0]
-            report_upa = result.get("report_ref")
-        processed["report_upa"] = report_upa
-        if report_upa is not None:
-            processed["created_objects"].update(self._get_report_created_objects(report_upa))
-        # check for new object. need app spec.
-        processed["created_objects"].update(self._get_app_created_objects(job_state))
-        return CompletedJob(**processed)
-
-    def _get_report_created_objects(self: "JobAgent", report_upa: str) -> set[CreatedObject]:
-        ws = Workspace(token=self._token)
-        report_data = ws.get_objects([report_upa])[0]["data"]
-        report = KBaseReport(**report_data)
-        created_objects = set()
-        for new_object in report.objects_created:
-            obj_info = ws.get_object_info(new_object.ref)
-            created_objects.add(CreatedObject(object_upa = obj_info["upa"], object_name = obj_info["name"]))
-        return created_objects
-
-    def _get_app_created_objects(self: "JobAgent", job_state: JobState) -> set[CreatedObject]:
-        # get app spec
-        nms = NarrativeMethodStore()
-        app_spec = AppSpec(**(nms.get_app_spec(job_state.job_input.app_id)))
-        app_params = get_processed_app_spec_params(app_spec)
-        output_params = []
-        for param_id, info in app_params.items():
-            if info.get("is_output_object"):
-                output_params.append(param_id)
-        params = job_state.job_input.params[0]
-        output_names = [params[param_id] for param_id in output_params]
-        narrative_id = job_state.job_input.ws_id
-        ws = Workspace(token=self._token)
-        created_objects = set()
-        for name in output_names:
-            try:
-                out_obj_info = ws.get_object_info(f"{narrative_id}/{name}")
-                created_objects.add(CreatedObject(object_upa = out_obj_info["upa"], object_name = out_obj_info["name"]))
-            except ServerError:
-                pass
-        return created_objects
+        return summarize_completed_job(status, NarrativeMethodStore(), Workspace(token=self._token))
