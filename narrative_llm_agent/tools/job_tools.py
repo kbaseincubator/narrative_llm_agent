@@ -19,7 +19,7 @@ class CompletedJob(BaseModel):
     job_status: str
     created_objects: list[CreatedObject] = []
     job_error: str | None = None
-    report_upa: str | None = None
+    report_upa: str
 
 def summarize_completed_job(job_state: JobState, nms: NarrativeMethodStore, ws: Workspace) -> CompletedJob:
     """

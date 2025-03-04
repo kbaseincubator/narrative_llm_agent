@@ -11,7 +11,6 @@ from narrative_llm_agent.config import get_config
 from pathlib import Path
 
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
-from narrative_llm_agent.tools.job_tools import CompletedJob
 from tests.conftest import MockLLM
 from tests.test_data.test_data import load_test_data_json
 
@@ -100,7 +99,7 @@ def test_start_job_tool(
     assert ja._start_job(narrative_id, app_id, params) == job_id
 
 
-def test_monitor_job_tool(mock_llm: MockLLM, mock_ee_client, mock_job_states, mocker):
+def test_monitor_job_tool(mock_llm: MockLLM, mock_ee_client, mock_job_states):
     global check_counter
     check_counter = 0
     job_id = "job_id_1"
@@ -117,15 +116,7 @@ def test_monitor_job_tool(mock_llm: MockLLM, mock_ee_client, mock_job_states, mo
         check_counter += 1
         return JobState(state)
 
-    mock_complete_job = CompletedJob(
-        job_id = job_id,
-        job_status = "completed",
-        created_objects=[],
-        job_error=None,
-        report_upa=None
-    )
-    mocker.patch("narrative_llm_agent.agents.job.summarize_completed_job", return_value = mock_complete_job)
     mock_ee = mock_ee_client.return_value
     mock_ee.check_job.side_effect = fake_check_job
     ja = JobAgent(mock_llm)
-    assert ja._monitor_job(job_id, interval=1) == mock_complete_job
+    assert ja._monitor_job(job_id, interval=1) == str(JobState(mock_job_states[job_id]))
