@@ -3,6 +3,7 @@ from narrative_llm_agent.util.app import (
     get_processed_app_spec_params,
     map_inputs_from_job,
     process_param_type,
+    process_default_values,
     get_ws_object_refs,
     is_valid_ref,
     is_valid_upa,
@@ -122,6 +123,41 @@ def test_process_param_type_dropdown():
         {"field_type": "dropdown", "dropdown_options": {"options": dropdown_opts}}
     )
     assert process_param_type(param) == ("dropdown", [{"name": "Foo", "value": "foo"}, {"name": "Bar", "value": "bar"}])
+
+default_value_cases = [
+    (None, "text", None),
+    (None, "int", None),
+    (None, "float", None),
+    ([], "text", None),
+    ([], "int", None),
+    ([], "float", None),
+    ([], "dropdown", None),
+    ([""], "text", None),
+    ([""], "int", None),
+    ([""], "float", None),
+    ([""], "dropdown", None),
+    (["foo"], "text", "foo"),
+    (["1"], "int", 1),
+    (["3.3"], "float", 3.3),
+    (["what"], "dropdown", "what"),
+    (["omg", "whee"], "text", "omg")
+]
+@pytest.mark.parametrize("defaults,param_type,expected", default_value_cases)
+def test_process_default_values(defaults, param_type, expected):
+    param = AppParameter(
+        id="some_param",
+        ui_name="",
+        short_hint="",
+        description="",
+        field_type=param_type,
+        allow_multiple=0,
+        optional=0,
+        advanced=0,
+        disabled=0,
+        default_values=defaults,
+        ui_class=""
+    )
+    assert process_default_values(param, param_type) == expected
 
 
 def test_get_ws_object_refs(app_spec: AppSpec, input_params: dict):

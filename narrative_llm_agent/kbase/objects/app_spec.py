@@ -155,7 +155,7 @@ class AppParameter(BaseModel):
     optional: int  # bool
     advanced: int  # bool
     disabled: int  # bool
-    default_values: list[str]
+    default_values: list[str] | None = []
     ui_class: str
     valid_file_types: list[str] | None = None
 
