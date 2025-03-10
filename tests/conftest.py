@@ -205,14 +205,28 @@ def mock_llm():
     return MockLLM()
 
 
+def load_fake_ws_db():
+    ws_data = load_test_data_json("fake_ws_data.json")
+    info_by_name = {info["name"]: info for info in ws_data["object_info"].values()}
+    ws_data["object_info"] = ws_data["object_info"] | info_by_name
+    data_by_name = {data["info"][1]: data for data in ws_data["object_data"].values()}
+    ws_data["object_data"] = ws_data["object_data"] | data_by_name
+    return ws_data
+
 @pytest.fixture
 def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
-    ws = mocker.Mock(spec=Workspace)
-    ws_data = load_test_data_json("fake_ws_data.json")
+    """
+    Makes a mock workspace client that only returns data from a fake Workspace
+    described in test_data/fake_ws_data.json.
+    workspace id = 1000 (test_workspace), owned by test_user
+    objects = 2 (foo) and 3 (bar)
 
-    def get_object_info_side_effect(
-        ref: str,
-    ):
+    TODO: update the ws data as needed. currently incomplete
+    """
+    ws = mocker.Mock(spec=Workspace)
+    ws_data = load_fake_ws_db()
+
+    def _key_from_ref(ref: str):
         split_ref = ref.split("/")
         if len(split_ref) == 1:
             key = ref
@@ -222,15 +236,37 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
             raise ServerError(
                 "WorkspaceError", 500, "Not a ref"
             )  # TODO: make real error
-        if key in ws_data["data"]:
-            return ws_data["data"][key]
+        return key
+
+
+    def get_object_info_side_effect(
+        ref: str,
+    ):
+        key = _key_from_ref(ref)
+        if key in ws_data["object_info"]:
+            return ws_data["object_info"][key]
         else:
             raise ServerError(
                 "WorkspaceError", 500, "Not in ws"
             )  # TODO: make real response
 
+    def get_objects_side_effect(
+        refs: list[str]
+    ):
+        objects = []
+        for ref in refs:
+            key = _key_from_ref(ref)
+            if key in ws_data["object_data"]:
+                objects.append(ws_data["object_data"][key])
+            else:
+                raise ServerError(
+                    "WorkspaceError", 500, "Not in ws"
+                )  # TODO: make real response
+        return objects
+
     ws.get_object_info.side_effect = get_object_info_side_effect
-    ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["info"])
+    ws.get_objects.side_effect = get_objects_side_effect
+    ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["ws_info"])
     return ws
 
 

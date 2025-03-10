@@ -1,5 +1,6 @@
 from typing import Any
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
+from narrative_llm_agent.tools.job_tools import CompletedJob, summarize_completed_job
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
@@ -59,6 +60,7 @@ class AppOutputInfo(BaseModel):
     report_upa: str | None = None
     app_error: str | None = None
     narrative_id: int
+
 
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
@@ -124,7 +126,7 @@ class JobAgent(KBaseAgent):
             return self._get_app_params(app_id)
 
         @tool("monitor-job", args_schema=JobInput, return_direct=False)
-        def monitor_job(job_id: str) -> str:
+        def monitor_job(job_id: str) -> CompletedJob:
             """
             This monitors a running job in KBase. It will check the job status every 10 seconds.
             When complete, this returns the final job status as a JSON-formatted string. The
@@ -143,7 +145,7 @@ class JobAgent(KBaseAgent):
                 start_job,
                 get_app_params,
                 monitor_job,
-            ],  # + human_tools,
+            ], # + human_tools,
             llm=self._llm,
             allow_delegation=False,
             memory=True,
@@ -183,7 +185,7 @@ class JobAgent(KBaseAgent):
         spec = nms.get_app_spec(app_id, include_full_info=True)
         return json.dumps(get_processed_app_spec_params(AppSpec(**spec)))
 
-    def _monitor_job(self: "JobAgent", job_id: str, interval: int = 10) -> str:
+    def _monitor_job(self: "JobAgent", job_id: str, interval: int = 10) -> CompletedJob:
         is_complete = False
         while not is_complete:
             status = self._job_status(job_id, as_str=False)
@@ -191,4 +193,4 @@ class JobAgent(KBaseAgent):
                 is_complete = True
             else:
                 time.sleep(interval)
-        return str(status)
+        return summarize_completed_job(status, NarrativeMethodStore(), Workspace(token=self._token))

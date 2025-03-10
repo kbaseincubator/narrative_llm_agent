@@ -127,7 +127,7 @@ class Workspace(ServiceClient):
 
     def get_objects(
         self: "Workspace", refs: list[str], data_paths: list[str] = None
-    ) -> dict:
+    ) -> list:
         base_params = {}
         if data_paths is not None:
             base_params["included"] = data_paths
