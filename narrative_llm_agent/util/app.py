@@ -40,14 +40,7 @@ def get_processed_app_spec_params(
         proc_param["multiple"] = True if param.allow_multiple == 1 else False
         proc_param["optional"] = True if param.optional == 1 else False
 
-        defaults = param.default_values
-        if defaults is not None:
-            if param.allow_multiple == 1:
-                proc_param["default_value"] = defaults
-            if len(defaults) and len(defaults[0]):
-                proc_param["default_value"] = defaults[0]
-            else:
-                proc_param["default_value"] = None
+        proc_param["default_value"] = process_default_values(param, param_type)
 
         processed_params[proc_param["id"]] = proc_param
     processed_param_groups = {}
@@ -71,6 +64,27 @@ def get_processed_app_spec_params(
             processed_param_groups[group.id] = param_group
     return processed_params | processed_param_groups
 
+
+def process_default_values(param: AppParameter, param_type: str) -> str | int | None:
+    defaults = param.default_values
+    if defaults is None:
+        return None
+    if param.allow_multiple == 1:
+        return [_cast_param_value(param_type, value) for value in defaults]
+    if len(defaults) and len(defaults[0]):
+        return _cast_param_value(param_type, defaults[0])
+    return None
+
+def _cast_param_value(param_type: str, value: Any) -> Any:
+    if value is None:
+        return None
+    if param_type in {"text", "textarea", "textsubdata", "checkbox", "radio", "tab", "file", "dynamic_dropdown"}:
+        return value
+    if param_type == "int":
+        return int(value)
+    if param_type == "float":
+        return float(value)
+    return value
 
 def process_param_type(param: AppParameter) -> tuple:
     """
@@ -97,7 +111,13 @@ def process_param_type(param: AppParameter) -> tuple:
                 max_val = float("inf")
             allowed_values = [min_val, max_val]
     if field_type == "dropdown" and param.dropdown_options is not None:
-        allowed_values = [opt.display for opt in param.dropdown_options.options]
+        allowed_values = [
+            {
+                "name": opt.display,
+                "value": opt.value
+            }
+            for opt in param.dropdown_options.options
+        ]
     # TODO types-
     # textsubdata
     # dynamic_dropdown
@@ -151,6 +171,13 @@ def build_run_job_params(
     return job_params
 
 
+def validate_params(params: dict, spec_params: dict) -> None:
+    """
+    If valid, returns None
+    If invalid, raises a ValueError with one or more string errors.
+    """
+    return None
+
 def map_app_params(
     app_spec: AppSpec, params: dict, ws_id: int, ws_client: Workspace
 ) -> dict:
@@ -161,6 +188,7 @@ def map_app_params(
     """
     input_mapping = app_spec.behavior.kb_service_input_mapping
     spec_params = get_processed_app_spec_params(app_spec, separate_group_params=False)
+    validate_params(params, spec_params)
 
     """
     Maps the dictionary of parameters and inputs based on rules provided in
@@ -510,10 +538,10 @@ def system_variable(
     """
     var = var.lower()
     if var == "workspace":
-        ws_info = ws_client.get_workspace_info(narrative_id)
+        ws_info = ws_client.get_workspace_info(int(narrative_id))
         return ws_info.name
     elif var == "workspace_id":
-        return narrative_id
+        return int(narrative_id)
     elif var == "user_id":
         return None  # TODO: not implemented yet
     elif var == "timestamp_epoch_ms":

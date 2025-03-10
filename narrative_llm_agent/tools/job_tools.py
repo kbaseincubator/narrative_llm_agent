@@ -51,7 +51,7 @@ def summarize_completed_job(job_state: JobState, nms: NarrativeMethodStore, ws: 
     processed["job_error"] = error
     result = {}
     report_upa = None
-    if "result" in job_state.job_output:
+    if job_state.job_output is not None and "result" in job_state.job_output:
         result = job_state.job_output["result"][0]
         report_upa = result.get("report_ref")
     processed["report_upa"] = report_upa
