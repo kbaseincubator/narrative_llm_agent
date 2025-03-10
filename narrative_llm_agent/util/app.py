@@ -69,8 +69,6 @@ def process_default_values(param: AppParameter, param_type: str) -> str | int | 
     defaults = param.default_values
     if defaults is None:
         return None
-    if param.allow_multiple == 1:
-        return [_cast_param_value(param_type, value) for value in defaults]
     if len(defaults) and len(defaults[0]):
         return _cast_param_value(param_type, defaults[0])
     return None
@@ -81,9 +79,15 @@ def _cast_param_value(param_type: str, value: Any) -> Any:
     if param_type in {"text", "textarea", "textsubdata", "checkbox", "radio", "tab", "file", "dynamic_dropdown"}:
         return value
     if param_type == "int":
+        if value == "":
+            return None
         return int(value)
     if param_type == "float":
+        if value == "":
+            return None
         return float(value)
+    if param_type == "dropdown" and value == "":
+        return None
     return value
 
 def process_param_type(param: AppParameter) -> tuple:

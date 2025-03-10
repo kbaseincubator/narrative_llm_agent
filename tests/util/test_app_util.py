@@ -121,7 +121,7 @@ def test_process_param_type_dropdown():
     param = dummy_param(
         {"field_type": "dropdown", "dropdown_options": {"options": dropdown_opts}}
     )
-    assert process_param_type(param) == ("dropdown", ["Foo", "Bar"])
+    assert process_param_type(param) == ("dropdown", [{"name": "Foo", "value": "foo"}, {"name": "Bar", "value": "bar"}])
 
 
 def test_get_ws_object_refs(app_spec: AppSpec, input_params: dict):
