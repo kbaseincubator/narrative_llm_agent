@@ -28,10 +28,10 @@ class AppCellFromJobInput(BaseModel):
         description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string."
     )
 
-class NormalizeObjectInfoInput(BaseModel):
-    narrative_id: int = Field(description="The narrative id. Should be numeric.")
-    output_object_name: str | None = Field(description="The name of the output object. This should be a human-readable name, not an UPA."),
-    output_object_upa: str | None = Field(description="The UPA (unique permanent address) of the output object. This should have the format number/number/number")
+# class NormalizeObjectInfoInput(BaseModel):
+#     narrative_id: int = Field(description="The narrative id. Should be numeric.")
+#     output_object_name: str | None = Field(description="The name of the output object. This should be a human-readable name, not an UPA."),
+#     output_object_upa: str | None = Field(description="The UPA (unique permanent address) of the output object. This should have the format number/number/number")
 
 
 class NarrativeAgent(KBaseAgent):
@@ -91,17 +91,17 @@ class NarrativeAgent(KBaseAgent):
             job_id = process_tool_input(job_id, "job_id")
             return self._add_app_cell(narrative_id, job_id)
 
-        @tool("normalize-object-info", args_schema=NormalizeObjectInfoInput, return_direct=False)
-        def normalize_object_info(
-            narrative_id: int,
-            output_object_name: str | None,
-            output_object_upa: str | None
-        ) -> dict[str, str]:
-            """
-            Normalize object info by ensuring both the UPA and name are provided.
-            If one of them is missing, this tool will look up the missing value.
-            """
-            return self._normalize_object_info(narrative_id, output_object_name, output_object_upa)
+        # @tool("normalize-object-info", args_schema=NormalizeObjectInfoInput, return_direct=False)
+        # def normalize_object_info(
+        #     narrative_id: int,
+        #     output_object_name: str | None,
+        #     output_object_upa: str | None
+        # ) -> dict[str, str]:
+        #     """
+        #     Normalize object info by ensuring both the UPA and name are provided.
+        #     If one of them is missing, this tool will look up the missing value.
+        #     """
+        #     return self._normalize_object_info(narrative_id, output_object_name, output_object_upa)
 
         self.agent = Agent(
             role=self.role,
@@ -113,7 +113,7 @@ class NarrativeAgent(KBaseAgent):
                 add_app_cell,
                 add_markdown_cell,
                 get_narrative_state,
-                normalize_object_info
+                # normalize_object_info
             ],
             llm=self._llm,
             allow_delegation=False,
