@@ -137,9 +137,9 @@
         "short_hint": "Should only accept what is in that dropdown.",
         "type": "dropdown",
         "allowed": [
-            "Apple",
-            "Banana",
-            "Carrot"
+            {"name": "Apple", "value": "apple"},
+            {"name": "Banana", "value": "banana"},
+            {"name": "Carrot", "value": "carrot"}
         ],
         "multiple": false,
         "default_value": null,
@@ -152,9 +152,9 @@
         "short_hint": "Should accept only what is in the dropdown, but a list of them.",
         "type": "dropdown",
         "allowed": [
-            "Apple",
-            "Banana",
-            "Carrot"
+            {"name": "Apple", "value": "apple"},
+            {"name": "Banana", "value": "banana"},
+            {"name": "Carrot", "value": "carrot"}
         ],
         "multiple": true,
         "default_value": null,
