@@ -33,6 +33,8 @@ class WorkspaceUtil:
         service = recent.get("service", "").lower()
         if method == "runfastqc" and service == "kb_fastqc":
             return "fastqc"
+        elif method == "run_checkm_lineage_wf" and service == "kb_msuite":
+            return "checkm"
         return "other"
 
     def get_report(self, upa: str) -> str:
@@ -55,6 +57,8 @@ class WorkspaceUtil:
         report = KBaseReport(**obj["data"])
         if report_source == "fastqc":
             return self.translate_fastqc_report(report)
+        elif report_source == "checkm":
+            return self.translate_checkm_report(report)
         else:
             return self.default_translate_report(report)
 
@@ -81,6 +85,29 @@ class WorkspaceUtil:
                 f"html report: {html_text}",
             ]
         )
+
+    def translate_checkm_report(self, report: KBaseReport) -> str:
+        summary_header = "CheckM summary table:"
+        summary = "not found"
+        target_file_name = "CheckM_summary_table.tsv.zip"
+        target_unzipped_file = "CheckM_summary_table.tsv"
+        target_url = None
+        for report_file in report.file_links:
+            if report_file.name == target_file_name:
+                target_url = report_file.URL
+        if target_url is not None:
+            blobstore = Blobstore(token=self._token)
+            resp = blobstore.download_report_file(target_url)
+            comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
+            foi = None
+            for data_file in comp_file.filelist:
+                if Path(data_file.filename).name == target_unzipped_file:
+                    foi = data_file
+                    break
+            if foi is not None:
+                with comp_file.open(foi) as infile:
+                    summary = infile.read().decode("utf-8")
+        return "\n".join([summary_header, summary])
 
     def translate_fastqc_report(self, report: KBaseReport) -> str:
         """

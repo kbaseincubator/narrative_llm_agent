@@ -74,6 +74,14 @@ def process_default_values(param: AppParameter, param_type: str) -> str | int | 
     return None
 
 def _cast_param_value(param_type: str, value: Any) -> Any:
+    """
+    Casts a value to match parameter type.
+    Most types are text, so nothing is done.
+    Empty strings are returned as None for ints, floats, and dropdowns.
+    This really only gets called by process_default_values, so in theory the
+    value=None and int/"" cases won't actually happen following that route,
+    but this might get used later to post-process LLM-built params, so leaving that in.
+    """
     if value is None:
         return None
     if param_type in {"text", "textarea", "textsubdata", "checkbox", "radio", "tab", "file", "dynamic_dropdown"}:

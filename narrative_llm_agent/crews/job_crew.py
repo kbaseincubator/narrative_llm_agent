@@ -211,10 +211,24 @@ class JobCrew:
         )
 
         report_analysis_task = Task(
-            description="""Analyze the report text and derive some insight into the result. Write a brief summary, including bullet points
-            when appropriate, formatted in markdown. Your final answer MUST be the summary of the report. If there was no report, the
-            report is null or an empty string, return a note saying that there is no report to analyze. If the previous task ended with an error,
-            or another note saying that there is no report to analyze, just return a note saying so. Otherwise, return the summary of the report.""",
+            description=
+            """Analyze the given report and derive some biological insight into the result.
+            If the report is not in JSON format, then interpret the document as-is.
+            If it is in JSON format, The report may contain content in 3 categories.
+            1. "message": this is a brief message describing the outcome of the report
+            2. "direct html": this is HTML-formatted information meant to be displayed to the user, and might be a brief summary of the full report.
+            3. "html report": this is one or more full HTML-formatted documents containing the report information.
+
+            Regardless of the format, it may be plain text, which can be interpreted as-is. It may also
+            also be formatted as HTML. If so, read the HTML document, including any base-64 encoded images for interpretation.
+
+            After interpretation, analyze the report, and summarize the findings with a biological interpretation. Write a brief summary, including
+            bullet points when appropriate, formatted in markdown. Your final answer MUST be the summary of the report.
+
+            If there was no report, the report is null, or an empty string, return a note saying that there is no report to analyze.
+            If the previous task ended with an error, or another note saying that there is no report to analyze,
+            just return a note saying so. Otherwise, return the summary of the report.
+            """,
             expected_output="A summary of the report from the previous task",
             agent=self._coordinator.agent,
             context=[report_retrieval_task]
