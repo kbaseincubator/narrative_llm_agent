@@ -27,22 +27,38 @@ RETURN final_context LIMIT 1
 """
 
 
+# def get_information(entity: str, type: str) -> str:
+#     candidates = get_candidates(entity, type)
+#     if not candidates:
+#         return "No information was found about the KBase app in the database"
+#     elif len(candidates) > 1:
+#         newline = "\n"
+#         return (
+#             "Need additional information, which of these "
+#             f"did you mean: {newline + newline.join(str(d) for d in candidates)}"
+#         )
+#     data = graph.query(
+#         description_query, params={"candidate": candidates[0]["candidate"]}
+#     )
+#     print("candidate name provided=", candidates)
+#     return data[0]["final_context"]
 def get_information(entity: str, type: str) -> str:
     candidates = get_candidates(entity, type)
     if not candidates:
         return "No information was found about the KBase app in the database"
-    elif len(candidates) > 1:
-        newline = "\n"
-        return (
-            "Need additional information, which of these "
-            f"did you mean: {newline + newline.join(str(d) for d in candidates)}"
-        )
+    
+    all_candidates = "\n".join([str(c) for c in candidates])
+    top_candidate = candidates[0]  # Automatically select top candidate
     data = graph.query(
-        description_query, params={"candidate": candidates[0]["candidate"]}
+        description_query, params={"candidate": top_candidate["candidate"]}
     )
-    print("candidate name provided=", candidates)
-    return data[0]["final_context"]
-
+    
+    return (
+        "These matches were found, selecting the top match:\n" +
+        all_candidates +
+        "\n\nSelected top candidate:\n" +
+        data[0]['final_context']
+    )
 
 class InformationInput(BaseModel):
     entity: str = Field(description="KBase app name mentioned in the question")
@@ -52,8 +68,8 @@ class InformationInput(BaseModel):
 
 
 class InformationTool(BaseTool):
-    name = "Information"
-    description = "useful for when you need to answer questions about KBase apps"
+    name: str = "Information"
+    description: str = "useful for when you need to answer questions about KBase apps"
     args_schema: Type[BaseModel] = InformationInput
 
     def _run(
