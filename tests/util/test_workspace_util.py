@@ -19,7 +19,6 @@ def mocked_ws_util(mocker):
     """
 
     def make_mocked_util(report):
-        # mocker.patch("narrative_llm_agent.util.workspace.WS_ENDPOINT", endpoint)
         ws_util = WorkspaceUtil(token=token)
         mocker.patch.object(ws_util._ws, "get_objects", return_value=[report])
         return ws_util
@@ -141,21 +140,8 @@ def test_get_report_gtdb_ok(with_archaea: bool, with_bacteria: bool, mocked_ws_u
         for filename, filepath in files_to_zip.items():
             report_zip.write(filepath, arcname=filename)
 
-    # report_zip_path = reports_path / "gtdbtk.zip"
     report = load_test_data_json(reports_path / "test_gtdbtk_report.json")
     ws_util = mocked_ws_util(report)
-    # with open(reports_path / "id_to_name.map") as map_file:
-    #     map_text = map_file.read()
-    # with open(bacteria_path) as bac_summary_file:
-    #     bac_summary = bac_summary_file.read()
-    # expected_report = "\n".join([
-    #     "id mapping - use this table to map summary ids to data objects. Each row has two elements - the first is the id of the archaea or bacteria finding, the second is the data object name.",
-    #     map_text,
-    #     "",
-    #     "GTDB Classification Summary - this table summarizes the bacterial findings from GTDB",
-    #     bac_summary
-    # ])
-    print(report_zip_path)
     run_get_report_test(
         ws_util,
         report,

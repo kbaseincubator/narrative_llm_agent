@@ -113,26 +113,19 @@ class WorkspaceUtil:
 
     def translate_checkm_report(self, report: KBaseReport) -> str:
         summary_header = "CheckM summary table:"
-        summary = "not found"
         target_file_name = "CheckM_summary_table.tsv.zip"
         target_unzipped_file = "CheckM_summary_table.tsv"
-        target_url = None
-        for report_file in report.file_links:
-            if report_file.name == target_file_name:
-                target_url = report_file.URL
+        target_url = self._get_file_url(target_file_name, report)
+        summary = None
         if target_url is not None:
-            blobstore = Blobstore(token=self._token)
-            resp = blobstore.download_report_file(target_url)
-            comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
-            foi = None
-            for data_file in comp_file.filelist:
-                if Path(data_file.filename).name == target_unzipped_file:
-                    foi = data_file
-                    break
-            if foi is not None:
-                with comp_file.open(foi) as infile:
-                    summary = infile.read().decode("utf-8")
-        return "\n".join([summary_header, summary])
+            file_data = self._extract_report_files(target_url, [target_unzipped_file], only_check_filename=True)
+            summary = file_data[target_unzipped_file]
+        if summary is None:
+            summary = "not found"
+        return "\n".join([
+            summary_header,
+            summary
+        ])
 
     def translate_fastqc_report(self, report: KBaseReport) -> str:
         """
@@ -141,18 +134,9 @@ class WorkspaceUtil:
         """
         report_data = {report_file.name: None for report_file in report.file_links}
         target_file_name = "fastqc_data.txt"
-        blobstore = Blobstore(token=self._token)
         for report_file in report.file_links:
-            resp = blobstore.download_report_file(report_file.URL)
-            comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
-            foi = None
-            for data_file in comp_file.filelist:
-                if Path(data_file.filename).name == target_file_name:
-                    foi = data_file
-                    break
-            if foi is not None:
-                with comp_file.open(foi) as infile:
-                    report_data[report_file.name] = infile.read().decode("utf-8")
+            file_data = self._extract_report_files(report_file.URL, [target_file_name], only_check_filename=True)
+            report_data[report_file.name] = file_data[target_file_name]
         report_result = []
         for idx, [name, value] in enumerate(report_data.items()):
             report_result.append(f"file {idx + 1}: {name}:")
@@ -181,7 +165,7 @@ class WorkspaceUtil:
                     return infile.read().decode("utf-8")
         return ""
 
-    def _extract_report_files(self, zip_file_url: str, files_of_interest: list[Path]) -> dict[Path, str]:
+    def _extract_report_files(self, zip_file_url: str, files_of_interest: list[str | Path], only_check_filename: bool=False) -> dict[Path, str]:
         """
         Extracts and loads specific files out of a zip file, by its url.
         It does the following:
@@ -198,6 +182,10 @@ class WorkspaceUtil:
         :param files_of_interest: This is a list of Paths to files in the zip file to extract.
         They should all be relative to the root of the zip file. The Path object itself will
         be used as the key in the returned dictionary.
+        :param only_check_filenames: If true, this will find the filename of the path in any directory
+        of the downloaded zip file. This assumes that the given paths in files_of_interest is a string,
+        and not a Path. Paths will always return None in this case.
+        If there are multiple files with the same name, only one gets returned.
         """
         blobstore = Blobstore(token=self._token)
         resp = blobstore.download_report_file(zip_file_url)
@@ -207,9 +195,10 @@ class WorkspaceUtil:
         }
         for data_file in comp_file.filelist:
             data_path = Path(data_file.filename)
-            if data_path in extracted:
+            compare_name = data_path.name if only_check_filename else data_path
+            if compare_name in extracted:
                 with comp_file.open(data_file) as infile:
-                    extracted[data_path] = infile.read().decode("utf-8")
+                    extracted[compare_name] = infile.read().decode("utf-8")
         return extracted
 
     def _get_file_url(self, filename: str, report: KBaseReport) -> str | None:
@@ -218,8 +207,6 @@ class WorkspaceUtil:
         If not, this returns None.
         """
         for report_file in report.file_links:
-            print(report_file)
-            print(filename + "\t" + report_file.name)
             if report_file.name == filename:
                 return report_file.URL
         return None
