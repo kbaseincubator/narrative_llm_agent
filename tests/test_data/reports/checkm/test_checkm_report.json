@@ -1,0 +1,132 @@
+{
+    "data": {
+        "direct_html": null,
+        "direct_html_link_index": 0,
+        "file_links": [
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/dd95d8a4-b462-4ec4-b675-05dd23e66b3a",
+                "description": "TSV Summary Table from CheckM",
+                "handle": "KBH_10156722",
+                "label": "",
+                "name": "CheckM_summary_table.tsv.zip"
+            },
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/02cee29d-7aae-46d1-9db0-a68d9fd8f87e",
+                "description": "Full output of CheckM",
+                "handle": "KBH_10156723",
+                "label": "",
+                "name": "full_output.zip"
+            },
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/ab325d52-1fa8-452d-8c36-a5498c582fd5",
+                "description": "Output plots from CheckM",
+                "handle": "KBH_10156724",
+                "label": "",
+                "name": "plots.zip"
+            }
+        ],
+        "html_links": [
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/d712443e-1e39-4609-8ac5-9197b510e6fd",
+                "description": "Summarized report from CheckM",
+                "handle": "KBH_10156725",
+                "label": "",
+                "name": "CheckM_Plot.html"
+            }
+        ],
+        "html_window_height": null,
+        "objects_created": [],
+        "summary_window_height": null,
+        "text_message": "",
+        "warnings": []
+    },
+    "info": [
+        11,
+        "kb_checkM_report_5c051d78-450b-4647-afb0-27861f13a2fb",
+        "KBaseReport.Report-2.0",
+        "2025-03-20T21:07:53+0000",
+        1,
+        "some_user",
+        210760,
+        "some_user:narrative_1742503255519",
+        "5e3d79f046c38e1fbad0fb825b8cb238",
+        992,
+        {
+            "Size(characters)": "0",
+            "Objects Created": "0",
+            "Warnings": "0"
+        }
+    ],
+    "path": [
+        "210760/11/1"
+    ],
+    "provenance": [
+        {
+            "time": "2025-03-20T21:03:25+0000",
+            "epoch": 1742504605000,
+            "service": "kb_Msuite",
+            "service_ver": "fae9ff521d21014413bb03e5fa080b4564218e9b",
+            "method": "run_checkM_lineage_wf",
+            "method_params": [
+                {
+                    "reduced_tree": "1",
+                    "save_plots_dir": "1",
+                    "threads": "4",
+                    "input_ref": "210760/9/1",
+                    "workspace_name": "some_user:narrative_1742503255519"
+                }
+            ],
+            "input_ws_objects": [
+                "210760/9/1"
+            ],
+            "resolved_ws_objects": [
+                "210760/9/1"
+            ],
+            "intermediate_incoming": [],
+            "intermediate_outgoing": [],
+            "external_data": [],
+            "subactions": [
+                {
+                    "name": "kb_Msuite",
+                    "ver": "fae9ff521d21014413bb03e5fa080b4564218e9b",
+                    "code_url": "https://github.com/kbaseapps/kb_Msuite",
+                    "commit": "fae9ff521d21014413bb03e5fa080b4564218e9b"
+                },
+                {
+                    "name": "AssemblyUtil",
+                    "ver": "release",
+                    "code_url": "https://github.com/kbaseapps/AssemblyUtil",
+                    "commit": "59855bcb24014c3030e146b98c8d3e70abac1fa1"
+                },
+                {
+                    "name": "DataFileUtil",
+                    "ver": "release",
+                    "code_url": "https://github.com/kbaseapps/DataFileUtil",
+                    "commit": "0d855560a37f8787ab3bb67e464b9c94b299764e"
+                },
+                {
+                    "name": "KBaseReport",
+                    "ver": "release",
+                    "code_url": "https://github.com/kbaseapps/KBaseReport",
+                    "commit": "b8bb470a4c88d65230e525db48d6a3730069185d"
+                }
+            ],
+            "custom": {},
+            "description": "KBase SDK method run via the KBase Execution Engine"
+        }
+    ],
+    "creator": "some_user",
+    "orig_wsid": 210760,
+    "created": "2025-03-20T21:07:53+0000",
+    "epoch": 1742504873050,
+    "refs": [],
+    "copy_source_inaccessible": 0,
+    "extracted_ids": {
+        "handle": [
+            "KBH_10156724",
+            "KBH_10156725",
+            "KBH_10156722",
+            "KBH_10156723"
+        ]
+    }
+}

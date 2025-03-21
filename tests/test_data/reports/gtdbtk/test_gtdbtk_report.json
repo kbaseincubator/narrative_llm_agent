@@ -1,0 +1,169 @@
+{
+    "data": {
+        "direct_html": null,
+        "direct_html_link_index": 0,
+        "file_links": [
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/cfae98b0-4451-4b14-bfdf-760b79f2b789",
+                "description": "gtdbtk.backbone.bac120.classify.tree - whole tree GTDB formatted Newick",
+                "handle": "KBH_10156782",
+                "label": "",
+                "name": "gtdbtk.backbone.bac120.classify.tree"
+            },
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/9e3af964-aa85-4ff6-a4c9-249f9e837291",
+                "description": "gtdbtk.bac120.classify.tree.4-trimmed.tree - Image",
+                "handle": "KBH_10156832",
+                "label": "",
+                "name": "gtdbtk.bac120.classify.tree.4-trimmed.tree-circle-ultrametric.PDF"
+            },
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/734d361f-5c86-4cd6-acb0-5e8bb35e8c99",
+                "description": "GTDB-Tk Classify WF output",
+                "handle": "KBH_10156833",
+                "label": "",
+                "name": "GTDB-Tk_classify_wf.zip"
+            }
+        ],
+        "html_links": [
+            {
+                "URL": "https://services.kbase.us/services/shock-api/node/7c22978c-0702-4033-bb89-3330deef65b5",
+                "description": "GTDB-Tk Classify Report",
+                "handle": "KBH_10156834",
+                "label": "index.html",
+                "name": "index.html"
+            }
+        ],
+        "html_window_height": null,
+        "objects_created": [
+            {
+                "description": "Taxonomy and taxon_assignment updated with GTDB",
+                "ref": "210760/9/2"
+            },
+            {
+                "description": "Taxonomy and taxon_assignment updated with GTDB",
+                "ref": "210760/12/2"
+            }
+        ],
+        "summary_window_height": null,
+        "text_message": null,
+        "warnings": []
+    },
+    "info": [
+        14,
+        "GTDBTk_report_28342516-cd28-4b5c-9cee-8dd239e77a64",
+        "KBaseReport.Report-2.0",
+        "2025-03-20T21:27:18+0000",
+        1,
+        "some_user",
+        210760,
+        "some_user:narrative_1742503255519",
+        "8f5e59849bd507e45114694103fb545e",
+        6615,
+        {
+            "Size(characters)": "NaN",
+            "Objects Created": "2",
+            "Warnings": "0"
+        }
+    ],
+    "path": [
+        "210760/14/1"
+    ],
+    "provenance": [
+        {
+            "time": "2025-03-20T21:10:13+0000",
+            "epoch": 1742505013000,
+            "service": "kb_gtdbtk",
+            "service_ver": "fe4ea607625541d265c245416f9ec33885d83434",
+            "method": "run_kb_gtdbtk_classify_wf",
+            "method_params": [
+                {
+                    "workspace_id": 210760,
+                    "output_tree_basename": "rhodo_art_q20_PE_reads_trimmed_paired_Assembly_Annotated_GenomeSet_Tree",
+                    "save_trees": 0,
+                    "min_perc_aa": 10,
+                    "db_ver": 214,
+                    "overwrite_tax": 0,
+                    "input_object_ref": "some_user:narrative_1742503255519/rhodo_art_q20_PE_reads_trimmed_paired_Assembly_Annotated_GenomeSet",
+                    "dendrogram_report": 1,
+                    "keep_intermediates": 0,
+                    "copy_proximals": 0
+                }
+            ],
+            "input_ws_objects": [
+                "210760/12/1"
+            ],
+            "resolved_ws_objects": [
+                "210760/12/1"
+            ],
+            "intermediate_incoming": [],
+            "intermediate_outgoing": [],
+            "external_data": [],
+            "subactions": [
+                {
+                    "name": "kb_gtdbtk",
+                    "ver": "fe4ea607625541d265c245416f9ec33885d83434",
+                    "code_url": "https://github.com/kbaseapps/kb_gtdbtk",
+                    "commit": "fe4ea607625541d265c245416f9ec33885d83434"
+                },
+                {
+                    "name": "DataFileUtil",
+                    "ver": "release",
+                    "code_url": "https://github.com/kbaseapps/DataFileUtil",
+                    "commit": "0d855560a37f8787ab3bb67e464b9c94b299764e"
+                },
+                {
+                    "name": "AssemblyUtil",
+                    "ver": "release",
+                    "code_url": "https://github.com/kbaseapps/AssemblyUtil",
+                    "commit": "59855bcb24014c3030e146b98c8d3e70abac1fa1"
+                },
+                {
+                    "name": "KBaseReport",
+                    "ver": "release",
+                    "code_url": "https://github.com/kbaseapps/KBaseReport",
+                    "commit": "b8bb470a4c88d65230e525db48d6a3730069185d"
+                }
+            ],
+            "custom": {},
+            "description": "KBase SDK method run via the KBase Execution Engine"
+        }
+    ],
+    "creator": "some_user",
+    "orig_wsid": 210760,
+    "created": "2025-03-20T21:27:15+0000",
+    "epoch": 1742506035515,
+    "refs": [
+        "210760/12/2",
+        "210760/9/2"
+    ],
+    "copy_source_inaccessible": 0,
+    "extracted_ids": {
+        "handle": [
+            "KBH_10156801",
+            "KBH_10156812",
+            "KBH_10156834",
+            "KBH_10156813",
+            "KBH_10156824",
+            "KBH_10156814",
+            "KBH_10156804",
+            "KBH_10156815",
+            "KBH_10156798",
+            "KBH_10156820",
+            "KBH_10156821",
+            "KBH_10156832",
+            "KBH_10156789",
+            "KBH_10156833",
+            "KBH_10156816",
+            "KBH_10156817",
+            "KBH_10156828",
+            "KBH_10156808",
+            "KBH_10156819",
+            "KBH_10156782",
+            "KBH_10156784",
+            "KBH_10156795",
+            "KBH_10156785",
+            "KBH_10156792"
+        ]
+    }
+}

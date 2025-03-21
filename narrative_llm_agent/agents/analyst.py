@@ -19,7 +19,7 @@ from narrative_llm_agent.tools.kgtool_cosine_sim import InformationTool
 # from langchain_core.runnables import RunnableConfig
 # import chainlit as cl
 # from narrative_llm_agent.tools.human_tool import HumanInputChainlit
-from narrative_llm_agent.tools.human_tool_not_chainlit import HumanInputRun
+# from narrative_llm_agent.tools.human_tool_not_chainlit import HumanInputRun
 from narrative_llm_agent.config import get_config
 
 
@@ -39,7 +39,7 @@ class AnalystAgent(KBaseAgent):
     role = "KBase Analyst and Information Provider"
     goal = "Provide information about KBase, its apps, and its documentation to any who ask."
     backstory = """You are a KBase analyst. You have deep knowledge and experience working with
-    KBase tools and applications. You have easy access to the KBase documentation and app catalog knowledge graph. 
+    KBase tools and applications. You have easy access to the KBase documentation and app catalog knowledge graph.
     Use kbase_docs_retrieval_tool for designing the analysis plan. Use the KGretrieval tool to get app_id for apps in the analysis plan."""
     _catalog_db_dir: Path
     _docs_db_dir: Path
@@ -106,7 +106,8 @@ class AnalystAgent(KBaseAgent):
     def __init_agent(self: "AnalystAgent") -> None:
         # cfg = RunnableConfig()
         # Check if running with Chainlit
-        additional_tools = [HumanInputRun()]
+        additional_tools = []
+        # additional_tools = [HumanInputRun()]
         # if os.getenv("CHAINLIT_RUN"):
         #     cfg["callbacks"] = [cl.LangchainCallbackHandler()]
         #     additional_tools = [HumanInputChainlit()]
@@ -114,7 +115,7 @@ class AnalystAgent(KBaseAgent):
         @tool("KBase documentation retrieval tool")
         def kbase_docs_retrieval_tool(query: str):
             """This tool should be used for designing a recommendation plan or analysis workflow. It searches the KBase documentation.
-            It is useful for answering questions about how to use KBase applications. 
+            It is useful for answering questions about how to use KBase applications.
             It does not contain a list of KBase apps. Do not use it to search for KBase app
             presence. Input should be a fully formed question."""
             return self._create_doc_chain(persist_directory=self._docs_db_dir).invoke(
@@ -153,7 +154,7 @@ class AnalystAgent(KBaseAgent):
             except ServerError:
                 return False
             return True
-        @tool("KG retrieval tool")   
+        @tool("KG retrieval tool")
         def KGretrieval_tool(input: str):
            """This tool has the KBase app Knowledge Graph. Useful for when you need to confirm the existance of KBase applications and their appid, tooltip, version, category and data objects.
            This tool can also be used for finding total number of apps or which data objects are shared between apps.
@@ -161,7 +162,7 @@ class AnalystAgent(KBaseAgent):
            The input should always be a KBase app name or data object name and should not include any special characters or version number.
            Do not use this tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead
            """
-           
+
            response = self._create_KG_agent().invoke({"input": input})
            #Ensure that the response is properly formatted for the agent to use
            if 'output' in response:
@@ -187,7 +188,7 @@ class AnalystAgent(KBaseAgent):
 
     def _create_doc_chain(self, persist_directory: str | Path):
         #If using cborg, use this embedding
-        embeddings = OpenAIEmbeddings(openai_api_key=self._cborg_key, 
+        embeddings = OpenAIEmbeddings(openai_api_key=self._cborg_key,
                                       openai_api_base="https://api.cborg.lbl.gov/v1", model="lbl/nomic-embed-text")
         # Embedding functions to use
         #embeddings = OpenAIEmbeddings(openai_api_key=self._openai_key)
@@ -211,7 +212,7 @@ class AnalystAgent(KBaseAgent):
 
         return qa_chain
     def _create_KG_agent(self):
-        
+
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -224,7 +225,7 @@ class AnalystAgent(KBaseAgent):
                 MessagesPlaceholder(variable_name="agent_scratchpad"),
             ]
         )
-        
+
         tools=[InformationTool(uri=os.environ.get('NEO4J_URI'), user=os.environ.get('NEO4J_USERNAME'), password=os.environ.get('NEO4J_PASSWORD'))]
         agent = create_tool_calling_agent(self._llm, tools, prompt)
         agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
