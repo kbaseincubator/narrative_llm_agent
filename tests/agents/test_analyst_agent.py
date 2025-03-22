@@ -6,18 +6,22 @@ token = "not_a_token"
 FAKE_OPENAI_KEY = "fake_openai_api_key"
 FAKE_OPENAI_KEY_ENVVAR = "not_an_openai_key_environment"
 OPENAI_KEY = "OPENAI_API_KEY"
+FAKE_CBORG_KEY = "fake_cborg_api_key"
+FAKE_CBORG_KEY_ENVVAR = "not_a_cborg_key_environment"
+CBORG_KEY = "CBORG_API_KEY"
 
 
 @pytest.fixture(autouse=True)
 def automock_api_key(monkeypatch):
     monkeypatch.setenv(OPENAI_KEY, FAKE_OPENAI_KEY_ENVVAR)
+    monkeypatch.setenv(CBORG_KEY, FAKE_CBORG_KEY_ENVVAR)
 
 
 def test_init_ok(mock_llm):
-    wa = AnalystAgent(mock_llm, token=token, openai_api_key=FAKE_OPENAI_KEY)
+    wa = AnalystAgent(mock_llm, token=token, cborg_api_key=FAKE_CBORG_KEY)
     assert wa.role == "KBase Analyst and Information Provider"
     assert wa._token == token
-    assert wa._openai_key == FAKE_OPENAI_KEY
+    assert wa._cborg_key == FAKE_CBORG_KEY
 
 
 def test_init_with_env_var(mock_llm):
@@ -29,6 +33,8 @@ def test_init_with_env_var(mock_llm):
 def test_init_fail_without_envvar(mock_llm, monkeypatch):
     if OPENAI_KEY in os.environ:
         monkeypatch.delenv(OPENAI_KEY)
+    if CBORG_KEY in os.environ:
+        monkeypatch.delenv(CBORG_KEY)
     with pytest.raises(KeyError):
         AnalystAgent(mock_llm, token=token)
 
