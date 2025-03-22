@@ -8,6 +8,7 @@ FAKE_OPENAI_KEY_ENVVAR = "not_an_openai_key_environment"
 OPENAI_KEY = "OPENAI_API_KEY"
 CBORG_KEY = "CBORG_API_KEY"
 
+
 @pytest.fixture(autouse=True)
 def automock_api_key(monkeypatch):
     monkeypatch.setenv(OPENAI_KEY, FAKE_OPENAI_KEY_ENVVAR)
