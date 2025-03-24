@@ -98,17 +98,27 @@ class WorkspaceUtil:
         if file_url is None:
             return "report file not found"
         extracted_files = self._extract_report_files(
-            file_url,
-            [id_map, archaea_summary, bac_summary]
+            file_url, [id_map, archaea_summary, bac_summary]
         )
         summary = ""
 
         if extracted_files[id_map] is not None:
-            summary += "id mapping - use this table to map summary ids to data objects. Each row has two elements - the first is the id of the archaea or bacteria finding, the second is the data object name.\n" + extracted_files[id_map] + "\n\n"
+            summary += (
+                "id mapping - use this table to map summary ids to data objects. Each row has two elements - the first is the id of the archaea or bacteria finding, the second is the data object name.\n"
+                + extracted_files[id_map]
+                + "\n\n"
+            )
         if extracted_files[archaea_summary] is not None:
-            summary += "GTDB Classification Summary - this table summarizes the archaeal findings from GTDB\n" + extracted_files[archaea_summary] + "\n\n"
+            summary += (
+                "GTDB Classification Summary - this table summarizes the archaeal findings from GTDB\n"
+                + extracted_files[archaea_summary]
+                + "\n\n"
+            )
         if extracted_files[bac_summary] is not None:
-            summary += "GTDB Classification Summary - this table summarizes the bacterial findings from GTDB\n" + extracted_files[bac_summary]
+            summary += (
+                "GTDB Classification Summary - this table summarizes the bacterial findings from GTDB\n"
+                + extracted_files[bac_summary]
+            )
         return summary
 
     def translate_checkm_report(self, report: KBaseReport) -> str:
@@ -118,14 +128,13 @@ class WorkspaceUtil:
         target_url = self._get_file_url(target_file_name, report)
         summary = None
         if target_url is not None:
-            file_data = self._extract_report_files(target_url, [target_unzipped_file], only_check_filename=True)
+            file_data = self._extract_report_files(
+                target_url, [target_unzipped_file], only_check_filename=True
+            )
             summary = file_data[target_unzipped_file]
         if summary is None:
             summary = "not found"
-        return "\n".join([
-            summary_header,
-            summary
-        ])
+        return "\n".join([summary_header, summary])
 
     def translate_fastqc_report(self, report: KBaseReport) -> str:
         """
@@ -135,7 +144,9 @@ class WorkspaceUtil:
         report_data = {report_file.name: None for report_file in report.file_links}
         target_file_name = "fastqc_data.txt"
         for report_file in report.file_links:
-            file_data = self._extract_report_files(report_file.URL, [target_file_name], only_check_filename=True)
+            file_data = self._extract_report_files(
+                report_file.URL, [target_file_name], only_check_filename=True
+            )
             report_data[report_file.name] = file_data[target_file_name]
         report_result = []
         for idx, [name, value] in enumerate(report_data.items()):
@@ -165,7 +176,12 @@ class WorkspaceUtil:
                     return infile.read().decode("utf-8")
         return ""
 
-    def _extract_report_files(self, zip_file_url: str, files_of_interest: list[str | Path], only_check_filename: bool=False) -> dict[Path, str]:
+    def _extract_report_files(
+        self,
+        zip_file_url: str,
+        files_of_interest: list[str | Path],
+        only_check_filename: bool = False,
+    ) -> dict[Path, str]:
         """
         Extracts and loads specific files out of a zip file, by its url.
         It does the following:
@@ -190,9 +206,7 @@ class WorkspaceUtil:
         blobstore = Blobstore(token=self._token)
         resp = blobstore.download_report_file(zip_file_url)
         comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
-        extracted = {
-            file_path: None for file_path in files_of_interest
-        }
+        extracted = {file_path: None for file_path in files_of_interest}
         for data_file in comp_file.filelist:
             data_path = Path(data_file.filename)
             compare_name = data_path.name if only_check_filename else data_path

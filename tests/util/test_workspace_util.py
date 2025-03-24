@@ -108,6 +108,16 @@ def test_get_report_checkm_ok(mocked_ws_util, test_data_path: Path, requests_moc
     )
 
 
+def test_get_report_checkm_no_file(mocked_ws_util, test_data_path: Path, requests_mock):
+    reports_path = test_data_path / "reports" / "checkm"
+    report = load_test_data_json(reports_path / "test_checkm_report.json")
+    # remove first file link - that's the one the report interpreter cares about
+    report["data"]["file_links"].pop(0)
+    ws_util = mocked_ws_util(report)
+    expected_report = "CheckM summary table:\nnot found"
+    assert ws_util.get_report("1/2/3") == expected_report
+
+
 gtdb_cases = [(False, False), (False, True), (True, False), (True, True)]
 
 
@@ -163,10 +173,6 @@ def test_get_report_gtdb_missing_zip(
     report["data"]["file_links"] = []
     ws_util = mocked_ws_util(report)
     assert ws_util.get_report("1/2/3") == "report file not found"
-
-
-def test_get_report_bad_dl(mocker, requests_mock):
-    pass
 
 
 def test_get_report_bad_info(mocked_ws_util, test_data_path: Path):
@@ -228,3 +234,14 @@ def test_get_html_report_bad_file(mocked_ws_util, test_data_path: Path, requests
         expected,
         requests_mock,
     )
+
+
+def test_get_report_bad_dl(mocked_ws_util, test_data_path: Path, requests_mock):
+    report = load_test_data_json(
+        test_data_path / "reports" / "html" / "test_report_html_links.json"
+    )
+    mock_url = report["data"]["html_links"][0]["URL"]
+    requests_mock.get(convert_report_url(mock_url), text="failed", status_code=500)
+    ws_util = mocked_ws_util(report)
+    expected = "message: \ndirect html: \nhtml report: html file:\n"
+    assert ws_util.get_report("1/2/3") == expected
