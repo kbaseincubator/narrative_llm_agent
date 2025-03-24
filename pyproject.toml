@@ -24,6 +24,7 @@ pydantic = "^2.10.6"
 langchain-openai = "*"
 langchain-community = "*"
 langgraph = "*"
+scikit-learn = "^1.6.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

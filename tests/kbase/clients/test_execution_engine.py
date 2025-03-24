@@ -1,3 +1,4 @@
+import re
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
 import pytest
 from narrative_llm_agent.config import get_config, get_kbase_auth_token
@@ -105,7 +106,7 @@ class TestJobState:
             copy_json = mock_job_states[job_id].copy()
             del copy_json[key]
             with pytest.raises(
-                KeyError, match=f"JobState data is missing required field\(s\) {key}"
+                KeyError, match=re.escape(f"JobState data is missing required field(s) {key}")
             ):
                 JobState(copy_json)
 

@@ -35,6 +35,8 @@ class WorkspaceUtil:
             return "fastqc"
         elif method == "run_checkm_lineage_wf" and service == "kb_msuite":
             return "checkm"
+        elif method == "run_kb_gtdbtk_classify_wf" and service == "kb_gtdbtk":
+            return "gtdbtk"
         return "other"
 
     def get_report(self, upa: str) -> str:
@@ -59,6 +61,8 @@ class WorkspaceUtil:
             return self.translate_fastqc_report(report)
         elif report_source == "checkm":
             return self.translate_checkm_report(report)
+        elif report_source == "gtdbtk":
+            return self.translate_gtdb_report(report)
         else:
             return self.default_translate_report(report)
 
@@ -86,27 +90,50 @@ class WorkspaceUtil:
             ]
         )
 
+    def translate_gtdb_report(self, report: KBaseReport) -> str:
+        id_map = Path("id_to_name.map")
+        archaea_summary = Path("gtdbtk.ar53.summary.tsv")
+        bac_summary = Path("gtdbtk.bac120.summary.tsv")
+        file_url = self._get_file_url("GTDB-Tk_classify_wf.zip", report)
+        if file_url is None:
+            return "report file not found"
+        extracted_files = self._extract_report_files(
+            file_url, [id_map, archaea_summary, bac_summary]
+        )
+        summary = ""
+
+        if extracted_files[id_map] is not None:
+            summary += (
+                "id mapping - use this table to map summary ids to data objects. Each row has two elements - the first is the id of the archaea or bacteria finding, the second is the data object name.\n"
+                + extracted_files[id_map]
+                + "\n\n"
+            )
+        if extracted_files[archaea_summary] is not None:
+            summary += (
+                "GTDB Classification Summary - this table summarizes the archaeal findings from GTDB\n"
+                + extracted_files[archaea_summary]
+                + "\n\n"
+            )
+        if extracted_files[bac_summary] is not None:
+            summary += (
+                "GTDB Classification Summary - this table summarizes the bacterial findings from GTDB\n"
+                + extracted_files[bac_summary]
+            )
+        return summary
+
     def translate_checkm_report(self, report: KBaseReport) -> str:
         summary_header = "CheckM summary table:"
-        summary = "not found"
         target_file_name = "CheckM_summary_table.tsv.zip"
         target_unzipped_file = "CheckM_summary_table.tsv"
-        target_url = None
-        for report_file in report.file_links:
-            if report_file.name == target_file_name:
-                target_url = report_file.URL
+        target_url = self._get_file_url(target_file_name, report)
+        summary = None
         if target_url is not None:
-            blobstore = Blobstore(token=self._token)
-            resp = blobstore.download_report_file(target_url)
-            comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
-            foi = None
-            for data_file in comp_file.filelist:
-                if Path(data_file.filename).name == target_unzipped_file:
-                    foi = data_file
-                    break
-            if foi is not None:
-                with comp_file.open(foi) as infile:
-                    summary = infile.read().decode("utf-8")
+            file_data = self._extract_report_files(
+                target_url, [target_unzipped_file], only_check_filename=True
+            )
+            summary = file_data[target_unzipped_file]
+        if summary is None:
+            summary = "not found"
         return "\n".join([summary_header, summary])
 
     def translate_fastqc_report(self, report: KBaseReport) -> str:
@@ -116,19 +143,11 @@ class WorkspaceUtil:
         """
         report_data = {report_file.name: None for report_file in report.file_links}
         target_file_name = "fastqc_data.txt"
-        blobstore = Blobstore(token=self._token)
         for report_file in report.file_links:
-            resp = blobstore.download_report_file(report_file.URL)
-            # resp = self._download_report_file(report_file, self._token)
-            comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
-            foi = None
-            for data_file in comp_file.filelist:
-                if Path(data_file.filename).name == target_file_name:
-                    foi = data_file
-                    break
-            if foi is not None:
-                with comp_file.open(foi) as infile:
-                    report_data[report_file.name] = infile.read().decode("utf-8")
+            file_data = self._extract_report_files(
+                report_file.URL, [target_file_name], only_check_filename=True
+            )
+            report_data[report_file.name] = file_data[target_file_name]
         report_result = []
         for idx, [name, value] in enumerate(report_data.items()):
             report_result.append(f"file {idx + 1}: {name}:")
@@ -139,13 +158,69 @@ class WorkspaceUtil:
         """
         Uses the information in the given LinkedFile to fetch the html report
         and return it as a string.
+
+        If any errors happen, or the expected file isn't found in the HTML
+        archive, an empty string is returned.
         """
-        blobstore = Blobstore(token=self._token)
-        resp = blobstore.download_report_file(html_file.URL)
-        comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
+        try:
+            blobstore = Blobstore(token=self._token)
+            resp = blobstore.download_report_file(html_file.URL)
+            comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
+        except ValueError:
+            return ""
+
         # skim through and find the file with the given name in the zip
         for data_file in comp_file.filelist:
             if Path(data_file.filename).name == html_file.name:
                 with comp_file.open(data_file) as infile:
                     return infile.read().decode("utf-8")
         return ""
+
+    def _extract_report_files(
+        self,
+        zip_file_url: str,
+        files_of_interest: list[str | Path],
+        only_check_filename: bool = False,
+    ) -> dict[Path, str]:
+        """
+        Extracts and loads specific files out of a zip file, by its url.
+        It does the following:
+        1. Download the zip file at the given zip_file_url in the Blobstore.
+        2. Extract files of interest by their path.
+        3. Build a dictionary of path -> file contents and return it.
+        If a path doesn't exist, that value is None in the return dictionary.
+        If zip_file_url is invalid or otherwise inaccessible, a ValueError is raised.
+        If the file at zip_file_url isn't a zip file (or something that can be opened with the zipfile
+        package), a ValueError is raised.
+
+        :param zip_file_url: This is the URL of the zip file to pull and extract. It should be
+        hosted in the KBase blobstore, likely given by a file link in a report object.
+        :param files_of_interest: This is a list of Paths to files in the zip file to extract.
+        They should all be relative to the root of the zip file. The Path object itself will
+        be used as the key in the returned dictionary.
+        :param only_check_filenames: If true, this will find the filename of the path in any directory
+        of the downloaded zip file. This assumes that the given paths in files_of_interest is a string,
+        and not a Path. Paths will always return None in this case.
+        If there are multiple files with the same name, only one gets returned.
+        """
+        blobstore = Blobstore(token=self._token)
+        resp = blobstore.download_report_file(zip_file_url)
+        comp_file = zipfile.ZipFile(io.BytesIO(resp.content))
+        extracted = {file_path: None for file_path in files_of_interest}
+        for data_file in comp_file.filelist:
+            data_path = Path(data_file.filename)
+            compare_name = data_path.name if only_check_filename else data_path
+            if compare_name in extracted:
+                with comp_file.open(data_file) as infile:
+                    extracted[compare_name] = infile.read().decode("utf-8")
+        return extracted
+
+    def _get_file_url(self, filename: str, report: KBaseReport) -> str | None:
+        """
+        Gets the URL of a file with a given name from a report object, if present.
+        If not, this returns None.
+        """
+        for report_file in report.file_links:
+            if report_file.name == filename:
+                return report_file.URL
+        return None
