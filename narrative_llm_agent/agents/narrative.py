@@ -91,6 +91,14 @@ class NarrativeAgent(KBaseAgent):
             job_id = process_tool_input(job_id, "job_id")
             return self._add_app_cell(narrative_id, job_id)
 
+        @tool("get-all-markdown-cells", return_direct=False)
+        def get_all_narrative_markdown_cells(narrative_id: int) -> list[str]:
+            """
+            Get the text content of all markdown cells in the Narrative, as Markdown, in order.
+            """
+            narrative_id = process_tool_input(narrative_id, "narrative_id")
+            return self._get_all_markdown_text(narrative_id)
+
         # @tool("normalize-object-info", args_schema=NormalizeObjectInfoInput, return_direct=False)
         # def normalize_object_info(
         #     narrative_id: int,
@@ -113,6 +121,7 @@ class NarrativeAgent(KBaseAgent):
                 add_app_cell,
                 add_markdown_cell,
                 get_narrative_state,
+                get_all_narrative_markdown_cells
                 # normalize_object_info
             ],
             llm=self._llm,
@@ -185,3 +194,10 @@ class NarrativeAgent(KBaseAgent):
             "output_object_upa": output_object_upa,
             "output_object_name": output_object_name
         }
+
+    def _get_all_markdown_text(self, narrative_id: int) -> list[str]:
+        ws = Workspace()
+        narr_util = NarrativeUtil(ws)
+        narr = narr_util.get_narrative_from_wsid(narrative_id)
+        md_cells = narr.get_markdown()
+        return [cell.source for cell in md_cells]
