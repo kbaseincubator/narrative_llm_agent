@@ -11,7 +11,7 @@ class FinalizeCrew:
     def __init__(self, llm: LLM, token: str = None) -> None:
         self._token = token
         self._llm = llm
-        self._analyst = AnalystAgent(llm)
+        self._analyst = AnalystAgent(llm, "openai/gpt-4o")
         self._narrative = NarrativeAgent(llm, token=token)
         self._agents = [
             self._analyst.agent,
