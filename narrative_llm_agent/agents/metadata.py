@@ -86,10 +86,16 @@ class MetadataAgent(KBaseAgent):
         def store_conversation_tool(narrative_id: int, json_conversation: str) -> str:
             """Store Conversation Tool. This securely stores the results of a conversation in a KBase Narrative."""
             print("this is the JSON:\n----------\n")
-            print(json.loads(json_conversation))
+            # print(json.loads(json_conversation))
             print(f"stored in narrative {narrative_id}")
             print("-------------")
             self._store_conversation(narrative_id, json_conversation)
+
+        @tool("store-intro-metadata")
+        def store_introduction(narrative_id: int, conversation: str) -> str:
+            """Store introduction tool. This securely stores the introduction to a Narrative workflow as a
+            markdown cell in a KBase Narrative."""
+            self._store_conversation(narrative_id, conversation)
 
         self.agent = Agent(
             role=self.role,
@@ -100,6 +106,7 @@ class MetadataAgent(KBaseAgent):
                 conversation_tool,
                 get_object_metadata,
                 store_conversation_tool,
+                store_introduction,
                 # StoreConversationTool(storage_fn=self._store_conversation),
             ],
             llm=self._llm,
@@ -119,12 +126,12 @@ class MetadataAgent(KBaseAgent):
         return json.dumps(obj_info["metadata"])
 
     def _store_conversation(
-        self: "MetadataAgent", narrative_id: int, json_conversation: str
+        self: "MetadataAgent", narrative_id: int, conversation: str
     ) -> str:
         """Stores JSON-formatted results of a conversation in a Narrative markdown cell."""
         ws = Workspace(token=self._token)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
-        narr.add_markdown_cell(json_conversation)
+        narr.add_markdown_cell(conversation)
         narr_util.save_narrative(narr, narrative_id)
         return "Conversation successfully stored."
