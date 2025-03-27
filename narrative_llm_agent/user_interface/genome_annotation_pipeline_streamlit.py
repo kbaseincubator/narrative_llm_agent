@@ -4,16 +4,15 @@ import re
 import json
 from typing import List, Dict, Any, Optional, TypedDict
 from pydantic import BaseModel
-
 # Import required libraries for KBase integration
 import openai
-from crewai import Crew, Agent, Task
+from crewai import Crew, Agent, Task, LLM
 from langgraph.graph import StateGraph, END
 from langchain_openai import ChatOpenAI
 
 # Set page config
 st.set_page_config(
-    page_title="KBase Genome Analysis Pipeline",
+    page_title="KBase Research Agent",
     page_icon="🧬",
     layout="wide"
 )
@@ -29,7 +28,7 @@ class AnalysisStep(BaseModel):
 class AnalysisPipeline(BaseModel):
     steps_to_run: List[AnalysisStep]
 
-class GenomeAnalysisState(TypedDict):
+class NarrativeState(TypedDict):
     narrative_id: str
     reads_id: str
     description: str
@@ -119,15 +118,16 @@ def load_kbase_classes():
 
 # Initialize LLM
 def initialize_llm(api_key, base_url="https://api.cborg.lbl.gov"):
-    return ChatOpenAI(
-        model="openai/gpt-4o",
-        temperature=0,
-        api_key=api_key,
-        base_url=base_url
-    )
+    return LLM(model="openai/openai/gpt-4o",
+    api_key=api_key,
+    base_url="https://api.cborg.lbl.gov",  # For LBL-Net, use "https://api-local.cborg.lbl.gov"
+    temperature=0)
 
 # Analyst node function
-def analyst_node(state: GenomeAnalysisState, llm, token):
+def analyst_node(state: NarrativeState):
+    cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
+    llm = initialize_llm(cborg_api_key)
+    kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
     try:
         # Display progress in the UI
         progress_placeholder = st.empty()
@@ -149,7 +149,7 @@ def analyst_node(state: GenomeAnalysisState, llm, token):
         AnalystAgent = result["AnalystAgent"]
         
         # Initialize the analyst agent
-        analyst_expert = AnalystAgent(llm, token=token)
+        analyst_expert = AnalystAgent(llm, cborg_api_key =cborg_api_key, token=kb_auth_token,tools_model="openai/o1")
         
         # Create the analysis task
         analysis_agent_task = Task(
@@ -196,7 +196,10 @@ def analyst_node(state: GenomeAnalysisState, llm, token):
         }
 
 # Workflow runner node
-def workflow_runner_node(state: GenomeAnalysisState, llm, token):
+def workflow_runner_node(state: NarrativeState):
+    cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
+    llm = initialize_llm(cborg_api_key)
+    kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
     try:
         # Display progress in the UI
         progress_placeholder = st.empty()
@@ -218,7 +221,7 @@ def workflow_runner_node(state: GenomeAnalysisState, llm, token):
         WorkflowRunner = result["WorkflowRunner"]
         
         # Initialize the workflow runner
-        wf_runner = WorkflowRunner(llm, token=token)
+        wf_runner = WorkflowRunner(llm, token=kb_auth_token)
         
         # Create the task
         run_apps_task = Task(
@@ -286,7 +289,35 @@ def router(state):
 # Error handler function
 def handle_error(state):
     return {**state, "results": f"Error: {state['error']}"}
-
+    
+# Build the complete graph with both analyst and workflow nodes
+def build_genome_analysis_graph():
+    # Create a new graph
+    genome_graph = StateGraph(NarrativeState)
+    
+    # Add the nodes
+    genome_graph.add_node("analyst", analyst_node)
+    genome_graph.add_node("run_workflow", workflow_runner_node)
+    genome_graph.add_node("handle_error", lambda state: {**state, "results": f"Error: {state['error']}"})
+    
+    # Define the edges with the router
+    genome_graph.add_conditional_edges(
+        "analyst",
+        router,
+        {
+            "run_workflow": "run_workflow",
+            "handle_error": "handle_error"
+        }
+    )
+    genome_graph.add_edge("run_workflow", END)
+    genome_graph.add_edge("handle_error", END)
+    
+    # Set the entry point
+    genome_graph.set_entry_point("analyst")
+    
+    # Compile the graph
+    return genome_graph.compile()
+    
 # Main analysis pipeline function
 def run_genome_analysis(narrative_id, reads_id, description, credentials):
     # Get credentials
@@ -312,7 +343,8 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
     
     # Initialize LLM
     llm = initialize_llm(cborg_api_key)
-    
+
+    graph = build_genome_analysis_graph()
     # Initialize state
     state = {
         "narrative_id": narrative_id,
@@ -324,14 +356,7 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
         "error": None
     }
     
-    # Run the analysis node
-    state = analyst_node(state, llm, kb_auth_token)
-    
-    # Check for errors
-    if state["error"]:
-        state = handle_error(state)
-    else:
-        state = workflow_runner_node(state, llm, kb_auth_token)
+    final_state = graph.invoke(state)
     
     return state
 
@@ -391,15 +416,25 @@ def display_input_form():
     
     description = st.text_area("Analysis Description", height=200, value="""
 The user has uploaded paired-end sequencing reads obtained from Illumina sequencing for an isolate Bacillus subtilis sp. strain UAMC into the narrative.
-I want you to generate an analysis plan for annotating the uploaded pair end reads for me using KBase apps. 
-Always keep in mind the following:
-- The analysis steps should begin with read quality assessment and end with annotation. 
-- The goal is to have a complete annotated genome.
-- Make sure you select appropriate KBase apps based on weather the reads are for an isolate or a metagenome.
-This analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis:
+I want you to generate an analysis plan for annotating the uploaded pair end reads obtained from Illumina sequencing for a isolate genome for me using KBase apps. 
+The goal is to have a complete annotated genome and classify the microbe
+This analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
+- The analysis steps should begin with read quality assessment. 
+- Make sure you select appropriate KBase apps based on genome type.
 -Relevant statistics for the assembly (e.g., number of contigs and N50 values).
 -Estimates of genome completeness, where applicable.
--classify taxonomy, where relevant.
+-Classify the microbe for taxonomy, where relevant.
+Based on the metadata, devise a detailed step-by-step analysis workflow, the apps and app_ids should be from the app graph.
+The analysis plan should be a json with schema as: 
+```json
+{{"Step": "Integer number indicating the step",
+ "Description": "Describe the step",
+ "App": "Name of the app",
+ "expect_new_object": boolean indicating if this step creates a new data object,
+ "app_id": "Id of the KBase app"}}
+```
+Ensure that app_ids are obtained from the app graph and are correct.
+Make sure that the analysis plan is included in the final response.
 """)
     
     return narrative_id, reads_id, description
@@ -564,7 +599,7 @@ def main():
                     display_results(analysis['state'])
     
     with tab2:
-        st.subheader("About KBase Genome Analysis Pipeline")
+        st.subheader("About KBase Reasearch Agent")
         st.write("""
         This application provides a streamlined interface for running analyses on the KBase platform. 
         The workflow integrates several key steps:

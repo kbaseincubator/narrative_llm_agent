@@ -1,8 +1,7 @@
 from narrative_llm_agent.kbase.service_client import ServerError
 from .kbase_agent import KBaseAgent
-from crewai import Agent
-from langchain_core.language_models.llms import LLM
-from langchain_openai import OpenAIEmbeddings
+from crewai import Agent, LLM
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI, OpenAI
 from pydantic import BaseModel, Field
 from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
@@ -48,6 +47,7 @@ class AnalystAgent(KBaseAgent):
     def __init__(
         self: "AnalystAgent",
         llm: LLM,
+        tools_model: str,
         token: str = None,
         cborg_api_key: str = None,
         catalog_db_dir: Path | str = None,
@@ -56,6 +56,7 @@ class AnalystAgent(KBaseAgent):
     ):
         super().__init__(llm, token=token)
         self._cborg_key = self.__setup_cborg_api_key(cborg_api_key)
+        self.__setup_tools_llm(tools_model)
         if catalog_db_dir is not None:
             self._catalog_db_dir = Path(catalog_db_dir)
         else:
@@ -73,7 +74,17 @@ class AnalystAgent(KBaseAgent):
         for db_path in [self._catalog_db_dir, self._docs_db_dir, self._tutorial_db_dir]:
             self.__check_db_directories(db_path)
         self.__init_agent()
-
+    def __setup_tools_llm(self,model="openai/gpt-4o"):
+        """
+        Sets up the llm for the tools
+        """
+        self._tools_llm = ChatOpenAI(
+            model=model,
+            temperature=0,
+            api_key=self._cborg_key,
+            base_url="https://api.cborg.lbl.gov"  # For LBL-Net, use "https://api-local.cborg.lbl.gov"
+        )
+        
     def __check_db_directories(self, db_path: Path) -> None:
         """
         Checks for presence of the expected database directory. Doesn't look for all files,
@@ -204,7 +215,7 @@ class AnalystAgent(KBaseAgent):
 
         # Retrieval chain
         qa_chain = RetrievalQA.from_chain_type(
-            llm=self._llm,
+            llm=self._tools_llm,
             chain_type=chain_type,
             retriever=retriever,
             memory=readonlymemory,
@@ -227,6 +238,6 @@ class AnalystAgent(KBaseAgent):
         )
 
         tools=[InformationTool(uri=os.environ.get('NEO4J_URI'), user=os.environ.get('NEO4J_USERNAME'), password=os.environ.get('NEO4J_PASSWORD'))]
-        agent = create_tool_calling_agent(self._llm, tools, prompt)
+        agent = create_tool_calling_agent(self._tools_llm, tools, prompt)
         agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
         return agent_executor
