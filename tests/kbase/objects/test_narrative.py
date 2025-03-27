@@ -305,3 +305,10 @@ class TestNarrative:
         assert new_cell.cell_type == "code"
         assert new_cell.kb_cell_type == "KBaseApp"
         assert len(narr.cells) == num_cells + 1
+
+    def test_get_markdown_cells(self, sample_narrative_json: str):
+        narr = Narrative(json.loads(sample_narrative_json))
+        md_cells = narr.get_markdown()
+        assert len(md_cells) == 3  # from the test data
+        for cell in md_cells:
+            assert isinstance(cell, MarkdownCell)
