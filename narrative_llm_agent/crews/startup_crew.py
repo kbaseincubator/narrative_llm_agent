@@ -1,8 +1,7 @@
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
 from narrative_llm_agent.agents.metadata import MetadataAgent
-from langchain_core.language_models.llms import LLM
-from crewai import Crew, Task
+from crewai import Crew, Task, LLM
 from crewai.crews import CrewOutput
 from pydantic import BaseModel
 
@@ -73,7 +72,7 @@ class StartupCrew:
         self._outputs.append(
             StartupOutput(
                 metadata=results.tasks_output[3].pydantic,
-                **results.tasks_output[2].pydantic.dict(),
+                **results.tasks_output[2].pydantic.model_dump(),
             )
         )
         return self._outputs[-1]
