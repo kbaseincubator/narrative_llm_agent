@@ -28,7 +28,7 @@ class AnalysisStep(BaseModel):
 class AnalysisPipeline(BaseModel):
     steps_to_run: List[AnalysisStep]
 
-class GenomeAnalysisState(TypedDict):
+class NarrativeState(TypedDict):
     narrative_id: str
     reads_id: str
     description: str
@@ -124,7 +124,7 @@ def initialize_llm(api_key, base_url="https://api.cborg.lbl.gov"):
     temperature=0)
 
 # Analyst node function
-def analyst_node(state: GenomeAnalysisState):
+def analyst_node(state: NarrativeState):
     cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
     llm = initialize_llm(cborg_api_key)
     kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
@@ -196,7 +196,7 @@ def analyst_node(state: GenomeAnalysisState):
         }
 
 # Workflow runner node
-def workflow_runner_node(state: GenomeAnalysisState):
+def workflow_runner_node(state: NarrativeState):
     cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
     llm = initialize_llm(cborg_api_key)
     kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
@@ -293,7 +293,7 @@ def handle_error(state):
 # Build the complete graph with both analyst and workflow nodes
 def build_genome_analysis_graph():
     # Create a new graph
-    genome_graph = StateGraph(GenomeAnalysisState)
+    genome_graph = StateGraph(NarrativeState)
     
     # Add the nodes
     genome_graph.add_node("analyst", analyst_node)
