@@ -9,7 +9,7 @@ OPENAI_KEY = "OPENAI_API_KEY"
 FAKE_CBORG_KEY = "fake_cborg_api_key"
 FAKE_CBORG_KEY_ENVVAR = "not_a_cborg_key_environment"
 CBORG_KEY = "CBORG_API_KEY"
-
+FAKE_TOOLS_MODEL = "fake_model_name"
 
 @pytest.fixture(autouse=True)
 def automock_api_key(monkeypatch):
@@ -18,14 +18,14 @@ def automock_api_key(monkeypatch):
 
 
 def test_init_ok(mock_llm):
-    wa = AnalystAgent(mock_llm, token=token, cborg_api_key=FAKE_CBORG_KEY)
+    wa = AnalystAgent(llm=mock_llm,tools_model= FAKE_TOOLS_MODEL, token=token, cborg_api_key=FAKE_CBORG_KEY)
     assert wa.role == "KBase Analyst and Information Provider"
     assert wa._token == token
     assert wa._cborg_key == FAKE_CBORG_KEY
 
 
 def test_init_with_env_var(mock_llm):
-    wa = AnalystAgent(mock_llm, token=token)
+    wa = AnalystAgent(llm=mock_llm, tools_model= FAKE_TOOLS_MODEL, token=token)
     assert wa.role == "KBase Analyst and Information Provider"
     assert wa._token == token
 
@@ -36,10 +36,10 @@ def test_init_fail_without_envvar(mock_llm, monkeypatch):
     if CBORG_KEY in os.environ:
         monkeypatch.delenv(CBORG_KEY)
     with pytest.raises(KeyError):
-        AnalystAgent(mock_llm, token=token)
+        AnalystAgent(mock_llm,tools_model= FAKE_TOOLS_MODEL, token=token)
 
 
-DB_ARGS = ["catalog_db_dir", "docs_db_dir"]
+DB_ARGS = ["catalog_db_dir", "docs_db_dir", "tutorial_db_dir"]
 
 
 @pytest.mark.parametrize("db_arg", DB_ARGS)
@@ -48,7 +48,7 @@ def test_init_fail_missing_db_dirs(mock_llm, db_arg):
     with pytest.raises(
         RuntimeError, match=f"Database directory {missing_dir} not found"
     ):
-        AnalystAgent(mock_llm, token=token, **{db_arg: missing_dir})
+        AnalystAgent(mock_llm, tools_model=FAKE_TOOLS_MODEL, token=token, cborg_api_key=FAKE_CBORG_KEY, **{db_arg: missing_dir})
 
 
 @pytest.mark.parametrize("db_arg", DB_ARGS)
@@ -58,7 +58,7 @@ def test_init_fail_missing_db_file(mock_llm, tmp_path, db_arg):
     with pytest.raises(
         RuntimeError, match=f"Database file {tmp_dir}/chroma.sqlite3 not found"
     ):
-        AnalystAgent(mock_llm, token=token, **{db_arg: tmp_dir})
+        AnalystAgent(mock_llm, tools_model=FAKE_TOOLS_MODEL, token=token,cborg_api_key=FAKE_CBORG_KEY, **{db_arg: tmp_dir})
 
 
 @pytest.mark.parametrize("db_arg", DB_ARGS)
@@ -70,5 +70,4 @@ def test_init_fail_db_dir_is_file(mock_llm, tmp_path, db_arg):
     with pytest.raises(
         RuntimeError, match=f"Database directory {tmp_file} is not a directory"
     ):
-        AnalystAgent(mock_llm, token=token, catalog_db_dir=tmp_file)
-        AnalystAgent(mock_llm, token=token, **{db_arg: tmp_file})
+        AnalystAgent(mock_llm, tools_model=FAKE_TOOLS_MODEL, token=token,cborg_api_key=FAKE_CBORG_KEY, **{db_arg: tmp_file})

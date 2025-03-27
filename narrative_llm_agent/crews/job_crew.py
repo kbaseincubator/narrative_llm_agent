@@ -1,4 +1,3 @@
-from narrative_llm_agent.agents.analyst import AnalystAgent
 from narrative_llm_agent.agents.job import JobAgent, AppStartInfo, AppOutputInfo
 from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
@@ -26,14 +25,12 @@ class JobCrew:
         self._crew_results = []
         self._token = token
         self._llm = llm
-        self._analyst = AnalystAgent(llm, token=token)
         self._narr = NarrativeAgent(llm, token=token)
         self._job = JobAgent(llm, token=token)
         self._workspace = WorkspaceAgent(llm, token=token)
         self._coordinator = CoordinatorAgent(llm)
         self._metadata = MetadataAgent(llm, token=token)
         self._agents = [
-            self._analyst.agent,
             self._narr.agent,
             self._job.agent,
             self._workspace.agent,
