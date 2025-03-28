@@ -74,3 +74,20 @@ def test_add_app_cell(
     save_mock.assert_called_once_with(test_narrative_object, wsid)
     assert len(test_narrative_object.cells) == num_cells + 1
     assert test_narrative_object.cells[-1].cell_type == "code"
+
+
+def test_get_markdown_text(
+    mock_llm: MockLLM, mocker: MockerFixture, test_narrative_object: Narrative
+):
+    wsid = 123
+    get_mock = mocker.patch.object(
+        NarrativeUtil, "get_narrative_from_wsid", return_value=test_narrative_object
+    )
+    na = NarrativeAgent(mock_llm, token=token)
+    assert na._get_all_markdown_text(wsid) == [
+        md.source for md in test_narrative_object.get_markdown()
+    ]
+    get_mock.assert_called_once_with(wsid)
+
+
+# TODO: failure tests - inaccessible WS, auth fail

@@ -1,8 +1,7 @@
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
 from narrative_llm_agent.agents.metadata import MetadataAgent
-from langchain_core.language_models.llms import LLM
-from crewai import Crew, Task
+from crewai import Crew, Task, LLM
 from crewai.crews import CrewOutput
 from pydantic import BaseModel
 
@@ -73,7 +72,7 @@ class StartupCrew:
         self._outputs.append(
             StartupOutput(
                 metadata=results.tasks_output[3].pydantic,
-                **results.tasks_output[2].pydantic.dict(),
+                **results.tasks_output[2].pydantic.model_dump(),
             )
         )
         return self._outputs[-1]
@@ -97,10 +96,15 @@ class StartupCrew:
         metadata_objective = """
             Assemble metadata necessary to assemble and annotate the genomic reads in the UPA given by context.
             First, retrieve the object metadata for that UPA.
-            If there is not enough information here to choose appropriate applications for assembly and annotation, then ask the user all necessary questions until enough information is together.
+            If there is not enough information here to choose appropriate applications for assembly and annotation,
+            then ask the user all necessary questions until enough information is together.
             Note that the user may not know certain information, and this is a valid answer.
-            Assemble the final results into a JSON string and store this conversation in the from the context.
-            Return the final results.
+            The results of this conversation will make up an introduction to the Narrative workflow.
+            Format these results into markdown text that should resemble an abstract to a biological article.
+            Write this text as though you are the scientist - avoid language like "the user prefers...".
+            The focus should be on the goals of the work (assembling and annotating genomic reads) and any
+            context given by the user as to the source and nature of the reads.
+            Store this conversation in the narrative with id given in by the context.
         """
 
         startup_task = Task(

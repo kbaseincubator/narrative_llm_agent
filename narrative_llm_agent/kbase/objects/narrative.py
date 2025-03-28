@@ -371,7 +371,7 @@ class Narrative:
                 cell_states.append(reduced_app_cell)
 
             elif isinstance(cell, OutputCell):
-                # do output cell stuff later
+                # TODO: do output cell stuff later
                 cell_states.append(cell.to_dict())
             else:
                 cell_states.append(cell.to_dict())
@@ -380,6 +380,10 @@ class Narrative:
         if as_json:
             return json.dumps(narr_dict)
         return narr_dict
+
+    def get_markdown(self) -> list[MarkdownCell]:
+        md_cells:list[MarkdownCell] = filter(lambda x: x.cell_type == "markdown", self.cells)
+        return list(md_cells)
 
     def to_dict(self) -> dict[str, Any]:
         return self._make_narrative_dict(
