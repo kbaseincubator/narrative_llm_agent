@@ -28,11 +28,6 @@ class AppCellFromJobInput(BaseModel):
         description="The unique identifier for a job running in the KBase Execution Engine. This must be a 24 character hexadecimal string. This must not be a dictionary or JSON-formatted string."
     )
 
-# class NormalizeObjectInfoInput(BaseModel):
-#     narrative_id: int = Field(description="The narrative id. Should be numeric.")
-#     output_object_name: str | None = Field(description="The name of the output object. This should be a human-readable name, not an UPA."),
-#     output_object_upa: str | None = Field(description="The UPA (unique permanent address) of the output object. This should have the format number/number/number")
-
 
 class NarrativeAgent(KBaseAgent):
     role: str = "Narrative Manager"
@@ -99,18 +94,6 @@ class NarrativeAgent(KBaseAgent):
             narrative_id = process_tool_input(narrative_id, "narrative_id")
             return self._get_all_markdown_text(narrative_id)
 
-        # @tool("normalize-object-info", args_schema=NormalizeObjectInfoInput, return_direct=False)
-        # def normalize_object_info(
-        #     narrative_id: int,
-        #     output_object_name: str | None,
-        #     output_object_upa: str | None
-        # ) -> dict[str, str]:
-        #     """
-        #     Normalize object info by ensuring both the UPA and name are provided.
-        #     If one of them is missing, this tool will look up the missing value.
-        #     """
-        #     return self._normalize_object_info(narrative_id, output_object_name, output_object_upa)
-
         self.agent = Agent(
             role=self.role,
             goal=self.goal,
@@ -122,7 +105,6 @@ class NarrativeAgent(KBaseAgent):
                 add_markdown_cell,
                 get_narrative_state,
                 get_all_narrative_markdown_cells
-                # normalize_object_info
             ],
             llm=self._llm,
             allow_delegation=False,
@@ -180,24 +162,8 @@ class NarrativeAgent(KBaseAgent):
         narr_util.save_narrative(narr, narrative_id)
         return "success"
 
-    def _normalize_object_info(self, narrative_id: int, output_object_name: str | None, output_object_upa: str | None) -> dict[str, str]:
-        ws = Workspace(token=self._token)
-        if output_object_upa and not output_object_name:
-            # Look up the name based on UPA
-            info = ws.get_object_info(output_object_upa)
-            output_object_name = info["name"]
-        elif output_object_name and not output_object_upa:
-            # Look up the UPA based on name
-            info = ws.get_object_info(f"{narrative_id}/{output_object_name}")
-            output_object_upa = info["upa"]
-        return {
-            "output_object_upa": output_object_upa,
-            "output_object_name": output_object_name
-        }
-
     def _get_all_markdown_text(self, narrative_id: int) -> list[str]:
-        ws = Workspace()
-        narr_util = NarrativeUtil(ws)
+        narr_util = NarrativeUtil(Workspace())
         narr = narr_util.get_narrative_from_wsid(narrative_id)
         md_cells = narr.get_markdown()
         return [cell.source for cell in md_cells]
