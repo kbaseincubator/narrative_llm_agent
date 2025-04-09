@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.tools.job_tools import CompletedJob, summarize_completed_job
 from .kbase_agent import KBaseAgent
@@ -55,10 +55,10 @@ class AppStartInfo(BaseModel):
 
 class AppOutputInfo(BaseModel):
     app_id: str
-    output_object_upa: str | None = None
-    output_object_name: str | None = None
-    report_upa: str | None = None
-    app_error: str | None = None
+    output_object_upa: Optional[str] = None
+    output_object_name: Optional[str] = None
+    report_upa: Optional[str] = None
+    app_error: Optional[str] = None
     narrative_id: int
 
 

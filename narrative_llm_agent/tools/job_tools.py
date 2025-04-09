@@ -6,7 +6,7 @@ from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.report import KBaseReport
 from narrative_llm_agent.kbase.service_client import ServerError
 from narrative_llm_agent.util.app import get_processed_app_spec_params
-
+from typing import Optional
 
 class CreatedObject(BaseModel):
     object_upa: str
@@ -18,8 +18,9 @@ class CompletedJob(BaseModel):
     job_id: str
     job_status: str
     created_objects: list[CreatedObject] = []
-    job_error: str | None = None
-    report_upa: str | None = None
+    job_error: Optional[str] = None
+    report_upa: Optional[str] = None
+    narrative_id: int
 
 def summarize_completed_job(job_state: JobState, nms: NarrativeMethodStore, ws: Workspace) -> CompletedJob:
     """
@@ -43,7 +44,8 @@ def summarize_completed_job(job_state: JobState, nms: NarrativeMethodStore, ws: 
     processed = {
         "job_id": job_state.job_id,
         "job_status": job_state.status,
-        "created_objects": set()
+        "created_objects": set(),
+        "narrative_id": job_state.ws_id
     }
     error = None
     if job_state.status == "error":

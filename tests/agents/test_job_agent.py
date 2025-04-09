@@ -120,6 +120,7 @@ def test_monitor_job_tool(mock_llm: MockLLM, mock_ee_client, mock_job_states, mo
     mock_complete_job = CompletedJob(
         job_id = job_id,
         job_status = "completed",
+        narrative_id = 123,
         created_objects=[],
         job_error=None,
         report_upa=None
