@@ -25,6 +25,7 @@ pydantic = "^2.10.6"
 requests = "*"
 scikit-learn = "^1.6.1"
 streamlit = "*"
+langchain-nomic = "0.1.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
