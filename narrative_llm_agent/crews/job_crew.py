@@ -109,6 +109,7 @@ class JobCrew:
             job_id=job_id,
             job_status = status,
             job_error = job_error,
+            narrative_id = narrative_id,
             report_upa = f"{narrative_id}/{report_obj}" if report_obj is not None else None,
             created_objects = created_objects
         )
