@@ -81,7 +81,7 @@ class JobAgent(KBaseAgent):
             permission to see the job, this raises a JobError. job_id must be a 24 character
             hexadecimal string. Do not pass in a dictionary or a JSON-formatted string.
             """
-            return get_job_status(process_tool_input(job_id, "job_id"))
+            return get_job_status(process_tool_input(job_id, "job_id"), ExecutionEngine(token=self._token))
 
         @tool("start-job", args_schema=JobStart, return_direct=False)
         def start_job_tool(narrative_id: int, app_id: str, params: dict) -> str:
@@ -111,7 +111,7 @@ class JobAgent(KBaseAgent):
             stringified dictionary. If the app_id does not exist in KBase, this raises
             an AppNotFound error.
             """
-            return json.dumps(get_app_params(app_id), NarrativeMethodStore())
+            return json.dumps(get_app_params(app_id, NarrativeMethodStore()))
 
         @tool("monitor-job", args_schema=JobInput, return_direct=False)
         def monitor_job_tool(job_id: str) -> CompletedJob:
