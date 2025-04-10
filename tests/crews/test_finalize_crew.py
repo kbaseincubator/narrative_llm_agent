@@ -1,7 +1,20 @@
 import pytest
 from narrative_llm_agent.crews.finalize_crew import FinalizeCrew
-from narrative_llm_agent.tools.job_tools import CompletedJob
 from crewai import Task
+
+token = "not_a_token"
+FAKE_OPENAI_KEY = "fake_openai_api_key"
+FAKE_OPENAI_KEY_ENVVAR = "not_an_openai_key_environment"
+OPENAI_KEY = "OPENAI_API_KEY"
+FAKE_CBORG_KEY = "fake_cborg_api_key"
+FAKE_CBORG_KEY_ENVVAR = "not_a_cborg_key_environment"
+CBORG_KEY = "CBORG_API_KEY"
+FAKE_TOOLS_MODEL = "fake_model_name"
+
+@pytest.fixture(autouse=True)
+def automock_api_key(monkeypatch):
+    monkeypatch.setenv(OPENAI_KEY, FAKE_OPENAI_KEY_ENVVAR)
+    monkeypatch.setenv(CBORG_KEY, FAKE_CBORG_KEY_ENVVAR)
 
 @pytest.fixture
 def final_crew(mock_llm):

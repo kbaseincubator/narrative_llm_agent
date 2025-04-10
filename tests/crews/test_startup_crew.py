@@ -1,6 +1,5 @@
 import pytest
 from narrative_llm_agent.crews.startup_crew import StartupCrew
-from narrative_llm_agent.tools.job_tools import CompletedJob
 from crewai import Task
 
 @pytest.fixture
