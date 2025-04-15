@@ -1,6 +1,8 @@
+from pytest_mock import MockerFixture
+from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from narrative_llm_agent.kbase.clients.blobstore import convert_report_url
-from narrative_llm_agent.util.workspace import WorkspaceUtil
+from narrative_llm_agent.kbase.clients.blobstore import Blobstore, convert_report_url
+from narrative_llm_agent.tools.report_tools import get_report, get_report_from_job_id
 from tests.test_data.test_data import load_test_data_json
 from pathlib import Path
 import pytest
@@ -12,22 +14,21 @@ token = "not_a_token"
 
 
 @pytest.fixture
-def mocked_ws_util(mocker):
+def mocked_ws(mocker: MockerFixture):
     """
-    Returns a WorkspaceUtil object with a mocked Workspace client that
-    only gets the given report data object
+    Returns a mocked Workspace client object that only gets the given report data object
     """
 
-    def make_mocked_util(report):
-        ws_util = WorkspaceUtil(token=token)
-        mocker.patch.object(ws_util._ws, "get_objects", return_value=[report])
-        return ws_util
+    def make_mocked_client(report):
+        ws = Workspace(token=token)
+        mocker.patch.object(ws, "get_objects", return_value=[report])
+        return ws
 
-    return make_mocked_util
+    return make_mocked_client
 
 
 def run_get_report_test(
-    ws_util: WorkspaceUtil,
+    ws: Workspace,
     report: dict,
     file_paths: list[Path],
     html_paths: list[Path],
@@ -42,6 +43,7 @@ def run_get_report_test(
         raise ValueError(
             "The number of html paths to mock must match the number of html links in the report object"
         )
+    # TODO: this is too deep in the code. Should mock blobstore instead.
     for idx, file_path in enumerate(file_paths):
         with open(file_path, "rb") as archive:
             file_archive = archive.read()
@@ -56,20 +58,14 @@ def run_get_report_test(
                 convert_report_url(report["data"]["html_links"][idx]["URL"]),
                 content=html_archive,
             )
-    assert ws_util.get_report("1/2/3") == expected
+    assert get_report("1/2/3", ws, Blobstore(token=token)) == expected
 
 
-def test_init():
-    ws_util = WorkspaceUtil(token=token)
-    assert ws_util._token == token
-    assert isinstance(ws_util._ws, Workspace)
-
-
-def test_get_report_fastqc_ok(mocked_ws_util, test_data_path: Path, requests_mock):
+def test_get_report_fastqc_ok(mocked_ws, test_data_path: Path, requests_mock):
     reports_path = test_data_path / "reports" / "fastqc"
     report_zip_path = reports_path / "test_fastqc_report.zip"
     report = load_test_data_json(reports_path / "test_fastqc_report.json")
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     with open(reports_path / "fastqc_data.txt") as report_file:
         report_text = report_file.read()
     expected_report = []
@@ -77,7 +73,7 @@ def test_get_report_fastqc_ok(mocked_ws_util, test_data_path: Path, requests_moc
         expected_report.append(f"file {idx + 1}: {file['name']}:")
         expected_report.append(report_text)
     run_get_report_test(
-        ws_util,
+        ws,
         report,
         [report_zip_path, report_zip_path],
         [report_zip_path],
@@ -90,16 +86,16 @@ def test_get_report_fastqc_shock(mocker, requests_mock):
     pass
 
 
-def test_get_report_checkm_ok(mocked_ws_util, test_data_path: Path, requests_mock):
+def test_get_report_checkm_ok(mocked_ws, test_data_path: Path, requests_mock):
     reports_path = test_data_path / "reports" / "checkm"
     report_zip_path = reports_path / "checkm.zip"
     report = load_test_data_json(reports_path / "test_checkm_report.json")
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     with open(reports_path / "CheckM_summary_table.tsv") as table_file:
         table_text = table_file.read()
     expected_report = "CheckM summary table:\n" + table_text
     run_get_report_test(
-        ws_util,
+        ws,
         report,
         [report_zip_path, report_zip_path, report_zip_path],
         [report_zip_path],
@@ -108,14 +104,14 @@ def test_get_report_checkm_ok(mocked_ws_util, test_data_path: Path, requests_moc
     )
 
 
-def test_get_report_checkm_no_file(mocked_ws_util, test_data_path: Path, requests_mock):
+def test_get_report_checkm_no_file(mocked_ws, test_data_path: Path):
     reports_path = test_data_path / "reports" / "checkm"
     report = load_test_data_json(reports_path / "test_checkm_report.json")
     # remove first file link - that's the one the report interpreter cares about
     report["data"]["file_links"].pop(0)
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     expected_report = "CheckM summary table:\nnot found"
-    assert ws_util.get_report("1/2/3") == expected_report
+    assert get_report("1/2/3", ws, Blobstore()) == expected_report
 
 
 gtdb_cases = [(False, False), (False, True), (True, False), (True, True)]
@@ -125,7 +121,7 @@ gtdb_cases = [(False, False), (False, True), (True, False), (True, True)]
 def test_get_report_gtdb_ok(
     with_archaea: bool,
     with_bacteria: bool,
-    mocked_ws_util,
+    mocked_ws,
     test_data_path: Path,
     tmpdir,
     requests_mock,
@@ -154,9 +150,9 @@ def test_get_report_gtdb_ok(
             report_zip.write(filepath, arcname=filename)
 
     report = load_test_data_json(reports_path / "test_gtdbtk_report.json")
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     run_get_report_test(
-        ws_util,
+        ws,
         report,
         [report_zip_path, report_zip_path, report_zip_path],
         [report_zip_path],
@@ -165,52 +161,50 @@ def test_get_report_gtdb_ok(
     )
 
 
-def test_get_report_gtdb_missing_zip(
-    mocked_ws_util, test_data_path: Path, requests_mock
-):
+def test_get_report_gtdb_missing_zip(mocked_ws, test_data_path: Path):
     reports_path = test_data_path / "reports" / "gtdbtk"
     report = load_test_data_json(reports_path / "test_gtdbtk_report.json")
     report["data"]["file_links"] = []
-    ws_util = mocked_ws_util(report)
-    assert ws_util.get_report("1/2/3") == "report file not found"
+    ws = mocked_ws(report)
+    assert get_report("1/2/3", ws, Blobstore()) == "report file not found"
 
 
-def test_get_report_bad_info(mocked_ws_util, test_data_path: Path):
+def test_get_report_bad_info(mocked_ws, test_data_path: Path):
     report = load_test_data_json(
         test_data_path / "reports" / "fastqc" / "test_fastqc_report.json"
     )
     report["info"] = []
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     with pytest.raises(
         ValueError,
         match="Object with UPA 1/2/3 does not appear to be properly formatted.",
     ):
-        ws_util.get_report("1/2/3")
+        get_report("1/2/3", ws, Blobstore())
 
 
-def test_get_report_bad_type(mocked_ws_util, test_data_path: Path):
+def test_get_report_bad_type(mocked_ws, test_data_path: Path):
     report = load_test_data_json(
         test_data_path / "reports" / "fastqc" / "test_fastqc_report.json"
     )
     wrong_type = "NotAReport.Object-1.0"
     report["info"][2] = wrong_type
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     with pytest.raises(
         ValueError, match=f"Object with UPA 1/2/3 is not a report but a {wrong_type}."
     ):
-        ws_util.get_report("1/2/3")
+        get_report("1/2/3", ws, Blobstore())
 
 
-def test_get_html_report(mocked_ws_util, test_data_path: Path, requests_mock):
+def test_get_html_report(mocked_ws, test_data_path: Path, requests_mock):
     report = load_test_data_json(
         test_data_path / "reports" / "html" / "test_report_html_links.json"
     )
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     expected = (
         "message: \ndirect html: \nhtml report: html file:\n<html>some html</html>\n"
     )
     run_get_report_test(
-        ws_util,
+        ws,
         report,
         [],
         [test_data_path / "reports" / "html" / "test_html_report.zip"],
@@ -219,15 +213,15 @@ def test_get_html_report(mocked_ws_util, test_data_path: Path, requests_mock):
     )
 
 
-def test_get_html_report_bad_file(mocked_ws_util, test_data_path: Path, requests_mock):
+def test_get_html_report_bad_file(mocked_ws, test_data_path: Path, requests_mock):
     report = load_test_data_json(
         test_data_path / "reports" / "html" / "test_report_html_links.json"
     )
     report["data"]["html_links"][0]["name"] = "not_found_file.html"
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     expected = "message: \ndirect html: \nhtml report: html file:\n"
     run_get_report_test(
-        ws_util,
+        ws,
         report,
         [],
         [test_data_path / "reports" / "html" / "test_html_report.zip"],
@@ -236,12 +230,83 @@ def test_get_html_report_bad_file(mocked_ws_util, test_data_path: Path, requests
     )
 
 
-def test_get_report_bad_dl(mocked_ws_util, test_data_path: Path, requests_mock):
+def test_get_report_bad_dl(mocked_ws, test_data_path: Path, requests_mock):
     report = load_test_data_json(
         test_data_path / "reports" / "html" / "test_report_html_links.json"
     )
     mock_url = report["data"]["html_links"][0]["URL"]
     requests_mock.get(convert_report_url(mock_url), text="failed", status_code=500)
-    ws_util = mocked_ws_util(report)
+    ws = mocked_ws(report)
     expected = "message: \ndirect html: \nhtml report: html file:\n"
-    assert ws_util.get_report("1/2/3") == expected
+    assert get_report("1/2/3", ws, Blobstore()) == expected
+
+
+"""
+cases to cover:
+1. Bad job id
+2. x job queued
+3. x job running
+4. x job error'd
+5. x job terminated
+6. x job complete, no outputs
+7. x job complete, no report
+8. job complete, has report - happy path?
+9. job complete, report ref isn't a report
+10. x job complete, no result field
+"""
+job_id_report_cases = [
+    ("queued", None, "The job is not yet complete"),
+    ("running", None, "The job is not yet complete"),
+    (
+        "error",
+        None,
+        "The job did not finish successfully, so there is no report to return.",
+    ),
+    (
+        "terminated",
+        None,
+        "The job did not finish successfully, so there is no report to return.",
+    ),
+    ("other", None, "Unknown job status 'other'"),
+    ("completed", None, "The job was completed, but no job output was found."),
+    (
+        "completed",
+        {},
+        "The job output seems to be malformed, there is no 'result' field.",
+    ),
+    (
+        "completed",
+        {"result": [{"stuff": "things"}]},
+        "No report object was found in the job results.",
+    ),
+]
+
+
+@pytest.mark.parametrize("status,job_output,expected", job_id_report_cases)
+def test_get_report_from_job_id_no_report(
+    status, job_output, expected, mock_job_states, mocker
+):
+    job_id = "job_id_1"
+    state = mock_job_states[job_id].copy()
+    state["status"] = status
+    state["job_output"] = job_output
+    ee_mock = mocker.Mock(spec=ExecutionEngine)
+    ee_mock.check_job.return_value = JobState(state)
+    assert get_report_from_job_id(job_id, ee_mock, Workspace(), Blobstore()) == expected
+
+
+def test_get_report_from_job_id_ok(mock_job_states, mocker):
+    job_id = "job_id_1"
+    some_report = "this is a report"
+    state = mock_job_states[job_id].copy()
+    report_ref = "11/22/33"
+    state["job_output"] = {"result": [{"report_ref": report_ref}]}
+    ee_mock = mocker.Mock(spec=ExecutionEngine)
+    ee_mock.check_job.return_value = JobState(state)
+    report_mock = mocker.patch(
+        "narrative_llm_agent.tools.report_tools.get_report", return_value=some_report
+    )
+    ws = Workspace()
+    blobstore = Blobstore()
+    assert get_report_from_job_id(job_id, ee_mock, ws, blobstore) == some_report
+    report_mock.assert_called_once_with(report_ref, ws, blobstore)
