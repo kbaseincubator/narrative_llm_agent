@@ -1,7 +1,8 @@
-from narrative_llm_agent.agents.job import JobAgent, AppStartInfo, AppOutputInfo
+from narrative_llm_agent.agents.job import JobAgent, AppStartInfo
 from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
+from narrative_llm_agent.agents.writer import WriterAgent
 from narrative_llm_agent.agents.metadata import MetadataAgent
 from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
@@ -30,12 +31,14 @@ class JobCrew:
         self._workspace = WorkspaceAgent(llm, token=token)
         self._coordinator = CoordinatorAgent(llm)
         self._metadata = MetadataAgent(llm, token=token)
+        self._writer = WriterAgent(llm)
         self._agents = [
             self._narr.agent,
             self._job.agent,
             self._workspace.agent,
             self._coordinator.agent,
             self._metadata.agent,
+            self._writer.agent
         ]
 
     def start_job(self, app_name: str, input_object_upa: str, narrative_id: int, app_id: str|None=None) -> str:
@@ -106,11 +109,10 @@ class JobCrew:
             job_id=job_id,
             job_status = status,
             job_error = job_error,
+            narrative_id = narrative_id,
             report_upa = f"{narrative_id}/{report_obj}" if report_obj is not None else None,
             created_objects = created_objects
         )
-
-
 
     def build_tasks(
         self, app_name: str, narrative_id: int, input_object_upa: str, app_id: str | None
@@ -130,8 +132,10 @@ class JobCrew:
             default values if no value can be found or calculated.
             Any input object parameter must be the input object UPA.
             Be sure to make sure there is a non-null value for any parameter that is not optional.
-            Any parameter that has a true value for "is_output_object" must have a valid name for the new object. The new object name should be based on
-            the input object name, not its UPA. If the input object name is not available, the Workspace Manager can assist.
+            Any parameter that has a true value for "is_output_object" must have a valid name for the new object.
+            The new object name should be based on the input object name, not its UPA. But it must NEVER be identical to the input object name,
+            always create a new name.
+            If the input object name is not available, the Workspace Manager can assist.
             If the parameter type is 'dropdown', use the allowed 'name' option to determine what should be used, but only set the
             'value' associated with that name, or the default value if any.
             Only alphanumeric characters and underscores are allowed in new object names.
@@ -166,42 +170,46 @@ class JobCrew:
 
         monitor_job_task = Task(
             description="""
-            Using the job id, monitor the progress of the running job. The monitor_job tool is helpful here.
-            If completed, continue to the next task. If in an error state, summarize the error for the user and stop.
+            Use the `monitor_job` tool with the job id to monitor the progress of the running job.
+
+            This tool returns a `CompletedJob` object that contains the job's output UPA and the output object name.
+
+            - If the job is in an error state, the tool will indicate this in the job_error field.
+            - Your job is to call the tool, and return its result directly — do not modify the structure or add commentary.
+            - This output will be passed to the next task to retrieve the job's report.
+
+            The result must be returned exactly as provided by the tool.
             """,
-            expected_output="Return either a note saying that the job has completed, or a summary of the job error.",
+            expected_output="The CompletedJob object returned by the monitor_job tool.",
+
+            # description="""
+            # Using the job id, monitor the progress of the running job. The monitor_job tool is helpful here.
+            # If completed, continue to the next task. If in an error state, summarize the error for the user and stop.
+            # """,
+            # expected_output="Return either a note saying that the job has completed, or a summary of the job error.",
             output_pydantic=CompletedJob,
             agent=self._job.agent,
             context=[start_job_task],
         )
 
-        # job_completion_task = Task(
-        #     description="""Use a tool to fetch the status of KBase job with the given job id.
-        #     If it is completed without an error, retrieve the job results.
-        #     If the job results contain a reference to a report, with an UPA (a string with format number/number/number),
-        #     return it as "report".
-        #     If the job results contain a newly created data object, return that as "output_object". This should ideally be an UPA, but might just be
-        #     the name of the object. If there are no output objects in the job results, there may have been an output object name set in the app
-        #     input parameters. Use that as the result object instead.
-        #     If the job results contain an "error" key, return the error.
-        #     These results must fit the requested format.
-        #     You must always use a tool when interacting with KBase services or databases. If this is delegated, make sure
-        #     the delegated agent uses a tool when interacting with KBase.
-        #     """,
-        #     expected_output="The output of the job including the app id, narrative id, UPA of any output objects, and UPA of a report object. Or an error.",
-        #     output_pydantic=CompletedJob,
-        #     agent=self._job.agent,
-        #     context=[get_app_params_task, start_job_task, monitor_job_task],
-        # )
-
         report_retrieval_task = Task(
-            description="""Get the report UPA from the job results (a string with format number/number/number), an
-            use a tool to get the report object from the Workspace service. UPAs are unique permanent addresses used to identify data objects.
-            The Workspace Manager will be helpful here. Make sure the delegated agent uses a tool for interacting with KBase.
-            If there was an error in the job results, return a string saying so and summarizing the error.
-            If no report is available, either because there is no report UPA or the report object is unavailable, return a string saying so.
-            Otherwise, return the full report text. Your final answer MUST be the report text.
+            description="""
+                You have received a `CompletedJob` object from the previous task. Use its `upa` field to locate the report UPA in the Workspace.
+
+                - If `report_upa` is None, return a string indicating that no report is available due to an error.
+                - Otherwise, use the UPA to retrieve the corresponding report object from the Workspace.
+                - Return only the **text content** of the report. No JSON, no summary, just the raw report content.
+
+                If no report is found, or the UPA is invalid, return a string indicating so.
             """,
+
+            # description="""Get the report UPA from the job results (a string with format number/number/number), an
+            # use a tool to get the report object from the Workspace service. UPAs are unique permanent addresses used to identify data objects.
+            # The Workspace Manager will be helpful here. Make sure the delegated agent uses a tool for interacting with KBase.
+            # If there was an error in the job results, return a string saying so and summarizing the error.
+            # If no report is available, either because there is no report UPA or the report object is unavailable, return a string saying so.
+            # Otherwise, return the full report text. Your final answer MUST be the report text.
+            # """,
             expected_output="The text of a KBase app report object",
             agent=self._workspace.agent,
             context=[monitor_job_task]
@@ -227,7 +235,7 @@ class JobCrew:
             just return a note saying so. Otherwise, return the summary of the report.
             """,
             expected_output="A summary of the report from the previous task",
-            agent=self._coordinator.agent,
+            agent=self._writer.agent,
             context=[report_retrieval_task]
         )
 
@@ -241,16 +249,14 @@ class JobCrew:
             output_pydantic=CompletedJob,
             agent=self._narr.agent,
             extra_content=narrative_id,
-            context=[report_analysis_task, monitor_job_task],
+            context=[monitor_job_task, report_analysis_task],
         )
 
         return [
-            # get_app_task,
             get_app_params_task,
             start_job_task,
             make_app_cell_task,
             monitor_job_task,
-            # job_completion_task,
             report_retrieval_task,
             report_analysis_task,
             save_analysis_task,

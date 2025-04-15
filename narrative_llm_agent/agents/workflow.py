@@ -11,7 +11,7 @@ class AppRunInputs(BaseModel):
 
 class WorkflowRunner(KBaseAgent):
     job_crew: JobCrew
-    role: str = "You are a workflow runner, your role is to efficiently run KBase workflows."
+    role: str = "KBase workflow runner"
     goal: str = "Your goal is to create and run elegant and scientifically meaningful computational biology workflows."
     backstory: str = "You are a dedicated and effective computational biologist. You have deep knowledge of how to run workflows in the DOE KBase system and have years of experience using this to produce high quality scientific knowledge."
 
@@ -27,7 +27,17 @@ class WorkflowRunner(KBaseAgent):
             returns the results. It takes in the narrative_id, app_id (formalized as module_name/app_name), and
             UPA of the input object.
             """
-            return self.job_crew.start_job(app_id, input_object_upa, narrative_id, app_id=app_id)
+            print(f"starting an app run: {narrative_id} {app_id} {input_object_upa}")
+            try:
+                result = self.job_crew.start_job(app_id, input_object_upa, narrative_id, app_id=app_id)
+                print(f"finished app run: {narrative_id} {app_id} {input_object_upa}")
+            except Exception as e:
+                print("[JOB ERROR]", e)
+                import traceback
+                traceback.print_exc()
+                traceback.print_stack()
+            print(result)
+            return result
 
         self.agent = Agent(
             role=self.role,

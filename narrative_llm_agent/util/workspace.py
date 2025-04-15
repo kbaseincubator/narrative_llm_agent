@@ -1,3 +1,4 @@
+from bs4 import BeautifulSoup
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.blobstore import Blobstore
 
@@ -80,7 +81,7 @@ class WorkspaceUtil:
         direct_html = report.direct_html or ""
         html_texts = []
         for link in report.html_links:
-            html_texts.append(link.label + ":\n" + self._fetch_html_file(link))
+            html_texts.append(link.label + ":\n" + self._minimize_html_report(self._fetch_html_file(link)))
         html_text = "\n".join(html_texts)
         return "\n".join(
             [
@@ -175,6 +176,17 @@ class WorkspaceUtil:
                 with comp_file.open(data_file) as infile:
                     return infile.read().decode("utf-8")
         return ""
+
+    def _minimize_html_report(self, html_text: str) -> str:
+        """
+        Minimizes html reports by removing styles and javascript.
+        This removes <head>, <script> and <style> tags.
+        TODO: add more, alter per-app?
+        """
+        soup = BeautifulSoup(html_text, "html.parser")
+        for tag in soup.find_all(["head", "script", "style"]):
+            tag.decompose()
+        return str(soup)
 
     def _extract_report_files(
         self,

@@ -1,46 +1,16 @@
-# from typing import Type, Callable
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from langchain.tools import tool
-# from crewai.tools import BaseTool
 import json
 
 
 class MetadataInput(BaseModel):
     obj_upa: str = "UPA for reads data object"
-
-
-class StoreConversationInput(BaseModel):
-    narrative_id: int = Field(
-        ..., description="id of the Narrative to store the conversation in"
-    )
-    json_conversation: str = Field(
-        ..., description="JSON format of the conversation to store"
-    )
-
-
-# class StoreConversationTool(BaseTool):
-#     name: str = "Conversation storage tool"
-#     description: str = (
-#         "Securely store the results of a conversation in a KBase Narrative."
-#     )
-#     args_schema: Type[BaseModel] = StoreConversationInput
-#     storage_fn: Callable
-
-#     def _run(self, **kwargs) -> str:
-#         narrative_id = kwargs.get("narrative_id")
-#         json_conversation = kwargs.get("json_conversation", "no conversation supplied")
-#         print("this is the JSON:\n----------\n")
-#         print(json.loads(json_conversation))
-#         print(f"stored in narrative {narrative_id}")
-#         print("-------------")
-#         self.storage_fn(narrative_id, json_conversation)
-
 
 class MetadataAgent(KBaseAgent):
     initial_prompts = [
@@ -82,14 +52,11 @@ class MetadataAgent(KBaseAgent):
             """Return the metadata for a KBase Workspace object with the given UPA."""
             return self._get_object_metadata(process_tool_input(obj_upa, "obj_upa"))
 
-        @tool("store-conversation", args_schema=StoreConversationInput)
-        def store_conversation_tool(narrative_id: int, json_conversation: str) -> str:
-            """Store Conversation Tool. This securely stores the results of a conversation in a KBase Narrative."""
-            print("this is the JSON:\n----------\n")
-            print(json.loads(json_conversation))
-            print(f"stored in narrative {narrative_id}")
-            print("-------------")
-            self._store_conversation(narrative_id, json_conversation)
+        @tool("store-conversation")
+        def store_introduction(narrative_id: int, conversation: str) -> str:
+            """Store introduction tool. This securely stores the introduction to a Narrative workflow as a
+            markdown cell in a KBase Narrative."""
+            self._store_conversation(narrative_id, conversation)
 
         self.agent = Agent(
             role=self.role,
@@ -99,8 +66,7 @@ class MetadataAgent(KBaseAgent):
             tools=[
                 conversation_tool,
                 get_object_metadata,
-                store_conversation_tool,
-                # StoreConversationTool(storage_fn=self._store_conversation),
+                store_introduction,
             ],
             llm=self._llm,
             allow_delegation=False,
@@ -111,20 +77,17 @@ class MetadataAgent(KBaseAgent):
         """Gets object metadata from a KBase UPA string and returns it as JSON."""
         # look up object info first, get metadata from that to form a prompt.
         # then have the agent converse with the user.
-        print("looking up obj info for " + obj_upa)
         ws = Workspace(token=self._token)
         obj_info = ws.get_object_info(obj_upa)
-        print("got object info")
-        print(obj_info)
         return json.dumps(obj_info["metadata"])
 
     def _store_conversation(
-        self: "MetadataAgent", narrative_id: int, json_conversation: str
+        self: "MetadataAgent", narrative_id: int, conversation: str
     ) -> str:
         """Stores JSON-formatted results of a conversation in a Narrative markdown cell."""
         ws = Workspace(token=self._token)
         narr_util = NarrativeUtil(ws)
         narr = narr_util.get_narrative_from_wsid(narrative_id)
-        narr.add_markdown_cell(json_conversation)
+        narr.add_markdown_cell(conversation)
         narr_util.save_narrative(narr, narrative_id)
         return "Conversation successfully stored."

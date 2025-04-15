@@ -1,11 +1,20 @@
+import time
 from pydantic import BaseModel
-from narrative_llm_agent.kbase.clients.execution_engine import JobState
-from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.config import get_config
+from narrative_llm_agent.kbase.clients.debug_mock import KBaseMock
+from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine, JobState
+from narrative_llm_agent.kbase.clients.narrative_method_store import (
+    NarrativeMethodStore,
+)
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.report import KBaseReport
 from narrative_llm_agent.kbase.service_client import ServerError
-from narrative_llm_agent.util.app import get_processed_app_spec_params
+from narrative_llm_agent.util.app import (
+    build_run_job_params,
+    get_processed_app_spec_params,
+)
+from typing import Optional
 
 
 class CreatedObject(BaseModel):
@@ -14,14 +23,19 @@ class CreatedObject(BaseModel):
 
     model_config = {"frozen": True}
 
+
 class CompletedJob(BaseModel):
     job_id: str
     job_status: str
     created_objects: list[CreatedObject] = []
-    job_error: str | None = None
-    report_upa: str | None = None
+    job_error: Optional[str] = None
+    report_upa: Optional[str] = None
+    narrative_id: int
 
-def summarize_completed_job(job_state: JobState, nms: NarrativeMethodStore, ws: Workspace) -> CompletedJob:
+
+def summarize_completed_job(
+    job_state: JobState, nms: NarrativeMethodStore, ws: Workspace
+) -> CompletedJob:
     """
     This summarizes a completed job with the following information:
     * The report object UPA, if any
@@ -43,7 +57,8 @@ def summarize_completed_job(job_state: JobState, nms: NarrativeMethodStore, ws: 
     processed = {
         "job_id": job_state.job_id,
         "job_status": job_state.status,
-        "created_objects": set()
+        "created_objects": set(),
+        "narrative_id": job_state.ws_id,
     }
     error = None
     if job_state.status == "error":
@@ -68,10 +83,15 @@ def get_report_created_objects(report_upa: str, ws: Workspace) -> set[CreatedObj
     created_objects = set()
     for new_object in report.objects_created:
         obj_info = ws.get_object_info(new_object.ref)
-        created_objects.add(CreatedObject(object_upa = obj_info["upa"], object_name = obj_info["name"]))
+        created_objects.add(
+            CreatedObject(object_upa=obj_info["upa"], object_name=obj_info["name"])
+        )
     return created_objects
 
-def get_app_created_objects(job_state: JobState, nms: NarrativeMethodStore, ws: Workspace) -> set[CreatedObject]:
+
+def get_app_created_objects(
+    job_state: JobState, nms: NarrativeMethodStore, ws: Workspace
+) -> set[CreatedObject]:
     # get app spec
     app_spec = AppSpec(**(nms.get_app_spec(job_state.job_input.app_id)))
     app_params = get_processed_app_spec_params(app_spec)
@@ -86,7 +106,54 @@ def get_app_created_objects(job_state: JobState, nms: NarrativeMethodStore, ws: 
     for name in output_names:
         try:
             out_obj_info = ws.get_object_info(f"{narrative_id}/{name}")
-            created_objects.add(CreatedObject(object_upa = out_obj_info["upa"], object_name = out_obj_info["name"]))
+            created_objects.add(
+                CreatedObject(
+                    object_upa=out_obj_info["upa"], object_name=out_obj_info["name"]
+                )
+            )
         except ServerError:
             pass
     return created_objects
+
+
+def monitor_job(
+    job_id: str,
+    ee: ExecutionEngine,
+    nms: NarrativeMethodStore,
+    ws: Workspace,
+    interval: int = 10,
+) -> CompletedJob:
+    is_complete = False
+    while not is_complete:
+        status = get_job_status(job_id, ee, as_str=False)
+        if status.status in ["completed", "error"]:
+            is_complete = True
+        else:
+            time.sleep(interval)
+    return summarize_completed_job(status, nms, ws)
+
+
+def get_job_status(job_id: str, ee: ExecutionEngine, as_str=True) -> str | JobState:
+    if get_config().debug:
+        status = KBaseMock().check_mock_job(job_id)
+    else:
+        status = ee.check_job(job_id)
+    if as_str:
+        return str(status)
+    return status
+
+
+def start_job(
+    narrative_id: int,
+    app_id: str,
+    params: dict,
+    ee: ExecutionEngine,
+    nms: NarrativeMethodStore,
+    ws: Workspace,
+) -> str:
+    spec = nms.get_app_spec(app_id)
+    job_submission = build_run_job_params(AppSpec(**spec), params, narrative_id, ws)
+    print(job_submission)
+    if get_config().debug:
+        return KBaseMock().mock_run_job(narrative_id, app_id, params, job_submission)
+    return ee.run_job(job_submission)
