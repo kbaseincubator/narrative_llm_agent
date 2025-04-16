@@ -18,7 +18,7 @@ def automock_api_key(monkeypatch):
 
 @pytest.fixture
 def final_crew(mock_llm):
-    return FinalizeCrew(llm=mock_llm, token="fake_token")
+    return FinalizeCrew(mock_llm, FAKE_TOOLS_MODEL, token="fake_token")
 
 
 def test_initialization(final_crew):
