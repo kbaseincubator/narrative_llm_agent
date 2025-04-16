@@ -2,6 +2,7 @@ from narrative_llm_agent.kbase.service_client import ServerError
 from .kbase_agent import KBaseAgent
 from crewai import Agent, LLM
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI, OpenAI
+from langchain_nomic import NomicEmbeddings
 from pydantic import BaseModel, Field
 from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
@@ -43,20 +44,25 @@ class AnalystAgent(KBaseAgent):
     _catalog_db_dir: Path
     _docs_db_dir: Path
     _tutorial_db_dir: Path
-    _cborg_key: str
+    _api_key: str
+    _tools_llm: ChatOpenAI
+    _embeddings: OpenAIEmbeddings | NomicEmbeddings
     def __init__(
         self: "AnalystAgent",
         llm: LLM,
+        provider: str,
         tools_model: str,
         token: str = None,
-        cborg_api_key: str = None,
+        api_key: str = None,
         catalog_db_dir: Path | str = None,
         tutorial_db_dir: Path | str = None,
         docs_db_dir: Path | str = None,
     ):
         super().__init__(llm, token=token)
-        self._cborg_key = self.__setup_cborg_api_key(cborg_api_key)
-        self.__setup_tools_llm(tools_model)
+        self._api_key = self.__setup_api_key(api_key, provider=provider)
+        self._tools_llm = self.__setup_tools_llm(provider=provider, model=tools_model)
+        self._embeddings = self.__setup_embeddings_model(provider=provider)
+
         if catalog_db_dir is not None:
             self._catalog_db_dir = Path(catalog_db_dir)
         else:
@@ -74,16 +80,7 @@ class AnalystAgent(KBaseAgent):
         for db_path in [self._catalog_db_dir, self._docs_db_dir, self._tutorial_db_dir]:
             self.__check_db_directories(db_path)
         self.__init_agent()
-    def __setup_tools_llm(self,model="openai/gpt-4o"):
-        """
-        Sets up the llm for the tools
-        """
-        self._tools_llm = ChatOpenAI(
-            model=model,
-            temperature=0,
-            api_key=self._cborg_key,
-            base_url="https://api.cborg.lbl.gov"  # For LBL-Net, use "https://api-local.cborg.lbl.gov"
-        )
+    
         
     def __check_db_directories(self, db_path: Path) -> None:
         """
@@ -106,14 +103,45 @@ class AnalystAgent(KBaseAgent):
                 f"Database file {db_file} not found, unable to make Agent."
             )
 
-    def __setup_cborg_api_key(self, cborg_api_key: str) -> str:
-        if cborg_api_key is not None:
-            return cborg_api_key
-        env_var = get_config().cborg_key_env
+    def __setup_api_key(self, api_key: str, provider : str) -> str:
+        if api_key is not None:
+            return api_key
+        if provider == "cborg":
+            env_var = get_config().cborg_key_env
+        else:
+            env_var = "OPENAI_API_KEY"
         if os.environ.get(env_var):
             return os.environ[env_var]
-        raise KeyError("Missing environment variable CBORG API KEY")
-
+        raise KeyError(f"Missing environment variable {provider} API KEY")
+    def __setup_tools_llm(self,provider: str, model:str) -> None:
+        """
+        Sets up the llm for the tools
+        """
+        if provider == "cborg":
+            return ChatOpenAI(
+                model=model,
+                temperature=0,
+                api_key=self._api_key,
+                base_url="https://api.cborg.lbl.gov" 
+            )
+        else:
+            return ChatOpenAI(
+                model=model,
+                api_key=self._api_key)
+    def __setup_embeddings_model(self,provider: str) -> None:
+        """
+        Sets up the llm for the tools
+        """
+        if provider == "cborg":
+            #If using cborg, use this embedding
+            return OpenAIEmbeddings(openai_api_key=self._api_key,
+                                          openai_api_base="https://api.cborg.lbl.gov/v1", model="lbl/nomic-embed-text")
+        else:
+            # If using openai, Embedding functions to use
+            return NomicEmbeddings(nomic_api_key=os.environ.get("NOMIC_API_KEY"),
+                                     model="nomic-embed-text-v1.5",
+                                     dimensionality=768)
+            
     def __init_agent(self: "AnalystAgent") -> None:
         # cfg = RunnableConfig()
         # Check if running with Chainlit
@@ -198,14 +226,10 @@ class AnalystAgent(KBaseAgent):
         )
 
     def _create_doc_chain(self, persist_directory: str | Path):
-        #If using cborg, use this embedding
-        embeddings = OpenAIEmbeddings(openai_api_key=self._cborg_key,
-                                      openai_api_base="https://api.cborg.lbl.gov/v1", model="lbl/nomic-embed-text")
-        # Embedding functions to use
-        #embeddings = OpenAIEmbeddings(openai_api_key=self._openai_key)
+        """Create a retrieval qa chain for the given embeddings model and persist directory."""
         # Use the persisted database
         vectordb = Chroma(
-            persist_directory=str(persist_directory), embedding_function=embeddings
+            persist_directory=str(persist_directory), embedding_function=self._embeddings
         )
         retriever = vectordb.as_retriever()
 
@@ -238,6 +262,7 @@ class AnalystAgent(KBaseAgent):
         )
 
         tools=[InformationTool(uri=os.environ.get('NEO4J_URI'), user=os.environ.get('NEO4J_USERNAME'), password=os.environ.get('NEO4J_PASSWORD'))]
+        print("tools:llm",self._tools_llm)
         agent = create_tool_calling_agent(self._tools_llm, tools, prompt)
         agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
         return agent_executor

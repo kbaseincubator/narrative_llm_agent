@@ -116,18 +116,35 @@ def load_kbase_classes():
     except Exception as e:
         return False, f"Error loading KBase classes: {str(e)}"
 
-# Initialize LLM
-def initialize_llm(api_key, base_url="https://api.cborg.lbl.gov"):
-    return LLM(model="openai/openai/gpt-4o",
-    api_key=api_key,
-    base_url="https://api.cborg.lbl.gov",  # For LBL-Net, use "https://api-local.cborg.lbl.gov"
-    temperature=0)
+# Initialize LLM for execution
+def initialize_llm_execution(api_key, provider):
+    if provider == "cborg":
+        return LLM(model="openai/openai/gpt-4o",
+        api_key=api_key,
+        base_url="https://api.cborg.lbl.gov",  # For LBL-Net, use "https://api-local.cborg.lbl.gov"
+        temperature=0)
+    else:
+        return LLM(model="gpt-4o",
+        api_key=api_key, # For LBL-Net, use "https://api-local.cborg.lbl.gov"
+        temperature=0)
+# Initialize LLM for planning   
+def initialize_llm_planning(api_key, provider):
+    if provider == "cborg":
+        return LLM(model="openai/openai/o1",
+        api_key=api_key,
+        base_url="https://api.cborg.lbl.gov",  # For LBL-Net, use "https://api-local.cborg.lbl.gov"
+        temperature=0)
+    else:
+        return LLM(model="o1",
+        api_key=api_key, # For LBL-Net, use "https://api-local.cborg.lbl.gov"
+        temperature=0)
 
 # Analyst node function
 def analyst_node(state: NarrativeState):
-    cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
-    llm = initialize_llm(cborg_api_key)
+    provider = st.session_state.credentials.get("provider", "openai")
     kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
+  
+    
     try:
         # Display progress in the UI
         progress_placeholder = st.empty()
@@ -138,6 +155,20 @@ def analyst_node(state: NarrativeState):
         
         # Add a check for KBase classes
         success, result = load_kbase_classes()
+        AnalystAgent = result["AnalystAgent"]
+        
+    
+        if provider == "cborg":
+            llm = initialize_llm_planning(st.session_state.credentials["cborg_api_key"], provider)
+            cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
+            # Initialize the analyst agent
+            analyst_expert = AnalystAgent(llm, api_key = cborg_api_key, token=kb_auth_token,provider=provider,tools_model="o1")
+
+        else:
+            llm = initialize_llm_planning(st.session_state.credentials["openai_api_key"], provider)
+            openai_api_key = st.session_state.credentials.get("openai_api_key", os.environ.get("OPENAI_API_KEY", ""))
+            # Initialize the analyst agent
+            analyst_expert = AnalystAgent(llm, api_key = openai_api_key, token=kb_auth_token, provider = provider, tools_model="o1")
         if not success:
             return {
                 **state,
@@ -145,11 +176,6 @@ def analyst_node(state: NarrativeState):
                 "steps_to_run": None,
                 "error": result
             }
-        
-        AnalystAgent = result["AnalystAgent"]
-        
-        # Initialize the analyst agent
-        analyst_expert = AnalystAgent(llm, cborg_api_key =cborg_api_key, token=kb_auth_token,tools_model="openai/o1")
         
         # Create the analysis task
         analysis_agent_task = Task(
@@ -197,8 +223,12 @@ def analyst_node(state: NarrativeState):
 
 # Workflow runner node
 def workflow_runner_node(state: NarrativeState):
-    cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
-    llm = initialize_llm(cborg_api_key)
+    provider = st.session_state.credentials.get("provider", "openai")
+    if provider == "cborg":
+        llm_execution = initialize_llm_execution(st.session_state.credentials["cborg_api_key"], provider)
+    else:
+        llm_execution = initialize_llm_execution(st.session_state.credentials["openai_api_key"], provider)
+    
     kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
     try:
         # Display progress in the UI
@@ -221,7 +251,7 @@ def workflow_runner_node(state: NarrativeState):
         WorkflowRunner = result["WorkflowRunner"]
         
         # Initialize the workflow runner
-        wf_runner = WorkflowRunner(llm, token=kb_auth_token)
+        wf_runner = WorkflowRunner(llm_execution, token=kb_auth_token)
         
         # Create the task
         run_apps_task = Task(
@@ -341,9 +371,6 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
     if not os.environ.get("CBORG_API_KEY"):
         os.environ["CBORG_API_KEY"] = cborg_api_key
     
-    # Initialize LLM
-    llm = initialize_llm(cborg_api_key)
-
     graph = build_genome_analysis_graph()
     # Initialize state
     state = {
@@ -357,24 +384,44 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
     }
     
     final_state = graph.invoke(state)
-    
-    return state
-
+    #final_state = analyst_node(state)
+    return final_state
 # UI Components
+def display_provider_selection():
+    # Provider selection with dropdown
+    provider = st.selectbox(
+        "LLM Provider", 
+        options=["openai", "cborg"],
+        index=0 if st.session_state.get("provider", "openai") == "openai" else 1,
+        format_func=lambda x: "OpenAI" if x == "openai" else "CBORG (LBL)"
+    )
+    
+    # Update session state when provider changes
+    if st.session_state.get("provider") != provider:
+        st.session_state.provider = provider
+    
+    return provider
+
+
 def display_credentials_form():
     with st.expander("🔑 KBase Credentials", expanded=True):
-        # No longer collect Neo4j credentials from user - use env vars only
+        #Provider selection
+        provider = display_provider_selection()
         
         # Keep KB Auth Token input
         kb_auth_token = st.text_input("KB Auth Token", 
                                     value=st.session_state.get("kb_auth_token", ""), 
                                     type="password")
         
-        # CBORG API Key input with environment variable fallback
-        cborg_api_key = st.text_input("CBORG API Key", 
+        # API Key input with environment variable fallback, depending on the provider
+        if provider == "cborg":
+            api_key = st.text_input("CBORG API Key", 
                                     value=st.session_state.get("cborg_api_key", os.environ.get("CBORG_API_KEY", "")), 
                                     type="password")
-        
+        else:
+            api_key = st.text_input("CBORG API Key", 
+                                    value=st.session_state.get("cborg_api_key", os.environ.get("CBORG_API_KEY", "")), 
+                                    type="password")
         save = st.button("Save Credentials")
         if save:
             # Store Neo4j credentials from environment variables
@@ -382,8 +429,9 @@ def display_credentials_form():
                 "neo4j_uri": os.environ.get("NEO4J_URI", ""),
                 "neo4j_username": os.environ.get("NEO4J_USERNAME", ""),
                 "neo4j_password": os.environ.get("NEO4J_PASSWORD", ""),
+                "provider": provider,
+                f"{provider}_api_key": api_key,
                 "kb_auth_token": kb_auth_token,
-                "cborg_api_key": cborg_api_key
             }
             
             # Also save individual values for convenience
@@ -391,31 +439,34 @@ def display_credentials_form():
             st.session_state.neo4j_username = os.environ.get("NEO4J_USERNAME", "")
             st.session_state.neo4j_password = os.environ.get("NEO4J_PASSWORD", "")
             st.session_state.kb_auth_token = kb_auth_token
-            st.session_state.cborg_api_key = cborg_api_key
+            st.session_state.provider = provider
+            st.session_state[f"{provider}_api_key"] = api_key
             
             st.success("Credentials saved to session!")
     
     # Check if credentials exist in session
     if not st.session_state.get("credentials"):
+        provider = st.session_state.get("provider", "openai")
         st.session_state.credentials = {
             "neo4j_uri": os.environ.get("NEO4J_URI", ""),
             "neo4j_username": os.environ.get("NEO4J_USERNAME", ""),
             "neo4j_password": os.environ.get("NEO4J_PASSWORD", ""),
             "kb_auth_token": kb_auth_token if 'kb_auth_token' in locals() else "",
-            "cborg_api_key": cborg_api_key if 'cborg_api_key' in locals() else os.environ.get("CBORG_API_KEY", "")
+            "provider": provider,
+            f"{provider}_api_key": api_key if 'api_key' in locals() else (
+                os.environ.get("CBORG_API_KEY", "") if provider == "cborg" else os.environ.get("OPENAI_API_KEY", "")
+            ),
         }
 
 def display_input_form():
     st.subheader("📝 Analysis Parameters")
     
-    col1, col2 = st.columns(2)
+   
+    narrative_id = st.text_input("Narrative ID", value="210107")
+    reads_id = st.text_input("Reads ID", value="210107/2/1")
     
-    with col1:
-        narrative_id = st.text_input("Narrative ID", value="210107")
-        reads_id = st.text_input("Reads ID", value="210107/2/1")
-    
-    description = st.text_area("Analysis Description", height=200, value="""
-The user has uploaded paired-end sequencing reads obtained from Illumina sequencing for an isolate Bacillus subtilis sp. strain UAMC into the narrative.
+    description = st.text_area("Analysis Description", height=200, 
+                               value="""I have uploaded paired-end sequencing reads obtained from Illumina sequencing for an isolate Bacillus subtilis sp. strain UAMC into the narrative.
 I want you to generate an analysis plan for annotating the uploaded pair end reads obtained from Illumina sequencing for a isolate genome for me using KBase apps. 
 The goal is to have a complete annotated genome and classify the microbe
 This analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
@@ -434,6 +485,8 @@ The analysis plan should be a json with schema as:
  "app_id": "Id of the KBase app"}}
 ```
 Ensure that app_ids are obtained from the app graph and are correct.
+If there are multiple apps returned from the app graph select the one that makes the most sense. 
+Make sure that the input data object will be available from previous steps.
 Make sure that the analysis plan is included in the final response.
 """)
     
@@ -514,14 +567,22 @@ def display_connection_test():
             
             # Try to initialize LLM
             with st.spinner("Testing LLM connection..."):
-                api_key = st.session_state.get("credentials", {}).get("cborg_api_key", "")
+                api_key = st.session_state.credentials["cborg_api_key"] if st.session_state.credentials["provider"] == "cborg" else st.session_state.credentials["openai_api_key"]
                 if not api_key:
                     st.warning("CBORG API Key not found in session. Please save your credentials first.")
                     return
                     
                 try:
-                    llm = initialize_llm(api_key)
-                    st.success("✅ Successfully initialized LLM")
+                    provider = st.session_state.credentials.get("provider", "openai")
+                    if provider == "cborg":
+                        llm = initialize_llm_execution(st.session_state.credentials["cborg_api_key"], provider)
+                        cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
+                        st.success("✅ Successfully initialized LLM")
+
+                    else:
+                        llm = initialize_llm_execution(st.session_state.credentials["openai_api_key"], provider)
+                        openai_api_key = st.session_state.credentials.get("openai_api_key", os.environ.get("OPENAI_API_KEY", ""))
+                        st.success("✅ Successfully initialized LLM")
                 except Exception as e:
                     st.error(f"❌ Failed to initialize LLM: {str(e)}")
                     return
