@@ -1,9 +1,10 @@
+from narrative_llm_agent.tools.narrative_tools import create_markdown_cell
+from narrative_llm_agent.tools.workspace_tools import get_object_metadata
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from pydantic import BaseModel
 from narrative_llm_agent.util.tool import process_tool_input
-from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from langchain.tools import tool
 import json
@@ -48,15 +49,15 @@ class MetadataAgent(KBaseAgent):
             return input()
 
         @tool("get-object-metadata")
-        def get_object_metadata(obj_upa: str) -> str:
+        def get_object_metadata_tool(obj_upa: str) -> str:
             """Return the metadata for a KBase Workspace object with the given UPA."""
-            return self._get_object_metadata(process_tool_input(obj_upa, "obj_upa"))
+            return json.dumps(get_object_metadata(process_tool_input(obj_upa, "obj_upa"), Workspace(token=self._token)))
 
         @tool("store-conversation")
-        def store_introduction(narrative_id: int, conversation: str) -> str:
+        def store_introduction_tool(narrative_id: int, conversation: str) -> str:
             """Store introduction tool. This securely stores the introduction to a Narrative workflow as a
             markdown cell in a KBase Narrative."""
-            self._store_conversation(narrative_id, conversation)
+            create_markdown_cell(narrative_id, conversation, Workspace(self._token))
 
         self.agent = Agent(
             role=self.role,
@@ -65,29 +66,11 @@ class MetadataAgent(KBaseAgent):
             verbose=True,
             tools=[
                 conversation_tool,
-                get_object_metadata,
-                store_introduction,
+                get_object_metadata_tool,
+                store_introduction_tool,
             ],
             llm=self._llm,
             allow_delegation=False,
             memory=True,
         )
 
-    def _get_object_metadata(self: "MetadataAgent", obj_upa: str) -> str:
-        """Gets object metadata from a KBase UPA string and returns it as JSON."""
-        # look up object info first, get metadata from that to form a prompt.
-        # then have the agent converse with the user.
-        ws = Workspace(token=self._token)
-        obj_info = ws.get_object_info(obj_upa)
-        return json.dumps(obj_info["metadata"])
-
-    def _store_conversation(
-        self: "MetadataAgent", narrative_id: int, conversation: str
-    ) -> str:
-        """Stores JSON-formatted results of a conversation in a Narrative markdown cell."""
-        ws = Workspace(token=self._token)
-        narr_util = NarrativeUtil(ws)
-        narr = narr_util.get_narrative_from_wsid(narrative_id)
-        narr.add_markdown_cell(conversation)
-        narr_util.save_narrative(narr, narrative_id)
-        return "Conversation successfully stored."

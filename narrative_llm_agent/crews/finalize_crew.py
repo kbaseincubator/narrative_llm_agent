@@ -8,10 +8,10 @@ class FinalizeCrew:
     _llm: LLM
     _crew_results: list[CrewOutput]
 
-    def __init__(self, llm: LLM, token: str = None) -> None:
+    def __init__(self, llm: LLM, analyst_tools_model: str, token: str = None) -> None:
         self._token = token
         self._llm = llm
-        self._analyst = AnalystAgent(llm, "openai/gpt-4o")
+        self._analyst = AnalystAgent(llm, "openai/gpt-4o", analyst_tools_model)
         self._narrative = NarrativeAgent(llm, token=token)
         self._agents = [
             self._analyst.agent,
