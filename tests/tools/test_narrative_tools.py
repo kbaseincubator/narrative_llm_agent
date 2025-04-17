@@ -237,7 +237,6 @@ def test_get_narrative_state(
     config = get_config()
     mock_kbase_jsonrpc_1_call(config.ee_endpoint, state_dict)
     state = get_narrative_state(123, ws, ExecutionEngine())
-    print(json.dumps(json.loads(state), indent=4))
     assert isinstance(state, str)
     state_dict = json.loads(state)
     assert {"cells", "metadata", "nbformat", "nbformat_minor"} == set(state_dict.keys())
