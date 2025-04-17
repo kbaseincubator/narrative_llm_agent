@@ -11,14 +11,14 @@
                         "id": "396c186d-3f1e-4616-b25d-8026b169b1dd",
                         "lastLoaded": "Fri, 02 Feb 2024 17:42:53 GMT",
                         "status": "new",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
                     "codeCell": {"user-settings": {"showCodeInputArea": true}},
-                    "type": "code",
+                    "type": "code"
                 }
             },
             "outputs": [],
-            "source": "",
+            "source": ""
         },
         {
             "cell_type": "markdown",
@@ -26,13 +26,13 @@
                 "kbase": {
                     "attributes": {
                         "icon": "paragraph",
-                        "title": "I am a markdown cell",
+                        "title": "I am a markdown cell"
                     },
                     "cellState": {"selected": true},
-                    "type": "markdown",
+                    "type": "markdown"
                 }
             },
-            "source": "# I am a markdown cell",
+            "source": "# I am a markdown cell"
         },
         {
             "cell_type": "code",
@@ -48,13 +48,13 @@
                                     "kb_service_input_mapping": [
                                         {
                                             "narrative_system_variable": "workspace",
-                                            "target_property": "input_ws",
+                                            "target_property": "input_ws"
                                         },
                                         {
                                             "input_parameter": "input_file_ref",
                                             "target_property": "input_file_ref",
-                                            "target_type_transform": "resolved-ref",
-                                        },
+                                            "target_type_transform": "resolved-ref"
+                                        }
                                     ],
                                     "kb_service_method": "runFastQC",
                                     "kb_service_name": "kb_fastqc",
@@ -62,24 +62,24 @@
                                         {
                                             "service_method_output_path": [
                                                 "0",
-                                                "report_name",
+                                                "report_name"
                                             ],
-                                            "target_property": "report_name",
+                                            "target_property": "report_name"
                                         },
                                         {
                                             "service_method_output_path": [
                                                 "0",
-                                                "report_ref",
+                                                "report_ref"
                                             ],
-                                            "target_property": "report_ref",
+                                            "target_property": "report_ref"
                                         },
                                         {
                                             "narrative_system_variable": "workspace",
-                                            "target_property": "workspace_name",
-                                        },
+                                            "target_property": "workspace_name"
+                                        }
                                     ],
                                     "kb_service_url": "",
-                                    "kb_service_version": "b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4",
+                                    "kb_service_version": "b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4"
                                 },
                                 "fixed_parameters": [],
                                 "full_info": {
@@ -99,7 +99,7 @@
                                     "publications": [
                                         {
                                             "display_text": "FastQC source: Bioinformatics Group at the Babraham Institute, UK.\n",
-                                            "link": "http://www.bioinformatics.babraham.ac.uk/projects/fastqc/",
+                                            "link": "http://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
                                         }
                                     ],
                                     "screenshots": [],
@@ -108,11 +108,11 @@
                                         "next_apps": [],
                                         "next_methods": [],
                                         "related_apps": [],
-                                        "related_methods": [],
+                                        "related_methods": []
                                     },
                                     "technical_description": "",
                                     "tooltip": "A quality control application for high throughput sequence data.",
-                                    "ver": "1.1.0",
+                                    "ver": "1.1.0"
                                 },
                                 "info": {
                                     "app_type": "app",
@@ -128,7 +128,7 @@
                                         "KBaseAssembly.SingleEndLibrary",
                                         "KBaseFile.PairedEndLibrary",
                                         "KBaseFile.SingleEndLibrary",
-                                        "KBaseRNASeq.RNASeqSampleSet",
+                                        "KBaseRNASeq.RNASeqSampleSet"
                                     ],
                                     "module_name": "kb_fastqc",
                                     "name": "Assess Read Quality with FastQC - v0.11.5",
@@ -136,7 +136,7 @@
                                     "output_types": [],
                                     "subtitle": "A quality control application for high throughput sequence data.",
                                     "tooltip": "A quality control application for high throughput sequence data.",
-                                    "ver": "1.1.0",
+                                    "ver": "1.1.0"
                                 },
                                 "job_id_output_field": "docker",
                                 "parameters": [
@@ -159,17 +159,17 @@
                                                 "KBaseAssembly.PairedEndLibrary",
                                                 "KBaseAssembly.SingleEndLibrary",
                                                 "KBaseFile.SingleEndLibrary",
-                                                "KBaseRNASeq.RNASeqSampleSet",
-                                            ],
+                                                "KBaseRNASeq.RNASeqSampleSet"
+                                            ]
                                         },
                                         "ui_class": "input",
-                                        "ui_name": "Read Library/RNA-seq Sample Set <font color=red>*</font.",
+                                        "ui_name": "Read Library/RNA-seq Sample Set <font color=red>*</font."
                                     }
                                 ],
-                                "widgets": {"input": "null", "output": "no-display"},
+                                "widgets": {"input": "null", "output": "no-display"}
                             },
                             "tag": "release",
-                            "version": "1.1.0",
+                            "version": "1.1.0"
                         },
                         "exec": {
                             "jobState": {
@@ -184,17 +184,17 @@
                                     "result": [
                                         {
                                             "report_name": "kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e",
-                                            "report_ref": "72233/4/1",
+                                            "report_ref": "72233/4/1"
                                         }
                                     ],
-                                    "version": "1.1",
+                                    "version": "1.1"
                                 },
                                 "queued": 1706896346956,
                                 "retry_count": 0,
                                 "retry_ids": [],
                                 "running": 1706896357734,
                                 "status": "completed",
-                                "wsid": 72233,
+                                "wsid": 72233
                             },
                             "jobs": {
                                 "byId": {
@@ -210,17 +210,17 @@
                                             "result": [
                                                 {
                                                     "report_name": "kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e",
-                                                    "report_ref": "72233/4/1",
+                                                    "report_ref": "72233/4/1"
                                                 }
                                             ],
-                                            "version": "1.1",
+                                            "version": "1.1"
                                         },
                                         "queued": 1706896346956,
                                         "retry_count": 0,
                                         "retry_ids": [],
                                         "running": 1706896357734,
                                         "status": "completed",
-                                        "wsid": 72233,
+                                        "wsid": 72233
                                     }
                                 }
                             },
@@ -229,17 +229,17 @@
                                 "event": "launched_job",
                                 "event_at": "2024-02-02T17:52:27.123726Z",
                                 "job_id": "65bd2bdaab210ab10e5b0a37",
-                                "run_id": "62da1c89-acd3-40f5-867d-51d215f72953",
+                                "run_id": "62da1c89-acd3-40f5-867d-51d215f72953"
                             },
                             "outputWidgetInfo": {
                                 "name": "no-display",
                                 "params": {
                                     "report_name": "kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e",
                                     "report_ref": "72233/4/1",
-                                    "workspace_name": "wjriehl:narrative_1706895747734",
+                                    "workspace_name": "wjriehl:narrative_1706895747734"
                                 },
-                                "tag": "release",
-                            },
+                                "tag": "release"
+                            }
                         },
                         "executionStats": {
                             "full_app_id": "kb_fastqc/runFastQC",
@@ -249,7 +249,7 @@
                             "time_range": "*",
                             "total_exec_time": 14281.180732011795,
                             "total_queue_time": 4401.6533007621765,
-                            "type": "a",
+                            "type": "a"
                         },
                         "fsm": {"currentState": {"mode": "success"}},
                         "output": {
@@ -257,31 +257,31 @@
                                 "65bd2bdaab210ab10e5b0a37": {
                                     "cell": {"created": false},
                                     "createdAt": "Fri, 02 Feb 2024 17:55:33 GMT",
-                                    "params": {"input_file_ref": "72233/3/1"},
+                                    "params": {"input_file_ref": "72233/3/1"}
                                 }
                             }
                         },
                         "paramDisplay": {},
                         "params": {"input_file_ref": "72233/3/1"},
-                        "user-settings": {"showCodeInputArea": false},
+                        "user-settings": {"showCodeInputArea": false}
                     },
                     "attributes": {
                         "created": "Fri, 02 Feb 2024 17:52:19 GMT",
                         "id": "f1f60570-d659-4e10-ac70-803aac4a24a6",
                         "info": {
                             "label": "more...",
-                            "url": "/#appcatalog/app/kb_fastqc/runFastQC/release",
+                            "url": "/#appcatalog/app/kb_fastqc/runFastQC/release"
                         },
                         "lastLoaded": "Wed, 21 Feb 2024 16:31:03 GMT",
                         "status": "new",
                         "subtitle": "A quality control application for high throughput sequence data.",
-                        "title": "Assess Read Quality with FastQC - v0.11.5",
+                        "title": "Assess Read Quality with FastQC - v0.11.5"
                     },
-                    "type": "app",
+                    "type": "app"
                 }
             },
             "outputs": [],
-            "source": 'from biokbase.narrative.jobs.appmanager import AppManager\nAppManager().run_app(\n    "kb_fastqc/runFastQC",\n    {\n        "input_file_ref": "72233/3/1"\n    },\n    tag="release",\n    version="1.1.0",\n    cell_id="f1f60570-d659-4e10-ac70-803aac4a24a6",\n    run_id="62da1c89-acd3-40f5-867d-51d215f72953"\n)',
+            "source": "from biokbase.narrative.jobs.appmanager import AppManager\nAppManager().run_app(\n    \"kb_fastqc/runFastQC\",\n    {\n        \"input_file_ref\": \"72233/3/1\"\n    },\n    tag=\"release\",\n    version=\"1.1.0\",\n    cell_id=\"f1f60570-d659-4e10-ac70-803aac4a24a6\",\n    run_id=\"62da1c89-acd3-40f5-867d-51d215f72953\"\n)"
         },
         {
             "cell_type": "code",
@@ -295,24 +295,24 @@
                         "lastLoaded": "Mon, 12 Feb 2024 21:22:07 GMT",
                         "status": "new",
                         "subtitle": "python",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
                     "codeCell": {"user-settings": {"showCodeInputArea": true}},
-                    "type": "code",
+                    "type": "code"
                 }
             },
             "outputs": [
                 {
                     "data": {
-                        "text/html": '\n            <table class="table table-bordered table-striped table-condensed">\n                <tr>\n                    <th>Id</th>\n                    <th>Name</th>\n                    <th>Submitted</th>\n                    <th>Batch ID</th>\n                    <th>Submitted By</th>\n                    <th>Status</th>\n                    <th>Run Time</th>\n                    <th>Complete Time</th>\n                </tr>\n                \n                <tr>\n                    <td class="job_id">65bd2bdaab210ab10e5b0a37</td>\n                    <td class="app_id">kb_fastqc/runFastQC</td>\n                    <td class="created">2024-02-02 17:52:26</td>\n                    <td class="batch_id">None</td>\n                    <td class="user">wjriehl</td>\n                    <td class="status">completed</td>\n                    <td class="run_time">0:02:55</td>\n                    <td class="finish_time">2024-02-02 17:55:33</td>\n                </tr>\n                \n            </table>\n            ',
-                        "text/plain": "<IPython.core.display.HTML object>",
+                        "text/html": "\n            <table class=\"table table-bordered table-striped table-condensed\">\n                <tr>\n                    <th>Id</th>\n                    <th>Name</th>\n                    <th>Submitted</th>\n                    <th>Batch ID</th>\n                    <th>Submitted By</th>\n                    <th>Status</th>\n                    <th>Run Time</th>\n                    <th>Complete Time</th>\n                </tr>\n                \n                <tr>\n                    <td class=\"job_id\">65bd2bdaab210ab10e5b0a37</td>\n                    <td class=\"app_id\">kb_fastqc/runFastQC</td>\n                    <td class=\"created\">2024-02-02 17:52:26</td>\n                    <td class=\"batch_id\">None</td>\n                    <td class=\"user\">wjriehl</td>\n                    <td class=\"status\">completed</td>\n                    <td class=\"run_time\">0:02:55</td>\n                    <td class=\"finish_time\">2024-02-02 17:55:33</td>\n                </tr>\n                \n            </table>\n            ",
+                        "text/plain": "<IPython.core.display.HTML object>"
                     },
                     "execution_count": 1,
                     "metadata": {},
-                    "output_type": "execute_result",
+                    "output_type": "execute_result"
                 }
             ],
-            "source": "from biokbase.narrative.jobs.jobmanager import JobManager\njm = JobManager()\njm.list_jobs()",
+            "source": "from biokbase.narrative.jobs.jobmanager import JobManager\njm = JobManager()\njm.list_jobs()"
         },
         {
             "cell_type": "code",
@@ -325,14 +325,14 @@
                         "id": "d9021151-d0ce-4e07-8ccf-642637105cc9",
                         "lastLoaded": "Mon, 12 Feb 2024 21:22:25 GMT",
                         "status": "new",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
                     "codeCell": {"user-settings": {"showCodeInputArea": true}},
-                    "type": "code",
+                    "type": "code"
                 }
             },
             "outputs": [],
-            "source": 'ws = biokbase.narrative.clients.get("workspace")',
+            "source": "ws = biokbase.narrative.clients.get(\"workspace\")"
         },
         {
             "cell_type": "code",
@@ -345,10 +345,10 @@
                         "id": "5aa3a847-0a4e-413c-86ec-c576c0bc2231",
                         "lastLoaded": "Mon, 12 Feb 2024 21:23:43 GMT",
                         "status": "new",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
                     "codeCell": {"user-settings": {"showCodeInputArea": true}},
-                    "type": "code",
+                    "type": "code"
                 }
             },
             "outputs": [
@@ -358,10 +358,10 @@
                     },
                     "execution_count": 6,
                     "metadata": {},
-                    "output_type": "execute_result",
+                    "output_type": "execute_result"
                 }
             ],
-            "source": 'ws.copy_object({"from": {"ref": "72233/4/1"}, "to": {"wsid": 72233, "name": "copied_report"}})',
+            "source": "ws.copy_object({\"from\": {\"ref\": \"72233/4/1\"}, \"to\": {\"wsid\": 72233, \"name\": \"copied_report\"}})"
         },
         {
             "cell_type": "code",
@@ -374,14 +374,14 @@
                         "id": "0f868230-4581-46aa-9dcf-3737cb206faa",
                         "lastLoaded": "Mon, 12 Feb 2024 21:23:48 GMT",
                         "status": "new",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
                     "codeCell": {"user-settings": {"showCodeInputArea": true}},
-                    "type": "code",
+                    "type": "code"
                 }
             },
             "outputs": [],
-            "source": 'narr = ws.get_objects2({"objects": [{"ref": "72233/1/5"}]})["data"][0]',
+            "source": "narr = ws.get_objects2({\"objects\": [{\"ref\": \"72233/1/5\"}]})[\"data\"][0]"
         },
         {
             "cell_type": "code",
@@ -394,10 +394,10 @@
                         "id": "029c6488-269b-4c95-b45b-040269d3d20f",
                         "lastLoaded": "Wed, 21 Feb 2024 16:31:37 GMT",
                         "status": "new",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
                     "codeCell": {"user-settings": {"showCodeInputArea": true}},
-                    "type": "code",
+                    "type": "code"
                 }
             },
             "outputs": [
@@ -407,10 +407,10 @@
                     },
                     "execution_count": 9,
                     "metadata": {},
-                    "output_type": "execute_result",
+                    "output_type": "execute_result"
                 }
             ],
-            "source": 'narr["data"]["cells"]',
+            "source": "narr[\"data\"][\"cells\"]"
         },
         {
             "cell_type": "code",
@@ -423,14 +423,14 @@
                         "id": "b28447b5-bec6-4967-aacd-8bf17eca7503",
                         "lastLoaded": "Wed, 21 Feb 2024 16:32:15 GMT",
                         "status": "new",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
                     "codeCell": {"user-settings": {"showCodeInputArea": true}},
-                    "type": "code",
+                    "type": "code"
                 }
             },
             "outputs": [],
-            "source": "",
+            "source": ""
         },
         {
             "cell_type": "markdown",
@@ -440,13 +440,13 @@
                         "created": [2024, 2, 21, 20, 52, 40, 2, 52, 0],
                         "icon": "paragraph",
                         "id": "4dd7e0f0-e703-441e-94f0-9dc89ad1aba5",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
-                    "type": "markdown",
+                    "type": "markdown"
                 }
             },
             "outputs": [],
-            "source": "This is a new markdown cell.\n# BEHOLD!",
+            "source": "This is a new markdown cell.\n# BEHOLD!"
         },
         {
             "cell_type": "markdown",
@@ -456,14 +456,14 @@
                         "created": [2024, 2, 22, 19, 11, 46, 3, 53, 0],
                         "icon": "paragraph",
                         "id": "04d095b1-c13c-4be5-bea0-bc43938a7199",
-                        "title": "Code Cell",
+                        "title": "Code Cell"
                     },
-                    "type": "markdown",
+                    "type": "markdown"
                 }
             },
             "outputs": [],
-            "source": "## Agent Markdown Cell\n**This is a test piece of markdown.**",
-        },
+            "source": "## Agent Markdown Cell\n**This is a test piece of markdown.**"
+        }
     ],
     "metadata": {
         "creator": "wjriehl",
@@ -474,22 +474,22 @@
         "job_ids": {
             "apps": [],
             "job_usage": {"queue_time": 0, "run_time": 0},
-            "methods": [],
+            "methods": []
         },
         "kbase": {
             "creator": "wjriehl",
             "job_ids": {
                 "apps": [],
                 "job_usage": {"queue_time": 0, "run_time": 0},
-                "methods": [],
+                "methods": []
             },
             "name": "Untitled",
-            "ws_name": "wjriehl:narrative_1706895747734",
+            "ws_name": "wjriehl:narrative_1706895747734"
         },
         "kernelspec": {
             "display_name": "Python 3 (ipykernel)",
             "language": "python",
-            "name": "python3",
+            "name": "python3"
         },
         "language_info": {
             "codemirror_mode": {"name": "ipython", "version": 3},
@@ -498,12 +498,12 @@
             "name": "python",
             "nbconvert_exporter": "python",
             "pygments_lexer": "ipython3",
-            "version": "3.10.7",
+            "version": "3.10.7"
         },
         "name": "Genome paper LLM work",
         "type": "KBaseNarrative.Narrative",
-        "ws_name": "wjriehl:narrative_1706895747734",
+        "ws_name": "wjriehl:narrative_1706895747734"
     },
     "nbformat": 4,
-    "nbformat_minor": 1,
+    "nbformat_minor": 1
 }
