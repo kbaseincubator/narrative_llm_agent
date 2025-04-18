@@ -4,7 +4,7 @@ from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from pydantic import BaseModel, Field
-from langchain.tools import tool
+from crewai.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
@@ -48,7 +48,7 @@ class WorkspaceAgent(KBaseAgent):
         self.__init_agent()
 
     def __init_agent(self: "WorkspaceAgent"):
-        @tool("list-objects", args_schema=NarrativeInput, return_direct=False)
+        @tool("list objects")
         def list_objects_tool(narrative_id: int) -> str:
             """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted
             list of all objects in a narrative. The narrative_id input must be an integer. Do not
@@ -60,7 +60,7 @@ class WorkspaceAgent(KBaseAgent):
                 )
             )
 
-        @tool("get-report", args_schema=UpaInput, return_direct=False)
+        @tool("get report")
         def get_report_tool(upa: str) -> str:
             """Fetch a report object from a KBase Narrative. This returns the full report in plain text.
             It should be an informational summary of the result of a bioinformatics application. The upa
@@ -70,7 +70,7 @@ class WorkspaceAgent(KBaseAgent):
             blobstore = Blobstore(token=self._token)
             return get_report(process_tool_input(upa, "upa"), ws, blobstore)
 
-        @tool("get-report-from-job-id", args_schema=JobInput, return_direct=False)
+        @tool("get report from job id")
         def get_report_from_job_id_tool(job_id: str) -> str:
             """Fetch a report object from a KBase Narrative."""
             ws = Workspace(token=self._token)
@@ -80,7 +80,7 @@ class WorkspaceAgent(KBaseAgent):
                 process_tool_input(job_id, "job_id"), ee, ws, blobstore
             )
 
-        @tool("get-object", args_schema=UpaInput, return_direct=False)
+        @tool("get object")
         def get_object_tool(upa: str) -> dict:
             """Fetch a particular object from a KBase Narrative. This returns a JSON-formatted data object
             from the Workspace service. Its format is dependent on the data type. The upa input must be a
@@ -88,7 +88,7 @@ class WorkspaceAgent(KBaseAgent):
             ws = Workspace(token=self._token)
             return ws.get_objects([process_tool_input(upa, "upa")])[0]
 
-        @tool("Get object name", return_direct=False)
+        @tool("Get object name")
         def get_object_name_tool(upa: str) -> str:
             """Get the name of a data object from its UPA. This returns the name string. An UPA input must
             be a string with the format number/number/number."""

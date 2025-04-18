@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from langchain_chroma import Chroma
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.chains import RetrievalQA
-from langchain.tools import tool
+from crewai.tools import tool
 import os
 from pathlib import Path
 from narrative_llm_agent.kbase.clients.narrative_method_store import (
@@ -80,8 +80,8 @@ class AnalystAgent(KBaseAgent):
         for db_path in [self._catalog_db_dir, self._docs_db_dir, self._tutorial_db_dir]:
             self.__check_db_directories(db_path)
         self.__init_agent()
-    
-        
+
+
     def __check_db_directories(self, db_path: Path) -> None:
         """
         Checks for presence of the expected database directory. Doesn't look for all files,
@@ -122,7 +122,7 @@ class AnalystAgent(KBaseAgent):
                 model=model,
                 temperature=0,
                 api_key=self._api_key,
-                base_url="https://api.cborg.lbl.gov" 
+                base_url="https://api.cborg.lbl.gov"
             )
         else:
             return ChatOpenAI(
@@ -141,7 +141,7 @@ class AnalystAgent(KBaseAgent):
             return NomicEmbeddings(nomic_api_key=os.environ.get("NOMIC_API_KEY"),
                                      model="nomic-embed-text-v1.5",
                                      dimensionality=768)
-            
+
     def __init_agent(self: "AnalystAgent") -> None:
         # cfg = RunnableConfig()
         # Check if running with Chainlit

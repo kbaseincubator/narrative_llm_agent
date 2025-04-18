@@ -2,7 +2,7 @@ from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from pydantic import BaseModel, Field
-from langchain.tools import tool
+from crewai.tools import tool
 from narrative_llm_agent.tools.information_tool import InformationTool
 from langchain.tools.render import format_tool_to_openai_function
 from langchain.agents.format_scratchpad import format_to_openai_function_messages
@@ -52,7 +52,7 @@ class KGAgent(KBaseAgent):
         # else:
         human_tools = load_tools(["human"])
 
-        @tool("KG retrieval tool", args_schema=KGInput, return_direct=True)
+        @tool("KG retrieval tool")
         def KGretrieval_tool(input: str):
             """This tool has the KBase app Knowledge Graph. Useful for when you need to find the KBase applications and their tooltip, version, category and data objects.
             The input should always be a KBase app name and should not include any special characters or version number."""
