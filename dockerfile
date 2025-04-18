@@ -37,5 +37,10 @@ WORKDIR /app/narrative_llm_agent/user_interface
 # Expose the port the app runs on
 EXPOSE 8501
 
+RUN mkdir -p /home/agent_runner && \
+    useradd agent_runner -u96921 -d/home/agent_runner && \
+    chown 96921 /home/agent_runner
+
+
 # Command to run the app
 CMD ["poetry", "run", "streamlit", "run", "genome_annotation_pipeline_streamlit.py"]

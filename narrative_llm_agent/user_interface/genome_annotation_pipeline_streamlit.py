@@ -42,7 +42,7 @@ class NarrativeState(TypedDict):
 def extract_json_from_string(string_data):
     # Use regex to find the JSON content within the string
     json_match = re.search(r'\[.*\]', string_data, re.DOTALL)
-    
+
     if json_match:
         json_str = json_match.group(0)
         try:
@@ -65,7 +65,7 @@ def load_kbase_classes():
         from narrative_llm_agent.agents.kbase_agent import KBaseAgent
         from narrative_llm_agent.agents.analyst import AnalystAgent
         from narrative_llm_agent.agents.metadata import MetadataAgent
-        
+
         class AppRunInputs(BaseModel):
             narrative_id: int
             app_id: str
@@ -76,10 +76,10 @@ def load_kbase_classes():
             role: str = "You are a workflow runner, your role is to efficiently run KBase workflows."
             goal: str = "Your goal is to create and run elegant and scientifically meaningful computational biology workflows."
             backstory: str = "You are a dedicated and effective computational biologist. You have deep knowledge of how to run workflows in the DOE KBase system and have years of experience using this to produce high quality scientific knowledge."
-            
+
             def __init__(self, llm, token: str = None):
                 from langchain.tools import tool
-                
+
                 self.job_crew = JobCrew(llm)
                 self._llm = llm
                 self._token = token
@@ -92,7 +92,7 @@ def load_kbase_classes():
                     UPA of the input object.
                     """
                     return self.run_app_crew(narrative_id, app_id, input_object_upa)
-                    
+
                 self.agent = Agent(
                     role=self.role,
                     goal=self.goal,
@@ -105,12 +105,12 @@ def load_kbase_classes():
                     allow_delegation=False,
                     memory=True,
                 )
-            
+
             def run_app_crew(self, narrative_id: int, app_id: str, input_object_upa: str):
                 return self.job_crew.start_job(app_id, input_object_upa, narrative_id, app_id=app_id)
-                
+
         return True, {"WorkflowRunner": WorkflowRunner, "AnalystAgent": AnalystAgent}
-        
+
     except ImportError as e:
         return False, f"ImportError: {str(e)}"
     except Exception as e:
@@ -127,7 +127,7 @@ def initialize_llm_execution(api_key, provider):
         return LLM(model="gpt-4o",
         api_key=api_key, # For LBL-Net, use "https://api-local.cborg.lbl.gov"
         temperature=0)
-# Initialize LLM for planning   
+# Initialize LLM for planning
 def initialize_llm_planning(api_key, provider):
     if provider == "cborg":
         return LLM(model="openai/openai/o1",
@@ -143,21 +143,21 @@ def initialize_llm_planning(api_key, provider):
 def analyst_node(state: NarrativeState):
     provider = st.session_state.credentials.get("provider", "openai")
     kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
-  
-    
+
+
     try:
         # Display progress in the UI
         progress_placeholder = st.empty()
         progress_placeholder.info("📊 Running analysis planning...")
-        
+
         # Get the existing description from the state
         description = state["description"]
-        
+
         # Add a check for KBase classes
         success, result = load_kbase_classes()
         AnalystAgent = result["AnalystAgent"]
-        
-    
+
+
         if provider == "cborg":
             llm = initialize_llm_planning(st.session_state.credentials["cborg_api_key"], provider)
             cborg_api_key = st.session_state.credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
@@ -176,7 +176,7 @@ def analyst_node(state: NarrativeState):
                 "steps_to_run": None,
                 "error": result
             }
-        
+
         # Create the analysis task
         analysis_agent_task = Task(
             description=description,
@@ -184,36 +184,38 @@ def analyst_node(state: NarrativeState):
             output_json=AnalysisPipeline,
             agent=analyst_expert.agent
         )
-        
+
         # Create and run the crew
         crew = Crew(
             agents=[analyst_expert.agent],
             tasks=[analysis_agent_task],
             verbose=True,
         )
-        
+
         # Update UI
         progress_placeholder.info("📊 Generating analysis plan...")
-        
+
         # Run the crew
         output = crew.kickoff()
-        
+
         # Extract the JSON from the output
         analysis_plan = extract_json_from_string(output.raw)
-        
+
         # Update UI
         progress_placeholder.success("✅ Analysis plan generated successfully")
-        
+
         # Return updated state with analysis plan
         return {
             **state,
             "analysis_plan": analysis_plan,
-            "steps_to_run": analysis_plan,  
+            "steps_to_run": analysis_plan,
             "error": None
         }
     except Exception as e:
         # Handle errors
         st.error(f"Error in analyst node: {str(e)}")
+        import traceback
+        st.error(traceback.format_exception(e))
         return {
             **state,
             "analysis_plan": None,
@@ -228,17 +230,17 @@ def workflow_runner_node(state: NarrativeState):
         llm_execution = initialize_llm_execution(st.session_state.credentials["cborg_api_key"], provider)
     else:
         llm_execution = initialize_llm_execution(st.session_state.credentials["openai_api_key"], provider)
-    
+
     kb_auth_token = st.session_state.credentials.get("kb_auth_token", "")
     try:
         # Display progress in the UI
         progress_placeholder = st.empty()
         progress_placeholder.info("🔬 Running workflow...")
-        
+
         steps_to_run = state["steps_to_run"]
         narrative_id = state["narrative_id"]
         reads_id = state["reads_id"]
-        
+
         # Add a check for KBase classes
         success, result = load_kbase_classes()
         if not success:
@@ -247,20 +249,20 @@ def workflow_runner_node(state: NarrativeState):
                 "results": None,
                 "error": result
             }
-        
+
         WorkflowRunner = result["WorkflowRunner"]
-        
+
         # Initialize the workflow runner
         wf_runner = WorkflowRunner(llm_execution, token=kb_auth_token)
-        
+
         # Create the task
         run_apps_task = Task(
             description=f"""
-            This task involves running multiple apps where the output of one (if any) is fed into the next as input. 
+            This task involves running multiple apps where the output of one (if any) is fed into the next as input.
             Here are the tasks in JSON format: {json.dumps(steps_to_run)}.
             If any task has "expect_new_object" set to True, then that should receive a new data object in its output as a "created_object". That object should be used as input for the next task.
             If a task as "expect_new_object" set to False, then that should not receive a new object to use in the next task. In that case, use the same input object from the previous step for the next one.
-            These steps must be run sequentially. 
+            These steps must be run sequentially.
             These must be run in the narrative with id {narrative_id} and start with using the paired-end reads object {reads_id}.
             If any step ends with an error, immediately stop the task and end with an error.
             In the end, return a brief summary of steps taken and resulting output objects.
@@ -268,32 +270,32 @@ def workflow_runner_node(state: NarrativeState):
             expected_output="A summary of task completion, the number of apps run, and the upa of any output objects.",
             agent=wf_runner.agent
         )
-        
+
         # Show step progress in UI
         progress_bar = st.progress(0)
         step_status = st.empty()
-        
+
         # Create and run the crew
         crew = Crew(
             agents=[wf_runner.agent],
             tasks=[run_apps_task],
             verbose=True,
         )
-        
+
         # Update UI with step progress simulation
         total_steps = len(steps_to_run)
         for i, step in enumerate(steps_to_run):
             step_status.info(f"Running step {step['Step']}: {step['Name']} using {step['app_id']}")
             progress_bar.progress((i + 0.5) / total_steps)
             # In a real implementation, you would wait for actual completion
-        
+
         # Run the workflow
         result = crew.kickoff()
-        
+
         # Update UI
         progress_bar.progress(1.0)
         progress_placeholder.success("✅ Workflow completed successfully")
-        
+
         # Return updated state with results
         return {
             **state,
@@ -319,17 +321,17 @@ def router(state):
 # Error handler function
 def handle_error(state):
     return {**state, "results": f"Error: {state['error']}"}
-    
+
 # Build the complete graph with both analyst and workflow nodes
 def build_genome_analysis_graph():
     # Create a new graph
     genome_graph = StateGraph(NarrativeState)
-    
+
     # Add the nodes
     genome_graph.add_node("analyst", analyst_node)
     genome_graph.add_node("run_workflow", workflow_runner_node)
     genome_graph.add_node("handle_error", lambda state: {**state, "results": f"Error: {state['error']}"})
-    
+
     # Define the edges with the router
     genome_graph.add_conditional_edges(
         "analyst",
@@ -341,24 +343,24 @@ def build_genome_analysis_graph():
     )
     genome_graph.add_edge("run_workflow", END)
     genome_graph.add_edge("handle_error", END)
-    
+
     # Set the entry point
     genome_graph.set_entry_point("analyst")
-    
+
     # Compile the graph
     return genome_graph.compile()
-    
+
 # Main analysis pipeline function
 def run_genome_analysis(narrative_id, reads_id, description, credentials):
     # Get credentials
     kb_auth_token = credentials.get("kb_auth_token", "")
     cborg_api_key = credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
-    
+
     # Use the environment variables directly
     neo4j_uri = os.environ.get("NEO4J_URI", "")
     neo4j_username = os.environ.get("NEO4J_USERNAME", "")
     neo4j_password = os.environ.get("NEO4J_PASSWORD", "")
-    
+
     # Ensure environment variables are set for the current session
     if not os.environ.get("NEO4J_URI"):
         os.environ["NEO4J_URI"] = neo4j_uri
@@ -370,7 +372,7 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
         os.environ["KB_AUTH_TOKEN"] = kb_auth_token
     if not os.environ.get("CBORG_API_KEY"):
         os.environ["CBORG_API_KEY"] = cborg_api_key
-    
+
     graph = build_genome_analysis_graph()
     # Initialize state
     state = {
@@ -382,7 +384,7 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
         "results": None,
         "error": None
     }
-    
+
     final_state = graph.invoke(state)
     #final_state = analyst_node(state)
     return final_state
@@ -390,16 +392,16 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
 def display_provider_selection():
     # Provider selection with dropdown
     provider = st.selectbox(
-        "LLM Provider", 
+        "LLM Provider",
         options=["openai", "cborg"],
         index=0 if st.session_state.get("provider", "openai") == "openai" else 1,
         format_func=lambda x: "OpenAI" if x == "openai" else "CBORG (LBL)"
     )
-    
+
     # Update session state when provider changes
     if st.session_state.get("provider") != provider:
         st.session_state.provider = provider
-    
+
     return provider
 
 
@@ -407,20 +409,20 @@ def display_credentials_form():
     with st.expander("🔑 KBase Credentials", expanded=True):
         #Provider selection
         provider = display_provider_selection()
-        
+
         # Keep KB Auth Token input
-        kb_auth_token = st.text_input("KB Auth Token", 
-                                    value=st.session_state.get("kb_auth_token", ""), 
+        kb_auth_token = st.text_input("KB Auth Token",
+                                    value=st.session_state.get("kb_auth_token", ""),
                                     type="password")
-        
+
         # API Key input with environment variable fallback, depending on the provider
         if provider == "cborg":
-            api_key = st.text_input("CBORG API Key", 
-                                    value=st.session_state.get("cborg_api_key", os.environ.get("CBORG_API_KEY", "")), 
+            api_key = st.text_input("CBORG API Key",
+                                    value=st.session_state.get("cborg_api_key", os.environ.get("CBORG_API_KEY", "")),
                                     type="password")
         else:
-            api_key = st.text_input("CBORG API Key", 
-                                    value=st.session_state.get("cborg_api_key", os.environ.get("CBORG_API_KEY", "")), 
+            api_key = st.text_input("CBORG API Key",
+                                    value=st.session_state.get("cborg_api_key", os.environ.get("CBORG_API_KEY", "")),
                                     type="password")
         save = st.button("Save Credentials")
         if save:
@@ -433,7 +435,7 @@ def display_credentials_form():
                 f"{provider}_api_key": api_key,
                 "kb_auth_token": kb_auth_token,
             }
-            
+
             # Also save individual values for convenience
             st.session_state.neo4j_uri = os.environ.get("NEO4J_URI", "")
             st.session_state.neo4j_username = os.environ.get("NEO4J_USERNAME", "")
@@ -441,9 +443,9 @@ def display_credentials_form():
             st.session_state.kb_auth_token = kb_auth_token
             st.session_state.provider = provider
             st.session_state[f"{provider}_api_key"] = api_key
-            
+
             st.success("Credentials saved to session!")
-    
+
     # Check if credentials exist in session
     if not st.session_state.get("credentials"):
         provider = st.session_state.get("provider", "openai")
@@ -460,23 +462,23 @@ def display_credentials_form():
 
 def display_input_form():
     st.subheader("📝 Analysis Parameters")
-    
-   
+
+
     narrative_id = st.text_input("Narrative ID", value="210107")
     reads_id = st.text_input("Reads ID", value="210107/2/1")
-    
-    description = st.text_area("Analysis Description", height=200, 
+
+    description = st.text_area("Analysis Description", height=200,
                                value="""I have uploaded paired-end sequencing reads obtained from Illumina sequencing for an isolate Bacillus subtilis sp. strain UAMC into the narrative.
-I want you to generate an analysis plan for annotating the uploaded pair end reads obtained from Illumina sequencing for a isolate genome for me using KBase apps. 
+I want you to generate an analysis plan for annotating the uploaded pair end reads obtained from Illumina sequencing for a isolate genome for me using KBase apps.
 The goal is to have a complete annotated genome and classify the microbe
 This analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
-- The analysis steps should begin with read quality assessment. 
+- The analysis steps should begin with read quality assessment.
 - Make sure you select appropriate KBase apps based on genome type.
 -Relevant statistics for the assembly (e.g., number of contigs and N50 values).
 -Estimates of genome completeness, where applicable.
 -Classify the microbe for taxonomy, where relevant.
 Based on the metadata, devise a detailed step-by-step analysis workflow, the apps and app_ids should be from the app graph.
-The analysis plan should be a json with schema as: 
+The analysis plan should be a json with schema as:
 ```json
 {{"Step": "Integer number indicating the step",
  "Description": "Describe the step",
@@ -485,16 +487,16 @@ The analysis plan should be a json with schema as:
  "app_id": "Id of the KBase app"}}
 ```
 Ensure that app_ids are obtained from the app graph and are correct.
-If there are multiple apps returned from the app graph select the one that makes the most sense. 
+If there are multiple apps returned from the app graph select the one that makes the most sense.
 Make sure that the input data object will be available from previous steps.
 Make sure that the analysis plan is included in the final response.
 """)
-    
+
     return narrative_id, reads_id, description
 
 def display_results(state):
     st.subheader("📊 Analysis Plan")
-    
+
     if state["analysis_plan"]:
         # Create a table for the analysis steps
         data = []
@@ -506,7 +508,7 @@ def display_results(state):
                 step["app_id"],
                 "Yes" if step["expect_new_object"] else "No"
             ])
-        
+
         st.table({
             "Step": [row[0] for row in data],
             "Name": [row[1] for row in data],
@@ -514,17 +516,17 @@ def display_results(state):
             "App ID": [row[3] for row in data],
             "Creates Object": [row[4] for row in data]
         })
-    
+
     if state["results"]:
         st.subheader("🧪 Workflow Results")
-        
+
         # Handle various result formats
         if isinstance(state["results"], dict):
             if "summary" in state["results"]:
                 st.success(state["results"]["summary"])
                 if "apps_run" in state["results"]:
                     st.metric("Apps Run", state["results"]["apps_run"])
-                
+
                 if "output_objects" in state["results"]:
                     st.subheader("Output Objects")
                     for obj in state["results"]["output_objects"]:
@@ -541,20 +543,20 @@ def display_results(state):
             except:
                 # Fall back to simple display
                 st.write(state["results"])
-    
+
     if state["error"]:
         st.error(f"Error: {state['error']}")
 
 def display_connection_test():
     st.subheader("🔌 Connection Test")
-    
+
     if st.button("Test KBase Connection"):
         try:
             # Check for credentials
             if not st.session_state.get("credentials", {}).get("kb_auth_token"):
                 st.warning("KB Auth Token not found in session. Please save your credentials first.")
                 return
-                
+
             # Check if libraries can be imported
             with st.spinner("Testing KBase libraries..."):
                 success, result = load_kbase_classes()
@@ -564,14 +566,14 @@ def display_connection_test():
                     st.error(f"❌ Failed to load KBase libraries: {result}")
                     st.info("Make sure the required libraries are installed: `narrative_llm_agent`, `crewai`, `langgraph`, etc.")
                     return
-            
+
             # Try to initialize LLM
             with st.spinner("Testing LLM connection..."):
                 api_key = st.session_state.credentials["cborg_api_key"] if st.session_state.credentials["provider"] == "cborg" else st.session_state.credentials["openai_api_key"]
                 if not api_key:
                     st.warning("CBORG API Key not found in session. Please save your credentials first.")
                     return
-                    
+
                 try:
                     provider = st.session_state.credentials.get("provider", "openai")
                     if provider == "cborg":
@@ -586,15 +588,15 @@ def display_connection_test():
                 except Exception as e:
                     st.error(f"❌ Failed to initialize LLM: {str(e)}")
                     return
-            
+
             st.success("✅ All connections successful! You're ready to run analyses.")
-            
+
         except Exception as e:
             st.error(f"❌ Connection test failed: {str(e)}")
 
 def display_debug_info():
     st.subheader("🐛 Debug Information")
-    
+
     with st.expander("Show Environment Variables", expanded=False):
         env_vars = {
             "NEO4J_URI": os.environ.get("NEO4J_URI", "Not set"),
@@ -602,7 +604,7 @@ def display_debug_info():
             "KB_AUTH_TOKEN": "***" if os.environ.get("KB_AUTH_TOKEN") else "Not set",
             "CBORG_API_KEY": "***" if os.environ.get("CBORG_API_KEY") else "Not set"
         }
-        
+
         for key, value in env_vars.items():
             st.code(f"{key}: {value}")
 
@@ -613,17 +615,17 @@ def main():
         st.session_state.credentials = {}
     if 'analysis_history' not in st.session_state:
         st.session_state.analysis_history = []
-    
+
     st.title("🧬 KBase Research Agent")
-    
+
     # Add tabs
     tab1, tab2, tab3 = st.tabs(["Run Analysis", "About", "Connection Test"])
-    
+
     with tab1:
         display_credentials_form()
-        
+
         narrative_id, reads_id, description = display_input_form()
-        
+
         # Dependency check
         try:
             import narrative_llm_agent
@@ -631,14 +633,14 @@ def main():
         except ImportError:
             has_dependencies = False
             st.warning("⚠️ KBase libraries not found. The app will run in demonstration mode with limited functionality.")
-        
+
         run_button = st.button("🚀 Run Analysis", type="primary", disabled=not has_dependencies)
-        
+
         if run_button:
             with st.spinner("Running analysis"):
                 # Run the analysis
                 state = run_genome_analysis(narrative_id, reads_id, description, st.session_state.credentials)
-                
+
                 # Save to history
                 st.session_state.analysis_history.append({
                     "timestamp": str(pd.Timestamp.now()),
@@ -646,10 +648,10 @@ def main():
                     "reads_id": reads_id,
                     "state": state
                 })
-                
+
                 # Display results
                 display_results(state)
-        
+
         # Show previous runs
         if st.session_state.analysis_history:
             st.subheader("Previous Analyses")
@@ -658,32 +660,32 @@ def main():
                     st.write(f"**Narrative ID:** {analysis['narrative_id']}")
                     st.write(f"**Reads ID:** {analysis['reads_id']}")
                     display_results(analysis['state'])
-    
+
     with tab2:
         st.subheader("About KBase Reasearch Agent")
         st.write("""
-        This application provides a streamlined interface for running analyses on the KBase platform. 
+        This application provides a streamlined interface for running analyses on the KBase platform.
         The workflow integrates several key steps:
-        
+
         1. **Analysis Planning**: An AI-powered analyst determines the optimal workflow for your genomic data
         2. **Workflow Execution**: The system executes the planned applications in sequence
         3. **Results Visualization**: View and interpret your results directly in this interface
-        
+
         The pipeline is built on KBase's extensive library of bioinformatics applications and is designed to simplify complex genomic analyses.
         """)
-        
+
         st.subheader("Technical Architecture")
         st.write("""
         This Streamlit app interfaces with several underlying technologies:
-        
+
         - **CrewAI**: Orchestrates intelligent agents for workflow planning and execution
         - **LangGraph**: Manages the state transitions in the analysis workflow
         - **KBase API**: Connects to the DOE KBase platform for bioinformatics tool execution
         - **LLM Integration**: Uses large language models to determine optimal analysis strategies
         """)
-        
+
         st.image("https://kbase.us/wp-content/uploads/2021/06/kbase-logo-full.png", width=300)
-        
+
     with tab3:
         display_connection_test()
         display_debug_info()
