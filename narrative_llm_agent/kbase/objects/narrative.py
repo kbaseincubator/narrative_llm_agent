@@ -205,7 +205,7 @@ class Narrative:
         cell_dict = {
             "cell_type": "markdown",
             "source": text,
-            "metadata": {"kbase": self._create_kbase_meta("markdown")}
+            "metadata": {"kbase": self._create_kbase_meta("markdown")},
         }
         new_cell = MarkdownCell(cell_dict)
         self._add_cell(new_cell)
@@ -316,7 +316,7 @@ class Narrative:
                 "title": title,
                 "icon": icon,
             },
-            "cellState": {"toggleMinMax": "maximized"}
+            "cellState": {"toggleMinMax": "maximized"},
         }
         if kbase_cell_type not in ["markdown"]:
             meta["type"] = kbase_cell_type
@@ -336,14 +336,14 @@ class Narrative:
 
     def get_current_state(
         self, ee_client: ExecutionEngine, as_json: bool = True
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | str:
         """
         Gets the current state of this narrative by the following means:
         1. Markdown and Code cells are left unchanged
         2. Various KBase cells are adjusted to not be quite as large. Metadata is reduced to the minimum to
            define what cell that is and what app (if any) exists in it.
         3. Any app cells get their job state (if any) looked up and updated.
-        4. The narrative is then returned as a dictionary.
+        4. The narrative is then returned as a dictionary, or a JSON string if as_json is True
         """
         cell_states = []
 
@@ -353,6 +353,8 @@ class Narrative:
                     "app_id": cell.app_id,
                     "app_name": cell.app_name,
                     "app_params": cell.params,
+                    "cell_type": "code",
+                    "metadata": {"kbase": {"type": "app"}},
                 }
                 if cell.job_state is not None:
                     job_id = cell.job_state.job_id
@@ -382,7 +384,9 @@ class Narrative:
         return narr_dict
 
     def get_markdown(self) -> list[MarkdownCell]:
-        md_cells:list[MarkdownCell] = filter(lambda x: x.cell_type == "markdown", self.cells)
+        md_cells: list[MarkdownCell] = filter(
+            lambda x: x.cell_type == "markdown", self.cells
+        )
         return list(md_cells)
 
     def to_dict(self) -> dict[str, Any]:

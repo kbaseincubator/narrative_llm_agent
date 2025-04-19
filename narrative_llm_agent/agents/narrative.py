@@ -1,16 +1,21 @@
+from narrative_llm_agent.tools.narrative_tools import (
+    create_app_cell,
+    create_markdown_cell,
+    get_all_markdown_text,
+    get_narrative_from_wsid,
+    get_narrative_state,
+)
 from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from pydantic import BaseModel, Field
 from langchain.tools import tool
 from narrative_llm_agent.util.tool import process_tool_input
-from narrative_llm_agent.util.narrative import NarrativeUtil
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.kbase.clients.narrative_method_store import (
     NarrativeMethodStore,
 )
-from narrative_llm_agent.kbase.objects.narrative import Narrative
 
 
 class NarrativeInput(BaseModel):
@@ -52,16 +57,22 @@ class NarrativeAgent(KBaseAgent):
             version of the Narrative document with the given id as a JSON-formatted string with the
             Narrative document structure. The narrative_id input must be numeric. Do not input a
             dictionary or JSON-formatted string."""
-            return self._get_narrative(process_tool_input(narrative_id, "narrative_id"))
+            narr = get_narrative_from_wsid(
+                process_tool_input(narrative_id, "narrative_id"),
+                Workspace(token=self._token),
+            )
+            return str(narr)
 
         @tool("get-narrative-state", args_schema=NarrativeInput, return_direct=False)
-        def get_narrative_state(narrative_id: int) -> str:
+        def get_narrative_state_tool(narrative_id: int) -> str:
             """Get the current state of a Narrative from the KBase workspace. This returns the most
             recent version of the Narrative document with the given id in a reduced format that can be
             more easily interpreted by an LLM with less confusion. The narrative_id input must be
             numeric. Do not input a dictionary or JSON-formatted string."""
-            return self._get_narrative_state(
-                process_tool_input(narrative_id, "narrative_id")
+            return get_narrative_state(
+                process_tool_input(narrative_id, "narrative_id"),
+                Workspace(token=self._token),
+                ExecutionEngine(token=self._token),
             )
 
         @tool("add-markdown-cell", args_schema=MarkdownCellInput, return_direct=False)
@@ -73,7 +84,10 @@ class NarrativeAgent(KBaseAgent):
             error occurs, an exception will be raised."""
             narrative_id = process_tool_input(narrative_id, "narrative_id")
             markdown_text = process_tool_input(markdown_text, "markdown_text")
-            return self._add_markdown_cell(narrative_id, markdown_text)
+            create_markdown_cell(
+                narrative_id, markdown_text, Workspace(token=self._token)
+            )
+            return "success"
 
         @tool("add-app-cell", args_schema=AppCellFromJobInput, return_direct=False)
         def add_app_cell(narrative_id: int, job_id: str) -> str:
@@ -84,7 +98,13 @@ class NarrativeAgent(KBaseAgent):
             error occurs, an exception will be raised."""
             narrative_id = process_tool_input(narrative_id, "narrative_id")
             job_id = process_tool_input(job_id, "job_id")
-            return self._add_app_cell(narrative_id, job_id)
+            return create_app_cell(
+                narrative_id,
+                job_id,
+                Workspace(token=self._token),
+                ExecutionEngine(token=self._token),
+                NarrativeMethodStore(),
+            )
 
         @tool("get-all-markdown-cells", return_direct=False)
         def get_all_narrative_markdown_cells(narrative_id: int) -> list[str]:
@@ -92,7 +112,7 @@ class NarrativeAgent(KBaseAgent):
             Get the text content of all markdown cells in the Narrative, as Markdown, in order.
             """
             narrative_id = process_tool_input(narrative_id, "narrative_id")
-            return self._get_all_markdown_text(narrative_id)
+            return get_all_markdown_text(narrative_id, Workspace(token=self._token))
 
         self.agent = Agent(
             role=self.role,
@@ -103,67 +123,10 @@ class NarrativeAgent(KBaseAgent):
                 get_narrative,
                 add_app_cell,
                 add_markdown_cell,
-                get_narrative_state,
-                get_all_narrative_markdown_cells
+                get_narrative_state_tool,
+                get_all_narrative_markdown_cells,
             ],
             llm=self._llm,
             allow_delegation=False,
             memory=True,
         )
-
-    def _get_narrative(
-        self, narrative_id: int, as_json: bool = True
-    ) -> str | Narrative:
-        """
-        Fetch a Narrative object from the Workspace service with given narrative id.
-        This is returned as a JSON string.
-        """
-        ws = Workspace(token=self._token)
-        narr_util = NarrativeUtil(ws)
-        narr = narr_util.get_narrative_from_wsid(narrative_id)
-        if as_json:
-            return str(narr)
-        return narr
-
-    def _get_narrative_state(self, narrative_id: int) -> str:
-        narr = self._get_narrative(narrative_id, as_json=False)
-        ee = ExecutionEngine(token=self._token)
-        return narr.get_current_state(ee)
-
-    def _add_markdown_cell(self, narrative_id: int, markdown_text: str) -> str:
-        """
-        Add a markdown cell to the Narrative object and save it. This inserts the given
-        markdown_text into ta new markdown cell. If successful, this returns the string
-        'success'.
-        """
-        ws = Workspace(token=self._token)
-        narr_util = NarrativeUtil(ws)
-        narr = narr_util.get_narrative_from_wsid(narrative_id)
-        narr.add_markdown_cell(markdown_text)
-        narr_util.save_narrative(narr, narrative_id)
-        return "success"
-
-    def _add_app_cell(self, narrative_id: int, job_id: str) -> str:
-        """
-        Add an app cell to the Narrative object and save it. This uses the job id to look
-        up all the app information required to rebuild an app cell. It adds the cell to the
-        bottom of the narrative in the state it was in during the last check. If successful,
-        this returns the string 'success'.
-        """
-        ws = Workspace(token=self._token)
-        ee = ExecutionEngine(token=self._token)
-        nms = NarrativeMethodStore()
-        job_state = ee.check_job(job_id)
-        app_spec = nms.get_app_spec(job_state.job_input.app_id)
-
-        narr_util = NarrativeUtil(ws)
-        narr = narr_util.get_narrative_from_wsid(narrative_id)
-        narr.add_app_cell(job_state, app_spec)
-        narr_util.save_narrative(narr, narrative_id)
-        return "success"
-
-    def _get_all_markdown_text(self, narrative_id: int) -> list[str]:
-        narr_util = NarrativeUtil(Workspace())
-        narr = narr_util.get_narrative_from_wsid(narrative_id)
-        md_cells = narr.get_markdown()
-        return [cell.source for cell in md_cells]
