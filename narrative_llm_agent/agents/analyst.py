@@ -119,7 +119,7 @@ class AnalystAgent(KBaseAgent):
         """
         if provider == "cborg":
             return ChatOpenAI(
-                model=model,
+                model="openai/"+ model,
                 temperature=0,
                 api_key=self._api_key,
                 base_url="https://api.cborg.lbl.gov" 
