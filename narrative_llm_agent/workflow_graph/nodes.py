@@ -290,8 +290,8 @@ class WorkflowNodes:
         return state.copy(update={
         "results": f"Error: {state.error or 'Unknown error'}"
         })
-
-
+    def workflow_end(self,state: WorkflowState):
+        return state.copy(update={"results": "✅ Workflow complete."})
 # functional-style access to the node methods
 def create_workflow_nodes(token=None, llm_factory=None):
     """
