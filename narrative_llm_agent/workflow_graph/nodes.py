@@ -5,7 +5,7 @@ from narrative_llm_agent.agents.analyst import AnalystAgent
 from narrative_llm_agent.util.json_util import extract_json_from_string, extract_json_from_string_curly
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional, TypedDict
-from narrative_llm_agent.llm_factory import get_llm
+from narrative_llm_agent.config import get_llm
 import json
 import os
 
@@ -19,17 +19,7 @@ class AnalysisStep(BaseModel):
     app_id: str
     input_data_object: List[str]
     output_data_object: List[str]
-# class AnalysisStepWithUPA(BaseModel):
-#     Step: int
-#     Name: str
-#     App: str
-#     Description: str
-#     expect_new_object: bool
-#     app_id: str
-#     input_data_object: List[str]
-#     output_data_object: List[str]
-#     input_object_upa: Optional[str]
-# # Define a model for the complete workflow
+# Define a model for the complete workflow
 class AnalysisPipeline(BaseModel):
     steps_to_run: List[AnalysisStep]
 class WorkflowDecision(BaseModel):
@@ -38,16 +28,16 @@ class WorkflowDecision(BaseModel):
     input_object_upa: Optional[str]
     modified_next_steps: List[AnalysisStep] = []
 # Define the state schema
-class WorkflowState(TypedDict):
+class WorkflowState(BaseModel):
     description: str 
-    steps_to_run: List[Dict[str, Any]]
-    last_executed_step: Dict[str, Any]
+    steps_to_run: Optional[List[Dict[str, Any]]] = None
+    last_executed_step: Optional[Dict[str, Any]] = None
     narrative_id: int
     reads_id: str
-    step_result: Optional[str]
-    input_object_upa: Optional[str]
-    error: Optional[str]
-    results: Optional[str]
+    step_result: Optional[str] = None
+    input_object_upa: Optional[str] = None
+    error: Optional[str] = None
+    results: Optional[str] = None
 
 
 class WorkflowNodes:
@@ -69,7 +59,6 @@ class WorkflowNodes:
         self.token = token or os.environ.get("KB_AUTH_TOKEN")
         if not self.token:
             raise ValueError("KB_AUTH_TOKEN must be provided either as parameter or environment variable")
-        
         self.llm_factory = get_llm
     
     def analyst_node(self, state: WorkflowState):
@@ -84,7 +73,7 @@ class WorkflowNodes:
         """
         try:
             # Get the existing description from the state
-            description = state["description"]
+            description = state.description
             
             # Initialize the analyst agent
             llm = self.llm_factory("gpt-o1-cborg")
@@ -116,18 +105,10 @@ class WorkflowNodes:
             analysis_plan = extract_json_from_string(output.raw)
             
             # Return updated state with analysis plan
-            return {
-                **state,
-                "steps_to_run": analysis_plan,  
-                "error": None
-            }
+            return state.copy(update={"steps_to_run": analysis_plan, "error": None})
         except Exception as e:
-            # Handle errors
-            return {
-                **state,
-                "steps_to_run": None,
-                "error": str(e)
-            }
+            return state.copy(update={"steps_to_run": None, "error": str(e)})
+
 
     def workflow_runner_node(self, state: WorkflowState):
         """
@@ -140,10 +121,10 @@ class WorkflowNodes:
             WorkflowState: Updated workflow state with execution results.
         """
         try:
-            steps_to_run = state["steps_to_run"]
-            narrative_id = state["narrative_id"]
-            reads_id = state["reads_id"]
-            input_object_upa = state.get("input_object_upa", None)
+            steps_to_run = state.steps_to_run
+            narrative_id = state.narrative_id
+            reads_id = state.reads_id
+            input_object_upa = state.input_object_upa
             # Get the current step and remaining steps
             current_step = steps_to_run[0]
             print("current step to run:", current_step)
@@ -179,20 +160,14 @@ class WorkflowNodes:
             result = crew.kickoff()
             
             # Return updated state with results
-            return {
-                **state,
+            return state.copy(update={
                 "step_result": result,
                 "steps_to_run": remaining_steps,
                 "last_executed_step": current_step,
                 "error": None
-            }
+            })
         except Exception as e:
-            # Handle errors
-            return {
-                **state,
-                "results": None,
-                "error": str(e)
-            }
+            return state.copy(update={"results": None, "error": str(e)})
     
     def workflow_validator_node(self, state: WorkflowState):
         """
@@ -206,18 +181,17 @@ class WorkflowNodes:
         """
         try:
             # Extract the relevant information from the state
-            last_step_result = state.get("step_result", "")
-            last_executed_step = state.get("last_executed_step", {})
-            remaining_steps = state.get("steps_to_run", [])
+            last_step_result = state.step_result or ""
+            last_executed_step = state.last_executed_step or {}
+            remaining_steps = state.steps_to_run or []
             next_step = remaining_steps[0] if remaining_steps else None
             
             # If there's no next step, we're done
-            if not next_step:
-                return {
-                    **state,
+            if next_step is None:
+                return state.copy(update={
                     "results": "Workflow complete. All steps were successfully executed.",
                     "error": None
-                }
+                })
             
             # Initialize the validator agent
             llm = self.llm_factory("gpt-o1-cborg")
@@ -237,7 +211,7 @@ class WorkflowNodes:
                 
                 Next planned step:
                 {json.dumps(next_step)}
-                If this is the first step, i.e. Last step executed is None, then the input object for this step should be paired-end reads object with id {state["reads_id"]}.
+                If this is the first step, i.e. Last step executed is None, then the input object for this step should be paired-end reads object with id {state.reads_id}.
                 Based on the outcome of the last step, evaluate if the next step is still appropriate or needs to be modified.
                 Keep in mind that the output object from the last step will be used as input for the next step.
                 Consider these factors:
@@ -285,27 +259,23 @@ class WorkflowNodes:
             
             # Update the state based on the decision
             if decision_json.get("continue_as_planned", True):
-                return {
-                    **state,
-                    "input_object_upa": decision_json.get("input_object_upa",None),
+                return state.copy(update={
+                    "input_object_upa": decision_json.get("input_object_upa", state.input_object_upa),
                     "validation_reasoning": decision_json.get("reasoning", ""),
                     "error": None
-                }
+                })
             else:
                 # Replace the remaining steps with the modified steps if provided
                 modified_steps = decision_json.get("modified_next_steps", [])
                 print(f"Modified steps: {modified_steps}")
-                return {
-                    **state,
+                return state.copy(update={
                     "steps_to_run": modified_steps if modified_steps else remaining_steps,
+                    "input_object_upa": decision_json.get("input_object_upa", state.input_object_upa),
                     "validation_reasoning": decision_json.get("reasoning", ""),
                     "error": None
-                }
+                })
         except Exception as e:
-            return {
-                **state,
-                "error": f"Validation error: {str(e)}"
-            }
+            return state.copy(update={"error": str(e)})
     
     def handle_error(self, state: WorkflowState):
         """
@@ -317,10 +287,9 @@ class WorkflowNodes:
         Returns:
             WorkflowState: Updated workflow state with error handling.
         """
-        return {
-            **state, 
-            "results": f"Error: {state.get('error', 'Unknown error')}"
-        }
+        return state.copy(update={
+        "results": f"Error: {state.error or 'Unknown error'}"
+        })
 
 
 # functional-style access to the node methods
