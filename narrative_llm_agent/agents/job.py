@@ -10,7 +10,7 @@ from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from pydantic import BaseModel, Field
-from langchain.tools import tool
+from crewai.tools import tool
 import json
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.kbase.clients.narrative_method_store import (
@@ -74,7 +74,7 @@ class JobAgent(KBaseAgent):
     def __init_agent(self: "JobAgent") -> None:
         human_tools = load_tools(["human"])
 
-        @tool("job-status", args_schema=JobInput, return_direct=False)
+        @tool("job status")
         def get_job_status_tool(job_id: str) -> str:
             """Looks up and returns the status of a KBase job. Returns the status as a
             JSON-formatted string. If the job does not exist, or the user doesn't have
@@ -83,7 +83,7 @@ class JobAgent(KBaseAgent):
             """
             return get_job_status(process_tool_input(job_id, "job_id"), ExecutionEngine(token=self._token))
 
-        @tool("start-job", args_schema=JobStart, return_direct=False)
+        @tool("start job")
         def start_job_tool(narrative_id: int, app_id: str, params: dict) -> str:
             """This starts a new job in KBase, running the given App with the given
             parameters in the given Narrative. If the app with app_id doesn't exist, this
@@ -104,7 +104,7 @@ class JobAgent(KBaseAgent):
                 Workspace(token=self._token),
             )
 
-        @tool("get-app-parameters", args_schema=AppInput, return_direct=False)
+        @tool("get app parameters")
         def get_app_params_tool(app_id: str) -> str:
             """
             This returns the set of parameters for a KBase app. This is returned as a
@@ -113,7 +113,7 @@ class JobAgent(KBaseAgent):
             """
             return json.dumps(get_app_params(app_id, NarrativeMethodStore()))
 
-        @tool("monitor-job", args_schema=JobInput, return_direct=False)
+        @tool("monitor job")
         def monitor_job_tool(job_id: str) -> CompletedJob:
             """
             This monitors a running job in KBase. It will check the job status every 10 seconds.

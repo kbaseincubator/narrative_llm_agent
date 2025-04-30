@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from langchain.tools import tool
+from crewai.tools import tool
 from narrative_llm_agent.agents.kbase_agent import KBaseAgent
 from narrative_llm_agent.crews.job_crew import JobCrew
 from crewai import Agent
@@ -20,7 +20,7 @@ class WorkflowRunner(KBaseAgent):
         self._llm = llm
         self._token = token
 
-        @tool("Run KBase app", args_schema=AppRunInputs)
+        @tool("Run KBase App")
         def do_app_run(narrative_id: int, app_id: str, input_object_upa: str) -> str:
             """
             This invokes a CrewAI crew to run a new KBase app from start to finish and

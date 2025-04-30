@@ -9,7 +9,7 @@ from .kbase_agent import KBaseAgent
 from crewai import Agent
 from langchain_core.language_models.llms import LLM
 from pydantic import BaseModel, Field
-from langchain.tools import tool
+from crewai.tools import tool
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
@@ -51,7 +51,7 @@ class NarrativeAgent(KBaseAgent):
         self.__init_agent()
 
     def __init_agent(self: "NarrativeAgent"):
-        @tool("get-narrative-document", args_schema=NarrativeInput, return_direct=False)
+        @tool("get narrative document")
         def get_narrative(narrative_id: int) -> str:
             """Fetch the Narrative document from the KBase Workspace. This returns the most recent
             version of the Narrative document with the given id as a JSON-formatted string with the
@@ -63,7 +63,7 @@ class NarrativeAgent(KBaseAgent):
             )
             return str(narr)
 
-        @tool("get-narrative-state", args_schema=NarrativeInput, return_direct=False)
+        @tool("get narrative state")
         def get_narrative_state_tool(narrative_id: int) -> str:
             """Get the current state of a Narrative from the KBase workspace. This returns the most
             recent version of the Narrative document with the given id in a reduced format that can be
@@ -75,7 +75,7 @@ class NarrativeAgent(KBaseAgent):
                 ExecutionEngine(token=self._token),
             )
 
-        @tool("add-markdown-cell", args_schema=MarkdownCellInput, return_direct=False)
+        @tool("add markdown cell")
         def add_markdown_cell(narrative_id: int, markdown_text: str) -> str:
             """Add a new markdown cell to an existing Narrative document. This cell gets added to the
             end of the document. The narrative_id must be numeric. The markdown_text must be a string,
@@ -89,7 +89,7 @@ class NarrativeAgent(KBaseAgent):
             )
             return "success"
 
-        @tool("add-app-cell", args_schema=AppCellFromJobInput, return_direct=False)
+        @tool("add app cell")
         def add_app_cell(narrative_id: int, job_id: str) -> str:
             """Add a new app cell to the bottom of an existing Narrative document. This app cell can be
             used to track the state and status of a running job. The narrative_id must be numeric. The
@@ -106,7 +106,7 @@ class NarrativeAgent(KBaseAgent):
                 NarrativeMethodStore(),
             )
 
-        @tool("get-all-markdown-cells", return_direct=False)
+        @tool("get all markdown cells")
         def get_all_narrative_markdown_cells(narrative_id: int) -> list[str]:
             """
             Get the text content of all markdown cells in the Narrative, as Markdown, in order.

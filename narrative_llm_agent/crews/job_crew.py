@@ -125,6 +125,7 @@ class JobCrew:
 
         # TODO: make sure that input objects are ALWAYS UPAs
         get_app_params_task = Task(
+            name=f"1. Get parameters for {app_name}",
             description=f"""
             From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
             for assistance. Using the data object with UPA "{input_object_upa}", populate a dictionary
@@ -150,6 +151,7 @@ class JobCrew:
         )
 
         start_job_task = Task(
+            name=f"2. Start running {app_name}",
             description=f"""
             Using the app parameters and app id, use provided tools to start a new KBase app, which will return a job id.
             Use that job id to create a new App Cell in the narrative such that narrative_id={narrative_id}. Return only the
@@ -161,6 +163,7 @@ class JobCrew:
         )
 
         make_app_cell_task = Task(
+            name=f"3. Make app cell for {app_name}",
             description=f"""
             Using the job id, create an app cell in narrative {narrative_id}. The add_app_cell tool is useful here.
             """,
@@ -169,6 +172,7 @@ class JobCrew:
         )
 
         monitor_job_task = Task(
+            name=f"4. Monitor the running {app_name} job",
             description="""
             Use the `monitor_job` tool with the job id to monitor the progress of the running job.
 
@@ -193,6 +197,7 @@ class JobCrew:
         )
 
         report_retrieval_task = Task(
+            name=f"5. Retrieve the report for the finished {app_name} job",
             description="""
                 You have received a `CompletedJob` object from the previous task. Use its `upa` field to locate the report UPA in the Workspace.
 
@@ -216,6 +221,7 @@ class JobCrew:
         )
 
         report_analysis_task = Task(
+            name=f"6. Analyze the report from the {app_name} job",
             description=
             """Analyze the given report and derive some biological insight into the result.
             If the report is not in JSON format, then interpret the document as-is.
@@ -240,6 +246,7 @@ class JobCrew:
         )
 
         save_analysis_task = Task(
+            name=f"7. Save the report analysis for {app_name} as markdown",
             description=f"""Save the analysis by adding a markdown cell to the Narrative with id {narrative_id}. The markdown text must
             be the analysis text. If not successful, say so and stop. If an output object was created, ensure that it has both an UPA and name.
             In the end, return the results of the job completion task with both UPA and name for output object. The return result must be normalized to contain

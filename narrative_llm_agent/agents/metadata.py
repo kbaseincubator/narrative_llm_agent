@@ -6,7 +6,7 @@ from langchain_core.language_models.llms import LLM
 from pydantic import BaseModel
 from narrative_llm_agent.util.tool import process_tool_input
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from langchain.tools import tool
+from crewai.tools import tool
 import json
 
 
