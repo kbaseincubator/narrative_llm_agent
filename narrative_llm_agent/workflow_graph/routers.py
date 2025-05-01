@@ -14,7 +14,7 @@ def analyst_router(state: WorkflowState):
     else:
         return "validate_step"  # Proceed to validate the step
 def handle_error(state):
-    return state.copy(update={
+    return state.model_copy(update={
         "results": f"Error: {state.error or 'Unknown error'}"
     }) 
 # Router after validation to decide next action

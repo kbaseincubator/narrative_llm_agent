@@ -105,9 +105,9 @@ class WorkflowNodes:
             analysis_plan = extract_json_from_string(output.raw)
             
             # Return updated state with analysis plan
-            return state.copy(update={"steps_to_run": analysis_plan, "error": None})
+            return state.model_copy(update={"steps_to_run": analysis_plan, "error": None})
         except Exception as e:
-            return state.copy(update={"steps_to_run": None, "error": str(e)})
+            return state.model_copy(update={"steps_to_run": None, "error": str(e)})
 
 
     def workflow_runner_node(self, state: WorkflowState):
@@ -160,14 +160,14 @@ class WorkflowNodes:
             result = crew.kickoff()
             
             # Return updated state with results
-            return state.copy(update={
+            return state.model_copy(update={
                 "step_result": result,
                 "steps_to_run": remaining_steps,
                 "last_executed_step": current_step,
                 "error": None
             })
         except Exception as e:
-            return state.copy(update={"results": None, "error": str(e)})
+            return state.model_copy(update={"results": None, "error": str(e)})
     
     def workflow_validator_node(self, state: WorkflowState):
         """
@@ -188,7 +188,7 @@ class WorkflowNodes:
             
             # If there's no next step, we're done
             if next_step is None:
-                return state.copy(update={
+                return state.model_copy(update={
                     "results": "Workflow complete. All steps were successfully executed.",
                     "error": None
                 })
@@ -259,7 +259,7 @@ class WorkflowNodes:
             
             # Update the state based on the decision
             if decision_json.get("continue_as_planned", True):
-                return state.copy(update={
+                return state.model_copy(update={
                     "input_object_upa": decision_json.get("input_object_upa", state.input_object_upa),
                     "validation_reasoning": decision_json.get("reasoning", ""),
                     "error": None
@@ -268,14 +268,14 @@ class WorkflowNodes:
                 # Replace the remaining steps with the modified steps if provided
                 modified_steps = decision_json.get("modified_next_steps", [])
                 print(f"Modified steps: {modified_steps}")
-                return state.copy(update={
+                return state.model_copy(update={
                     "steps_to_run": modified_steps if modified_steps else remaining_steps,
                     "input_object_upa": decision_json.get("input_object_upa", state.input_object_upa),
                     "validation_reasoning": decision_json.get("reasoning", ""),
                     "error": None
                 })
         except Exception as e:
-            return state.copy(update={"error": str(e)})
+            return state.model_copy(update={"error": str(e)})
     
     def handle_error(self, state: WorkflowState):
         """
@@ -287,11 +287,11 @@ class WorkflowNodes:
         Returns:
             WorkflowState: Updated workflow state with error handling.
         """
-        return state.copy(update={
+        return state.model_copy(update={
         "results": f"Error: {state.error or 'Unknown error'}"
         })
     def workflow_end(self,state: WorkflowState):
-        return state.copy(update={"results": "✅ Workflow complete."})
+        return state.model_copy(update={"results": "✅ Workflow complete."})
 # functional-style access to the node methods
 def create_workflow_nodes(token=None, llm_factory=None):
     """
@@ -305,10 +305,11 @@ def create_workflow_nodes(token=None, llm_factory=None):
     Returns:
         dict: Dictionary containing all node functions.
     """
-    nodes = WorkflowNodes(token=token, llm_factory=llm_factory)
+    nodes = WorkflowNodes(token=token)
     return {
         "analyst_node": nodes.analyst_node,
         "workflow_runner_node": nodes.workflow_runner_node,
         "workflow_validator_node": nodes.workflow_validator_node,
-        "handle_error": nodes.handle_error
+        "handle_error": nodes.handle_error,
+        "workflow_end": nodes.workflow_end
     }
