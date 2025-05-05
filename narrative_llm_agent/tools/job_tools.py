@@ -169,6 +169,10 @@ def run_job(
     nms: NarrativeMethodStore,
     ws: Workspace
 ) -> CompletedJob:
+    """
+    Runs a job from end to end. Starts it, creates an app cell for it, monitors the job, and returns
+    the CompletedJob object at the end.
+    """
     job_id = start_job(narrative_id, app_id, params, ee, nms, ws)
     # TODO have this return an error state as well, for checking. Right now, just letting exceptions go up.
     create_app_cell(
