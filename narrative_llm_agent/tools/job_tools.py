@@ -10,6 +10,7 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.report import KBaseReport
 from narrative_llm_agent.kbase.service_client import ServerError
+from narrative_llm_agent.tools.narrative_tools import create_app_cell
 from narrative_llm_agent.util.app import (
     build_run_job_params,
     get_processed_app_spec_params,
@@ -153,7 +154,28 @@ def start_job(
 ) -> str:
     spec = nms.get_app_spec(app_id)
     job_submission = build_run_job_params(AppSpec(**spec), params, narrative_id, ws)
+    print("starting job:")
     print(job_submission)
     if get_config().debug:
         return KBaseMock().mock_run_job(narrative_id, app_id, params, job_submission)
     return ee.run_job(job_submission)
+
+
+def run_job(
+    narrative_id: int,
+    app_id: str,
+    params: dict,
+    ee: ExecutionEngine,
+    nms: NarrativeMethodStore,
+    ws: Workspace
+) -> CompletedJob:
+    job_id = start_job(narrative_id, app_id, params, ee, nms, ws)
+    # TODO have this return an error state as well, for checking. Right now, just letting exceptions go up.
+    create_app_cell(
+        narrative_id,
+        job_id,
+        ws,
+        ee,
+        nms
+    )
+    return monitor_job(job_id, ee, nms, ws)
