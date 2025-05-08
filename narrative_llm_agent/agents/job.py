@@ -100,9 +100,9 @@ class JobAgent(KBaseAgent):
         def run_job_tool(narrative_id: int, app_id: str, params: dict) -> CompletedJob:
             """
             This starts and runs a job in KBase. Once the job starts, it checks the status
-            every 10 seconds. When complete, this returns the final job status as a JSON-formatted
-            string. The final state can be either completed or error. This might take some time
-            to run, as it depends on the job that is running.
+            every 10 seconds. When complete, this returns the job information including
+            the final status, list of any created objects, and report UPA.
+            This might take some time to run, as it depends on the job that is running.
             """
             if isinstance(params, str):
                 params = json.loads(params)

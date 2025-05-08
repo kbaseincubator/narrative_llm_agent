@@ -85,6 +85,10 @@ def test_summarize_completed_job_ok(mock_workspace, mock_nms):
         CreatedObject(object_upa="1000/5/1", object_name="new_genome")
     ]
 
+# TODO - testing summarize_completed_job
+# 1. ends with error - should just have error, no created objects or report ref, etc.
+# 2. mock network fails, call failures
+
 
 def test_get_app_created_objects():
     # TODO test this with the following cases

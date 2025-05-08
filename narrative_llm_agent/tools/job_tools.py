@@ -39,14 +39,21 @@ def summarize_completed_job(
 ) -> CompletedJob:
     """
     This summarizes a completed job with the following information:
+    * The narrative id
+    * The final job status
+    * The job id
     * The report object UPA, if any
     * A list of created objects, if any, including their names and UPAs.
     This currently searches the list of Created Objects from the given report
     (if any), and the app parameters for any output objects. So it's really
     up to the app authors to play nicely and populate those things correctly.
+    * Job errors, if any
 
     TODO: Also consider searching the workspace for recently made objects,
     relative to when the app was completed.
+    TODO: If the job has errors, the report UPA and created objects should
+    probably be empty. "Completed with errors" is a possibility, but I don't
+    think many KBase apps support that.
     """
     # get the output
     # get the report object
