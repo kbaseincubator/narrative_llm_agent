@@ -1,4 +1,4 @@
-from narrative_llm_agent.agents.job import JobAgent, AppStartInfo
+from narrative_llm_agent.agents.job import CompletedJobAndReport, JobAgent, AppStartInfo
 from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
@@ -151,55 +151,28 @@ class JobCrew:
         )
 
         start_job_task = Task(
-            name=f"2. Start running {app_name}",
+            name=f"2. Run app {app_name}",
             description=f"""
-            Using the app parameters and app id, use provided tools to start a new KBase app, which will return a job id.
-            Use that job id to create a new App Cell in the narrative such that narrative_id={narrative_id}. Return only the
-            job id.
+            Using the app parameters, app id, and narrative id {narrative_id}, use the `run_job` tool to run a new KBase app. This will run
+            the app and return a `CompletedJobAndReport` object that contains the output from the job and a report from the app, if
+            applicable.
+
+            - If the job is in an error state, the tool will indicate this in the job_error field.
+            - Your job is to call the tool, and return its result directly — do not modify the structure or add commentary.
+            - This output will be passed to the next task to interpret the job's report.
+
+            The result must be returned exactly as provided by the tool.
             """,
-            expected_output="A KBase job id string.",
+            expected_output="The CompletedJobAndReport object returned by the monitor_job tool.",
+            output_pydantic=CompletedJob,
             agent=self._job.agent,
             context=[get_app_params_task],
         )
 
-        make_app_cell_task = Task(
-            name=f"3. Make app cell for {app_name}",
-            description=f"""
-            Using the job id, create an app cell in narrative {narrative_id}. The add_app_cell tool is useful here.
-            """,
-            expected_output="A note with either success or failure of saving the new cell",
-            agent=self._narr.agent,
-        )
-
-        monitor_job_task = Task(
-            name=f"4. Monitor the running {app_name} job",
-            description="""
-            Use the `monitor_job` tool with the job id to monitor the progress of the running job.
-
-            This tool returns a `CompletedJob` object that contains the job's output UPA and the output object name.
-
-            - If the job is in an error state, the tool will indicate this in the job_error field.
-            - Your job is to call the tool, and return its result directly — do not modify the structure or add commentary.
-            - This output will be passed to the next task to retrieve the job's report.
-
-            The result must be returned exactly as provided by the tool.
-            """,
-            expected_output="The CompletedJob object returned by the monitor_job tool.",
-
-            # description="""
-            # Using the job id, monitor the progress of the running job. The monitor_job tool is helpful here.
-            # If completed, continue to the next task. If in an error state, summarize the error for the user and stop.
-            # """,
-            # expected_output="Return either a note saying that the job has completed, or a summary of the job error.",
-            output_pydantic=CompletedJob,
-            agent=self._job.agent,
-            context=[start_job_task],
-        )
-
         report_retrieval_task = Task(
-            name=f"5. Retrieve the report for the finished {app_name} job",
+            name=f"3. Retrieve the report for the finished {app_name} job",
             description="""
-                You have received a `CompletedJob` object from the previous task. Use its `upa` field to locate the report UPA in the Workspace.
+                You have received a `CompletedJob` object from the previous task. Use its `report_upa` field to locate the report UPA in the Workspace.
 
                 - If `report_upa` is None, return a string indicating that no report is available due to an error.
                 - Otherwise, use the UPA to retrieve the corresponding report object from the Workspace.
@@ -208,20 +181,13 @@ class JobCrew:
                 If no report is found, or the UPA is invalid, return a string indicating so.
             """,
 
-            # description="""Get the report UPA from the job results (a string with format number/number/number), an
-            # use a tool to get the report object from the Workspace service. UPAs are unique permanent addresses used to identify data objects.
-            # The Workspace Manager will be helpful here. Make sure the delegated agent uses a tool for interacting with KBase.
-            # If there was an error in the job results, return a string saying so and summarizing the error.
-            # If no report is available, either because there is no report UPA or the report object is unavailable, return a string saying so.
-            # Otherwise, return the full report text. Your final answer MUST be the report text.
-            # """,
             expected_output="The text of a KBase app report object",
             agent=self._workspace.agent,
-            context=[monitor_job_task]
+            context=[start_job_task]
         )
 
         report_analysis_task = Task(
-            name=f"6. Analyze the report from the {app_name} job",
+            name=f"4. Analyze the report from the {app_name} job",
             description=
             """Analyze the given report and derive some biological insight into the result.
             If the report is not in JSON format, then interpret the document as-is.
@@ -246,7 +212,7 @@ class JobCrew:
         )
 
         save_analysis_task = Task(
-            name=f"7. Save the report analysis for {app_name} as markdown",
+            name=f"5. Save the report analysis for {app_name} as markdown",
             description=f"""Save the analysis by adding a markdown cell to the Narrative with id {narrative_id}. The markdown text must
             be the analysis text. If not successful, say so and stop. If an output object was created, ensure that it has both an UPA and name.
             In the end, return the results of the job completion task with both UPA and name for output object. The return result must be normalized to contain
@@ -256,14 +222,12 @@ class JobCrew:
             output_pydantic=CompletedJob,
             agent=self._narr.agent,
             extra_content=narrative_id,
-            context=[monitor_job_task, report_analysis_task],
+            context=[start_job_task, report_analysis_task],
         )
 
         return [
             get_app_params_task,
             start_job_task,
-            make_app_cell_task,
-            monitor_job_task,
             report_retrieval_task,
             report_analysis_task,
             save_analysis_task,

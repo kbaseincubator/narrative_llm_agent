@@ -69,6 +69,7 @@ def create_app_cell(
     up all the app information required to rebuild an app cell. It adds the cell to the
     bottom of the narrative in the state it was in during the last check. If successful,
     this returns the string 'success'.
+    TODO: This should raise a better exception, or return an error string, if something fails.
     """
     job_state = ee.check_job(job_id)
     app_spec = nms.get_app_spec(job_state.job_input.app_id)

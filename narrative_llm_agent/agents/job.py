@@ -3,8 +3,7 @@ from narrative_llm_agent.tools.app_tools import get_app_params
 from narrative_llm_agent.tools.job_tools import (
     CompletedJob,
     get_job_status,
-    monitor_job,
-    start_job,
+    run_job
 )
 from .kbase_agent import KBaseAgent
 from crewai import Agent
@@ -59,6 +58,10 @@ class AppOutputInfo(BaseModel):
     narrative_id: int
 
 
+class CompletedJobAndReport(BaseModel):
+    job_info: CompletedJob
+    report: Optional[str] = None
+
 class JobAgent(KBaseAgent):
     role: str = "Job and App Manager"
     goal: str = """Manage app and job running and tracking in the KBase system.
@@ -83,26 +86,6 @@ class JobAgent(KBaseAgent):
             """
             return get_job_status(process_tool_input(job_id, "job_id"), ExecutionEngine(token=self._token))
 
-        @tool("start job")
-        def start_job_tool(narrative_id: int, app_id: str, params: dict) -> str:
-            """This starts a new job in KBase, running the given App with the given
-            parameters in the given Narrative. If the app with app_id doesn't exist, this
-            raises a AppNotFound error. If the narrative_id doesn't exist, or the user
-            doesn't have write access to it, this raises a PermissionsError. If the
-            parameters are malformed, or refer to data objects that do not exist, this
-            returns a ValueError. If the app starts, this returns a JSON-formatted
-            dictionary with cell_id and job_id fields."""
-
-            if isinstance(params, str):
-                params = json.loads(params)
-            return start_job(
-                process_tool_input(narrative_id, "narrative_id"),
-                process_tool_input(app_id, "app_id"),
-                params,
-                ExecutionEngine(token=self._token),
-                NarrativeMethodStore(),
-                Workspace(token=self._token),
-            )
 
         @tool("get app parameters")
         def get_app_params_tool(app_id: str) -> str:
@@ -113,18 +96,24 @@ class JobAgent(KBaseAgent):
             """
             return json.dumps(get_app_params(app_id, NarrativeMethodStore()))
 
-        @tool("monitor job")
-        def monitor_job_tool(job_id: str) -> CompletedJob:
+        @tool("run job")
+        def run_job_tool(narrative_id: int, app_id: str, params: dict) -> CompletedJob:
             """
-            This monitors a running job in KBase. It will check the job status every 10 seconds.
-            When complete, this returns the final job status as a JSON-formatted string. The
-            final state can be either completed or error. This might take some time to run,
-            as it depends on the job that is running.
+            This starts and runs a job in KBase. Once the job starts, it checks the status
+            every 10 seconds. When complete, this returns the job information including
+            the final status, list of any created objects, and report UPA.
+            This might take some time to run, as it depends on the job that is running.
             """
-            ee = ExecutionEngine(token=self._token)
-            nms = NarrativeMethodStore()
-            ws = Workspace(token=self._token)
-            return monitor_job(process_tool_input(job_id, "job_id"), ee, nms, ws)
+            if isinstance(params, str):
+                params = json.loads(params)
+            return run_job(
+                process_tool_input(narrative_id, "narrative_id"),
+                process_tool_input(app_id, "app_id"),
+                params,
+                ExecutionEngine(token=self._token),
+                NarrativeMethodStore(),
+                Workspace(token=self._token),
+            )
 
         self.agent = Agent(
             role=self.role,
@@ -133,9 +122,8 @@ class JobAgent(KBaseAgent):
             verbose=True,
             tools=[
                 get_job_status_tool,
-                start_job_tool,
                 get_app_params_tool,
-                monitor_job_tool,
+                run_job_tool,
             ],  # + human_tools,
             llm=self._llm,
             allow_delegation=False,
