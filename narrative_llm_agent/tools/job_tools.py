@@ -93,15 +93,63 @@ def get_report_created_objects(report_upa: str, ws: Workspace) -> set[CreatedObj
 def get_app_created_objects(
     job_state: JobState, nms: NarrativeMethodStore, ws: Workspace
 ) -> set[CreatedObject]:
+    """
+    This is a little tricky.
+    Given the job_state object (which, at this point, is expected to include both the
+    results and input parameters), get the list of newly created objects, and
+    return a Set of them.
+
+    Expected output objects in KBase apps are (mostly) created with an object name
+    given by a user. This'll be in a parameter from the `get_processed_app_spec_params`
+    with a "is_output_object" value of True. This function only looks at those, since
+    those are the most reproducible way of figuring out created object references.
+
+    In processing app input parameters to start running the app, some parameter ids can
+    change. E.g. this is valid case:
+    parameter info
+    {
+        id: "user_output_name",
+        ... rest of info ...
+    }
+
+    service mapping
+    {
+        "input_parameter": "user_output_name",
+        "target_property": "output_genome_name"
+    }
+
+    The parameters can then be mapped as:
+    (passed in from user)
+    {
+        "user_output_name": "my_new_genome"
+    }
+    (passed to app)
+    {
+        "output_genome_name": "my_new_genome"
+    }
+
+    So we need two things.
+    1. A list of all parameters flagged as output objects
+    2. The mapping from user parameter id -> service parameter id
+
+    Then we can extract the created object name, check its existence, and get its UPA.
+    """
     # get app spec
     app_spec = AppSpec(**(nms.get_app_spec(job_state.job_input.app_id)))
     app_params = get_processed_app_spec_params(app_spec)
-    output_params = []
+    # start with getting the output parameter ids as a set
+    output_params = set()
     for param_id, info in app_params.items():
         if info.get("is_output_object"):
-            output_params.append(param_id)
+            output_params.add(param_id)
+    # convert that set to its mapped counterpart
+    mapped_output_params = set()
+    if app_spec.behavior.kb_service_input_mapping is not None:
+        for mapping in app_spec.behavior.kb_service_input_mapping:
+            if mapping.input_parameter in output_params:
+                mapped_output_params.add(mapping.target_property)
     params = job_state.job_input.params[0]
-    output_names = [params[param_id] for param_id in output_params]
+    output_names = [params.get(param_id) for param_id in mapped_output_params]
     narrative_id = job_state.job_input.ws_id
     created_objects = set()
     for name in output_names:
