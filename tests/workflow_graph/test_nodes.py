@@ -18,6 +18,8 @@ def mock_analyst_agent():
         mock_agent_instance = Mock()
         mock_agent.return_value = mock_agent_instance
         mock_agent_instance.agent = Mock()
+        # Set up the direct invocation response
+        mock_agent_instance.agent.invoke.return_value = {'output': 'test output with JSON [{"Step": 1, "Name": "Test Step", "App": "TestApp"}]'}
         yield mock_agent
 
 @pytest.fixture
@@ -36,6 +38,10 @@ def mock_validator_agent():
         mock_validator_instance = Mock()
         mock_validator.return_value = mock_validator_instance
         mock_validator_instance.agent = Mock()
+        # Set up the direct invocation response
+        mock_validator_instance.agent.invoke.return_value = {
+            'output': 'test output with JSON {"continue_as_planned": true, "reasoning": "Test reasoning", "input_object_upa": "1/2/3/4"}'
+        }
         yield mock_validator
 
 @pytest.fixture
@@ -66,7 +72,7 @@ def mock_extract_json():
 def mock_extract_json_curly():
     """Mock the extract_json_from_string_curly functions."""
     with patch('narrative_llm_agent.workflow_graph.nodes.extract_json_from_string_curly') as mock_extract_json:
-        mock_extract_json.return_value = {"continue_as_planned": True, "reasoning": "Test reasoning"}
+        mock_extract_json.return_value = {"continue_as_planned": True, "reasoning": "Test reasoning", "input_object_upa": "1/2/3/4"}
         yield mock_extract_json
 
 @pytest.fixture
@@ -100,7 +106,7 @@ def test_workflow_nodes_init_missing_token():
     with pytest.raises(ValueError, match="KB_AUTH_TOKEN must be provided"):
         WorkflowNodes()
 
-def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_crew, mock_extract_json, mock_task, mock_analysis_pipeline):
+def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_extract_json, mock_analysis_pipeline):
     """Test the analyst_node function successfully creates an analysis plan."""
     # Create a state to pass to the node
     state = WorkflowState(
@@ -115,21 +121,8 @@ def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_crew, moc
     # Check that the analyst agent was created correctly
     mock_analyst_agent.assert_called_once()
     
-    # Check that Task was created properly
-    mock_task.assert_called_once()
-    assert 'description' in mock_task.call_args[1]
-    assert 'expected_output' in mock_task.call_args[1]
-    assert 'output_json' in mock_task.call_args[1]
-    assert 'agent' in mock_task.call_args[1]
-    
-    # Check that Crew was used to run the task
-    mock_crew.assert_called_once()
-    # Verify the Crew constructor arguments match your implementation
-    crew_call_kwargs = mock_crew.call_args[1]
-    assert 'agents' in crew_call_kwargs
-    assert 'tasks' in crew_call_kwargs
-    assert 'verbose' in crew_call_kwargs
-    assert crew_call_kwargs['verbose'] is True
+    # Check that the agent was invoked directly
+    mock_analyst_agent.return_value.agent.invoke.assert_called_once_with({"input": "Test genome analysis"})
     
     # Check that the results were processed correctly
     mock_extract_json.assert_called_once()
@@ -138,10 +131,10 @@ def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_crew, moc
     assert result.steps_to_run == [{"Step": 1, "Name": "Test Step", "App": "TestApp"}]
     assert result.error is None
 
-def test_analyst_node_error(workflow_nodes, mock_analyst_agent, mock_crew, mock_task):
+def test_analyst_node_error(workflow_nodes, mock_analyst_agent):
     """Test handling errors in the analyst_node function."""
-    # Set up the mock crew to raise an exception
-    mock_crew.return_value.kickoff.side_effect = Exception("Test error")
+    # Set up the mock agent to raise an exception
+    mock_analyst_agent.return_value.agent.invoke.side_effect = Exception("Test error")
     
     # Create a state to pass to the node
     state = WorkflowState(
@@ -237,7 +230,7 @@ def test_workflow_validator_node_no_next_step(workflow_nodes):
     assert "Workflow complete" in result.results
     assert result.error is None
 
-def test_workflow_validator_node_continue(workflow_nodes, mock_validator_agent, mock_crew, mock_extract_json_curly, mock_task):
+def test_workflow_validator_node_continue(workflow_nodes, mock_validator_agent, mock_extract_json_curly):
     """Test the workflow_validator_node when continuing with the next step."""
     # Create a state with steps left to run
     state = WorkflowState(
@@ -263,15 +256,8 @@ def test_workflow_validator_node_continue(workflow_nodes, mock_validator_agent, 
     # Check that the validator was created correctly
     mock_validator_agent.assert_called_once()
     
-    # Check that Task was created
-    mock_task.assert_called_once()
-    
-    # Check that Crew was used to run the task
-    mock_crew.assert_called_once()
-    # Verify it's using the implementation pattern with tasks list
-    crew_call_kwargs = mock_crew.call_args[1]
-    assert 'tasks' in crew_call_kwargs
-    assert 'verbose' in crew_call_kwargs
+    # Check that the agent was invoked directly with appropriate input
+    mock_validator_agent.return_value.agent.invoke.assert_called_once()
     
     # Check that JSON extraction was called
     mock_extract_json_curly.assert_called_once()
@@ -282,7 +268,7 @@ def test_workflow_validator_node_continue(workflow_nodes, mock_validator_agent, 
     assert "validation_reasoning" in result.__dict__
     assert result.validation_reasoning == "All looks good"
 
-def test_workflow_validator_node_modify(workflow_nodes, mock_validator_agent, mock_crew, mock_extract_json_curly, mock_task):
+def test_workflow_validator_node_modify(workflow_nodes, mock_validator_agent, mock_extract_json_curly):
     """Test the workflow_validator_node when modifying the steps."""
     # Create a state with steps left to run
     state = WorkflowState(
@@ -313,10 +299,10 @@ def test_workflow_validator_node_modify(workflow_nodes, mock_validator_agent, mo
     assert result.steps_to_run == modified_steps
     assert result.validation_reasoning == "Need to modify approach due to warnings"
 
-def test_workflow_validator_node_error(workflow_nodes, mock_validator_agent, mock_crew, mock_task):
+def test_workflow_validator_node_error(workflow_nodes, mock_validator_agent):
     """Test handling errors in the workflow_validator_node function."""
-    # Set up the mock crew to raise an exception
-    mock_crew.return_value.kickoff.side_effect = Exception("Validation error")
+    # Set up the mock agent to raise an exception
+    mock_validator_agent.return_value.agent.invoke.side_effect = Exception("Validation error")
     
     # Create a state with steps left to run
     state = WorkflowState(

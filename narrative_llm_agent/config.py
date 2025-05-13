@@ -13,7 +13,7 @@ from configparser import ConfigParser
 import os
 from typing import Any, Dict, Optional
 from langchain_openai import ChatOpenAI
-
+from crewai import LLM
 DEFAULT_CONFIG_FILE = "config.cfg"
 ENV_CONFIG_FILE = "NARRATIVE_LLM_AGENT_CONFIG"
 
@@ -82,7 +82,7 @@ class AgentConfig:
                 provider_dict["use_openai_format"] = provider_dict["use_openai_format"].lower() == "true"
                 
             self.provider_config[provider_id] = provider_dict
-    def get_llm(self, model_id: str | None = None) -> Any:
+    def get_llm(self, model_id: str | None = None, return_crewai: bool = False) -> Any:
         """Get an LLM instance based on the model ID from config"""
         model_id = model_id or self.llm_config['default']
         
@@ -104,16 +104,34 @@ class AgentConfig:
         api_key = os.environ.get(api_key_env)
         if api_key is None:
             raise ValueError(f"Missing API key for provider {provider}. Set environment variable {api_key_env}")
-        
+        model_name = model_config['model_name']
+        # Create appropriate LLM based on provider]
+        if return_crewai:
+            # If return_crewai is True, return the crewai instance
+            if provider == 'cborg' and provider_config.get('use_openai_format'):
+                # For crewai, we need to use the crewai LLM class
+                return LLM(
+                    model=f"openai/{model_name}",
+                    api_key=api_key,
+                    base_url=provider_config.get('api_base')
+                )
+            else:
+                # For other providers, we can use the crewai LLM class directly
+                return LLM(
+                    model=model_name,
+                    api_key=api_key,
+                    base_url=provider_config.get('api_base')
+                )
         # Create appropriate LLM based on provider
-        if provider == 'openai' or (provider == 'cborg' and provider_config.get('use_openai_format')):
-            return ChatOpenAI(
-                model=model_config['model_name'],
-                api_key=api_key,
-                base_url=provider_config.get('api_base')
-            )
         else:
-            raise ValueError(f"Unsupported provider: {provider}")
+            if provider == 'openai' or (provider == 'cborg' and provider_config.get('use_openai_format')):
+                return ChatOpenAI(
+                    model=model_config['model_name'],
+                    api_key=api_key,
+                    base_url=provider_config.get('api_base')
+                )
+            else:
+                raise ValueError(f"Unsupported provider: {provider}")
 
     def list_available_models(self) -> Dict[str, Dict[str, Any]]:
         """List all available models with their configurations"""
@@ -145,9 +163,9 @@ def get_kbase_auth_token() -> str:
     return os.environ.get(env_var)
 
 # LLM-related convenience functions 
-def get_llm(model_id=None) -> Any:
+def get_llm(model_id=None,return_crewai=None) -> Any:
     """Get an LLM instance based on the model ID from config"""
-    return get_config().get_llm(model_id)
+    return get_config().get_llm(model_id,return_crewai)
 
 
 def list_available_models() -> Dict[str, Dict[str, Any]]:
