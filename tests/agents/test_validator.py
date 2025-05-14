@@ -1,17 +1,11 @@
 from narrative_llm_agent.agents.validator import WorkflowValidatorAgent
-import pytest
+from unittest.mock import MagicMock
 
-FAKE_OPENAI_KEY = "fake_openai_api_key"
-FAKE_OPENAI_KEY_ENVVAR = "not_an_openai_key_environment"
-OPENAI_KEY = "OPENAI_API_KEY"
-
-
-@pytest.fixture(autouse=True)
-def automock_api_key(monkeypatch):
-    monkeypatch.setenv(OPENAI_KEY, FAKE_OPENAI_KEY_ENVVAR)
-
-
-def test_init_ok(mock_llm):
-    wa = WorkflowValidatorAgent(mock_llm)
+def test_init_ok():
+    mock_llm = MagicMock()
+    mock_llm.bind_tools.return_value = mock_llm  # if bind_tools is called
+    wa = WorkflowValidatorAgent(llm=mock_llm)
     assert wa.role == "You are a workflow validator, responsible for analyzing app run results and determining next steps."
-    assert wa.agent.tools == []
+    assert wa.goal == "Ensure that each step in a computational biology workflow produces expected results and that subsequent steps are appropriate."
+    assert wa.backstory.startswith("You are an experienced computational biologist")
+    assert len(wa.agent.tools) == 1
