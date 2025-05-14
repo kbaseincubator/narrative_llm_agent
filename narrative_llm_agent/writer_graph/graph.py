@@ -1,18 +1,12 @@
-from typing import Annotated
-from pydantic import BaseModel
-from langgraph.graph.message import add_messages
+from pydantic import BaseModel, ConfigDict
 from langgraph.graph import StateGraph, START, END
 
-from narrative_llm_agent.tools.narrative_tools import get_narrative_state
+from narrative_llm_agent.tools.narrative_tools import get_narrative_state, create_markdown_cell
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 
 from narrative_llm_agent.config import get_llm
 from langchain_core.prompts import ChatPromptTemplate
-
-
-class State(BaseModel):
-    messages: Annotated[list, add_messages]
 
 
 # Writer agent workflow(s)
@@ -50,16 +44,20 @@ well-structured, concise language. Avoid jargon where possible, and define any n
 tone and detail to a professional yet readable standard, suitable for reports, research summaries, or funding
 communications."""
 
-mra_writing_prompt = """This KBase Narrative document contains a series of apps used to assemble and annotate one (or more) sets of genomic reads.
+mra_writing_prompt = """This KBase Narrative document contains a series of apps used to assemble and annotate
+one (or more) sets of genomic reads.
 Document: {narrative}
 
-Use the information in the Narrative to draft a genome announcement publication, which may be published in the ASM Microbiology Resource Announcements journal.
+Use the information in the Narrative to draft a genome announcement publication, which may be published in the
+ASM Microbiology Resource Announcements journal.
 
-Follow the following template. Leave clear places for the user to add a title, list of authors and affiliations, acknowledgements and references.
+Follow the following template. Leave clear places for the user to add a list of Authors, Affiliations, corresponding
+email address
 
 Use the following template with further instructions:
 Article title
-* Description of the genome sequence — the name of the microbe, the type of sample it was isolated or assembled from, and any additional information.
+* Write a brief title that describes the genome — the name of the microbe, the type of sample it was
+isolated or assembled from, and any additional information.
 
 Authors
 * Leave this section blank for the user to fill out
@@ -70,29 +68,39 @@ Affiliations
 Running title
 * Should not exceed 54 characters (including spaces)
 
-Corresponding author’s email address
+Corresponding author's email address
 * Leave this section blank for the user to fill out
 
 Abstract
-* Limit the abstract to 50 words or fewer and concisely summarize the main content of the paper without presenting extensive experimental details. Avoid abbreviations and references, and do not include diagrams.
+* Limit the abstract to 50 words or fewer and concisely summarize the main content of the paper without
+presenting extensive experimental details. Avoid abbreviations and references, and do not include diagrams.
 
 Announcement
 * Limit the announcement to 500 words or fewer (exclusive of the Abstract and Acknowledgments).
-* Announcements may include one figure and one table to help summarize the data set or provide a context for the resource, but supplemental material is not permitted. If a figure or table seem appropriate, do not create them, but do reference them in the text, and create a caption that describes the figure for the user to make.
+* Announcements may include one figure and one table to help summarize the data set or provide a context for the
+resource, but supplemental material is not permitted. If a figure or table seem appropriate, do not create them,
+but do reference them in the text, and create a caption that describes the figure for the user to make.
 * Include the following information in the announcement:
   * First section (introduction and rationale)
     * A rationale or significance for the sequencing.
     * The provenance for the organism sequenced.
-    * If the organism has been taxonomically identified prior to genome sequencing, provide (or cite) detailed methods for DNA extraction, PCR (including primers), sequencing, and comparison of the 16S rRNA gene sequences. Also please provide the accession number of the best match.
+    * If the organism has been taxonomically identified prior to genome sequencing, provide (or cite) detailed
+    methods for DNA extraction, PCR (including primers), sequencing, and comparison of the 16S rRNA gene sequences.
+    Also please provide the accession number of the best match.
     * A description of how the isolate was acquired, with accession numbers where applicable.
-    * Provide or cite detailed isolation methods, including medium, isolation technique, sampling location (GPS coordinates), sampling methods, etc.
+    * Provide or cite detailed isolation methods, including medium, isolation technique, sampling location
+    (GPS coordinates), sampling methods, etc.
     * Growth conditions for cultivation.
-    * For single-cell amplified genomes, authors should instead supply information about how the cell was identified and isolated.
-    * For research involving human or animal subjects, include a statement documenting the approval number and name of the Institutional Review Board per the ASM Ethics Guidelines.
-    * If CLSI standards were used to determine antibiotic resistance, please include appropriate references and methods for this. If a clinical lab made the assessment, please describe which one.
+    * For single-cell amplified genomes, authors should instead supply information about how the cell was
+    identified and isolated.
+    * For research involving human or animal subjects, include a statement documenting the approval number and
+    name of the Institutional Review Board per the ASM Ethics Guidelines.
+    * If CLSI standards were used to determine antibiotic resistance, please include appropriate references
+    and methods for this. If a clinical lab made the assessment, please describe which one.
   * Second section (methods and related outcomes)
     * A description of growth conditions for cultivation leading to DNA isolation
-    * Detailed methods for DNA isolation, library preparation, and sequencing (including the technology and chemistry used).
+    * Detailed methods for DNA isolation, library preparation, and sequencing (including the technology and
+    chemistry used).
 
     * For Illumina sequencing, please include
       * detailed methods for library preparation (e.g., kit name and vendor with modifications)
@@ -120,9 +128,13 @@ Announcement
       * description of base calling algorithm
       * description of read quality control, error correction, and adapter trimming, if appropriate
 
-    * Details on how the genome was assembled and, if applicable, annotated. (Note: if multiple assemblies and/or annotations were performed, the announcement should ideally mention only the methods used for the publicly available genome referred to in the “Data Availability” paragraph.)
+    * Details on how the genome was assembled and, if applicable, annotated. (Note: if multiple assemblies
+    and/or annotations were performed, the announcement should ideally mention only the methods used for
+    the publicly available genome referred to in the "Data Availability" paragraph.)
     * Relevant statistics for the assembly (e.g., number of contigs and N50 values).
-    * A citation, list of options, and version number for every piece of software used. Please include options for all software and/or a statement that says “Default parameters were used except where otherwise noted.”
+    * A citation, list of options, and version number for every piece of software used. Please include
+    options for all software and/or a statement that says "Default parameters were used except where
+    otherwise noted."
 
 Final section (results)
   * Genome GC content and total size.
@@ -136,7 +148,8 @@ Acknowledgments
 * Leave this section blank for the user to fill out
 
 References
-* Leave this section blank for the user to fill out"""
+* Leave this section blank for the user to fill out
+"""
 
 mra_writing_prompt_template = ChatPromptTemplate(
     [("system", writing_system_prompt), ("user", mra_writing_prompt)]
@@ -144,38 +157,59 @@ mra_writing_prompt_template = ChatPromptTemplate(
 
 
 class WriteupState(BaseModel):
-    messages: Annotated[list, add_messages]
     narrative_data: str
     narrative_id: int
     writeup_doc: str | None = None
     error: str | None = None
+    ws_client: Workspace
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-def writer_node(state: WriteupState) -> str:
+def writer_node(state: WriteupState) -> WriteupState:
+    """
+    Makes a call to (ideally) a more reasoning LLM to write up the document about the
+    narrative. Expects state.narrative_data to be populated.
+    """
     llm = get_llm("gpt-o1-cborg")
-    # msg = llm.invoke(f"Write a summary of this KBase Narrative document: {state.narrative_data}")
     msg = llm.invoke(
         mra_writing_prompt_template.invoke({"narrative": state.narrative_data})
     )
     return state.model_copy(update={"writeup_doc": msg.content})
 
 
-def checker_node(state: WriteupState) -> str:
+def checker_node(state: WriteupState) -> WriteupState:
+    """
+    Checks the state of the Narrative before passing it on to the writer node.
+    If the Narrative looks incomplete, this adds an error to the state.
+    Otherwise, it just passes the state along.
+
+    TODO: actually make this check the Narrative state. Should probably be in two forms
+    1. Programmatically check for presense of every app. I don't think an LLM needs
+    to get involved with that.
+    2. Make sure each app looks finished, and the overall summary looks like an overall
+    summary. An LLM should do that.
+    """
     # msg = llm.invoke(f"check state is ok with context: {state.narrative_data}")
     is_ok = True
     if is_ok:
         return state
     else:
-        return state.model_copy(update={"error": f"error: {msg.content.error}"})
+        return state.model_copy(update={"error": "error: some error happened"})
 
 
-def save_node(state: WriteupState) -> str:
-    print(state.writeup_doc)
+def save_node(state: WriteupState) -> WriteupState:
+    """
+    Saves the writeup document, if present. Right now, it saves the document
+    as a new markdown cell.
+
+    TODO: decide where to save that for real.
+    """
+    create_markdown_cell(state.narrative_id, state.writeup_doc, state.ws_client)
     return state
-    # save_writeup(state)  # whatever it does.
 
 
-def error_node(state: WriteupState) -> str:
+def error_node(state: WriteupState) -> WriteupState:
     print(f"error: {state.error}")
     return state
 
@@ -193,6 +227,8 @@ class WriterGraph:
     If not, one will be taken from the KB_AUTH_TOKEN environment variable.
 
     When ready, run run_workflow, which will execute the graph and output the document.
+
+    # TODO: add a reference check that'll automatically grab refs from apps, where applicable
     """
     def __init__(self, narrative_id: int, token: str = None):
         self._narrative_id = narrative_id
@@ -200,14 +236,15 @@ class WriterGraph:
         self._token = token
 
     def run_workflow(self):
+        ws = Workspace(token=self._token)
         initial_state = WriteupState(
-            messages=[],
             narrative_data=get_narrative_state(
                 self._narrative_id,
-                Workspace(token=self._token),
+                ws,
                 ExecutionEngine(token=self._token),
             ),
             narrative_id=self._narrative_id,
+            ws_client=ws
         )
         self._workflow.invoke(initial_state)
 
