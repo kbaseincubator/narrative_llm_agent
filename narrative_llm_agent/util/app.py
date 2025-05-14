@@ -143,11 +143,12 @@ def get_ws_object_refs(app_spec: AppSpec, params: dict) -> list:
     ws_objects = []
     for param in spec_params.values():
         if param["type"] == "data_object" and not param["is_output_object"]:
-            param_value = params[param["id"]]
-            if isinstance(param_value, list):
-                ws_objects += param_value
-            else:
-                ws_objects.append(param_value)
+            param_value = params.get(param["id"])
+            if param_value is not None:
+                if isinstance(param_value, list):
+                    ws_objects += param_value
+                else:
+                    ws_objects.append(param_value)
     return ws_objects
 
 
