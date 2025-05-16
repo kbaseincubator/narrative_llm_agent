@@ -62,45 +62,47 @@ class AgentConfig:
         self.llm_config = {}
         if "llm" in config:
             self.llm_config["default"] = config.get("llm", "default_model")
-            
+
         # Load model configurations
         self.llm_config["models"] = {}
         model_sections = [s for s in config.sections() if s.startswith("model.")]
         for section in model_sections:
             model_id = section.split(".", 1)[1]
             self.llm_config["models"][model_id] = dict(config.items(section))
-            
+
         # Load provider configurations
         self.provider_config = {}
         provider_sections = [s for s in config.sections() if s.startswith("provider.")]
         for section in provider_sections:
             provider_id = section.split(".", 1)[1]
             provider_dict = dict(config.items(section))
-            
+
             # Convert string boolean to actual boolean
             if "use_openai_format" in provider_dict:
-                provider_dict["use_openai_format"] = provider_dict["use_openai_format"].lower() == "true"
-                
+                provider_dict["use_openai_format"] = (
+                    provider_dict["use_openai_format"].lower() == "true"
+                )
+
             self.provider_config[provider_id] = provider_dict
     def get_llm(self, model_id: str | None = None, return_crewai: bool = False) -> Any:
         """Get an LLM instance based on the model ID from config"""
-        model_id = model_id or self.llm_config['default']
-        
+        model_id = model_id or self.llm_config["default"]
+
         # Get model config
-        if model_id not in self.llm_config['models']:
+        if model_id not in self.llm_config["models"]:
             raise ValueError(f"Unknown model ID: {model_id}")
-        
-        model_config = self.llm_config['models'][model_id]
-        provider = model_config['provider']
-        
+
+        model_config = self.llm_config["models"][model_id]
+        provider = model_config["provider"]
+
         # Get provider config
         if provider not in self.provider_config:
             raise ValueError(f"Unknown provider: {provider}")
-        
+
         provider_config = self.provider_config[provider]
-        
+
         # Get API key from environment
-        api_key_env = provider_config.get('api_key_env')
+        api_key_env = provider_config.get("api_key_env")
         api_key = os.environ.get(api_key_env)
         if api_key is None:
             raise ValueError(f"Missing API key for provider {provider}. Set environment variable {api_key_env}")
@@ -135,12 +137,13 @@ class AgentConfig:
 
     def list_available_models(self) -> Dict[str, Dict[str, Any]]:
         """List all available models with their configurations"""
-        return self.llm_config['models']
+        return self.llm_config["models"]
 
     def get_model_info(self, model_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a specific model"""
-        return self.llm_config['models'].get(model_id)
-    
+        return self.llm_config["models"].get(model_id)
+
+
 __config: AgentConfig = None
 
 

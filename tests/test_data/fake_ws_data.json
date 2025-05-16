@@ -8,9 +8,10 @@
         "a",
         "n",
         "n",
-        {}
+        {"narrative": "1"}
     ],
     "object_info": {
+        "1": {"ws_id": 1000, "obj_id": 1, "version": 1, "name": "narrative", "upa": "1000/1/1", "type": "KBaseNarrative.Narrative-3.0"},
         "2": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo", "upa": "1000/2/3"},
         "3": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar", "upa": "1000/3/4"},
         "4": {"ws_id": 1000, "obj_id": 4, "version": 1, "name": "genome", "upa": "1000/4/1"},
@@ -18,6 +19,543 @@
         "6": {"ws_id": 1000, "obj_id": 6, "version": 1, "name": "some_app_report", "upa": "1000/6/1"}
     },
     "object_data": {
+        "1": {
+            "data": {
+                "cells": [
+                    {
+                        "cell_type": "code",
+                        "execution_count": null,
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": "Fri, 02 Feb 2024 17:42:53 GMT",
+                                    "icon": "code",
+                                    "id": "396c186d-3f1e-4616-b25d-8026b169b1dd",
+                                    "lastLoaded": "Fri, 02 Feb 2024 17:42:53 GMT",
+                                    "status": "new",
+                                    "title": "Code Cell"
+                                },
+                                "codeCell": {"user-settings": {"showCodeInputArea": true}},
+                                "type": "code"
+                            }
+                        },
+                        "outputs": [],
+                        "source": ""
+                    },
+                    {
+                        "cell_type": "markdown",
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "icon": "paragraph",
+                                    "title": "I am a markdown cell"
+                                },
+                                "cellState": {"selected": true},
+                                "type": "markdown"
+                            }
+                        },
+                        "source": "# I am a markdown cell"
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": 3,
+                        "metadata": {
+                            "kbase": {
+                                "appCell": {
+                                    "app": {
+                                        "gitCommitHash": "b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4",
+                                        "id": "kb_fastqc/runFastQC",
+                                        "spec": {
+                                            "behavior": {
+                                                "kb_service_input_mapping": [
+                                                    {
+                                                        "narrative_system_variable": "workspace",
+                                                        "target_property": "input_ws"
+                                                    },
+                                                    {
+                                                        "input_parameter": "input_file_ref",
+                                                        "target_property": "input_file_ref",
+                                                        "target_type_transform": "resolved-ref"
+                                                    }
+                                                ],
+                                                "kb_service_method": "runFastQC",
+                                                "kb_service_name": "kb_fastqc",
+                                                "kb_service_output_mapping": [
+                                                    {
+                                                        "service_method_output_path": [
+                                                            "0",
+                                                            "report_name"
+                                                        ],
+                                                        "target_property": "report_name"
+                                                    },
+                                                    {
+                                                        "service_method_output_path": [
+                                                            "0",
+                                                            "report_ref"
+                                                        ],
+                                                        "target_property": "report_ref"
+                                                    },
+                                                    {
+                                                        "narrative_system_variable": "workspace",
+                                                        "target_property": "workspace_name"
+                                                    }
+                                                ],
+                                                "kb_service_url": "",
+                                                "kb_service_version": "b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4"
+                                            },
+                                            "fixed_parameters": [],
+                                            "full_info": {
+                                                "app_type": "app",
+                                                "authors": ["seaver"],
+                                                "categories": ["active", "reads"],
+                                                "contact": "",
+                                                "description": "<p>FastQC is a quality control application that allows users to perform numerous quality control checks on raw sequence data generated by high throughput sequencing pipelines such as Illumina and ABI SOLiD platforms in FASTQ format. It generates as output a comprehensive multi-page report on the composition and quality of reads in HTML format, with one page for each of the reads (e.g. Single End, Paired End: forward, Paired End: reverse). The report can be viewed inside the Narrative or as a new web page that can also be downloaded.</p>\n\n<p>The HTML report includes results from multiple modules that were run by FastQC, and provides a quick assessment of the quality of the results labeled as normal (green checkmark), slightly abnormal (orange triangle), and very unusual (red cross) reads. The modules included in the report are as follows:</p>\n<ul>\n  <li><b>Basic Statistics:</b> provides introductory compositional statistics such as filename, file type, encoding, total sequences, number of sequences flagged as poor quality, sequence length and %GC for the analyzed read.</li>\n  <li><b>Per Base Sequence Quality:</b> displays an overview of the range of quality values across all bases at each position in the FASTQ file. The graph is vertically partitioned into three quality ranges: good (green), reasonable (orange), poor (red).</li>\n  <li><b>Per Sequence Quality Scores:</b> displays the quality score distribution over all the sequences, which allows users to see if a subset of the sequences have universally low-quality values.</li>\n  <li><b>Per Base Sequence Content:</b> displays the proportion of each DNA base (A, T, C, G) called at a given position in all the sequences.</li>\n  <li><b>Per Sequence GC content:</b> displays the GC distribution over all the sequences across the whole length and compares it to a modeled normal distribution of GC content.</li>\n  <li><b>Per Base N Content:</b> displays the percentage of base calls at each position for which an N was called.  N  at a given position indicates the inability to make a normal base call with sufficient confidence.</li>\n  <li><b>Sequence Length Distribution:</b> displays the distribution of fragment sizes across all sequences and is highly dependent on the sequencing platform.</li>\n  <li><b>Sequence Duplication Levels:</b> counts the degree of duplication for every sequence in a library and creates a plot showing the proportion of sequences with different degrees of duplication (in blue) and de-duplicated sequences (in red).</li>\n  <li><b>Overrepresented Sequences:</b> lists all of the sequence which make up more than 0.1% of the total. An overrepresented sequence implies that either it is highly biologically significant, the library is contaminated, or is not that diverse.</li>\n  <li><b>Adapter Content:</b> displays the proportion of sequences which have an adapter sequence at a given position. This is informative in deciding whether there is a significant amount of adapter present in the sequences and can be subjected to trimming.</li>\n  <li><b>Kmer Content:</b> displays relative K-mer (k=7) enrichment over the read length for the top six K-mers. More specifically, it measures the number of each 7-mer at each position in the library and then uses a binomial test to look for significant deviations from an even coverage at all positions and reports the 7-mers with positionally biased enrichment.</li>\n</ul>",
+                                                "git_commit_hash": "b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4",
+                                                "icon": {
+                                                    "url": "img?method_id=kb_fastqc/runFastQC&image_name=fastqc-pink.png&tag=release"
+                                                },
+                                                "id": "kb_fastqc/runFastQC",
+                                                "module_name": "kb_fastqc",
+                                                "name": "Assess Read Quality with FastQC - v0.11.5",
+                                                "namespace": "kb_fastqc",
+                                                "publications": [
+                                                    {
+                                                        "display_text": "FastQC source: Bioinformatics Group at the Babraham Institute, UK.\n",
+                                                        "link": "http://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
+                                                    }
+                                                ],
+                                                "screenshots": [],
+                                                "subtitle": "A quality control application for high throughput sequence data.",
+                                                "suggestions": {
+                                                    "next_apps": [],
+                                                    "next_methods": [],
+                                                    "related_apps": [],
+                                                    "related_methods": []
+                                                },
+                                                "technical_description": "",
+                                                "tooltip": "A quality control application for high throughput sequence data.",
+                                                "ver": "1.1.0"
+                                            },
+                                            "info": {
+                                                "app_type": "app",
+                                                "authors": ["seaver"],
+                                                "categories": ["active", "reads"],
+                                                "git_commit_hash": "b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4",
+                                                "icon": {
+                                                    "url": "img?method_id=kb_fastqc/runFastQC&image_name=fastqc-pink.png&tag=release"
+                                                },
+                                                "id": "kb_fastqc/runFastQC",
+                                                "input_types": [
+                                                    "KBaseAssembly.PairedEndLibrary",
+                                                    "KBaseAssembly.SingleEndLibrary",
+                                                    "KBaseFile.PairedEndLibrary",
+                                                    "KBaseFile.SingleEndLibrary",
+                                                    "KBaseRNASeq.RNASeqSampleSet"
+                                                ],
+                                                "module_name": "kb_fastqc",
+                                                "name": "Assess Read Quality with FastQC - v0.11.5",
+                                                "namespace": "kb_fastqc",
+                                                "output_types": [],
+                                                "subtitle": "A quality control application for high throughput sequence data.",
+                                                "tooltip": "A quality control application for high throughput sequence data.",
+                                                "ver": "1.1.0"
+                                            },
+                                            "job_id_output_field": "docker",
+                                            "parameters": [
+                                                {
+                                                    "advanced": 0,
+                                                    "allow_multiple": 0,
+                                                    "default_values": [""],
+                                                    "description": "",
+                                                    "disabled": 0,
+                                                    "field_type": "text",
+                                                    "id": "input_file_ref",
+                                                    "optional": 0,
+                                                    "short_hint": "Select the Read Library or RNA-seq Sample Set to run quality control on.",
+                                                    "text_options": {
+                                                        "is_output_name": 0,
+                                                        "placeholder": "",
+                                                        "regex_constraint": [],
+                                                        "valid_ws_types": [
+                                                            "KBaseFile.PairedEndLibrary",
+                                                            "KBaseAssembly.PairedEndLibrary",
+                                                            "KBaseAssembly.SingleEndLibrary",
+                                                            "KBaseFile.SingleEndLibrary",
+                                                            "KBaseRNASeq.RNASeqSampleSet"
+                                                        ]
+                                                    },
+                                                    "ui_class": "input",
+                                                    "ui_name": "Read Library/RNA-seq Sample Set <font color=red>*</font."
+                                                }
+                                            ],
+                                            "widgets": {"input": "null", "output": "no-display"}
+                                        },
+                                        "tag": "release",
+                                        "version": "1.1.0"
+                                    },
+                                    "exec": {
+                                        "jobState": {
+                                            "batch_id": null,
+                                            "batch_job": false,
+                                            "child_jobs": [],
+                                            "created": 1706896346000,
+                                            "finished": 1706896533497,
+                                            "job_id": "65bd2bdaab210ab10e5b0a37",
+                                            "job_output": {
+                                                "id": "65bd2bdaab210ab10e5b0a37",
+                                                "result": [
+                                                    {
+                                                        "report_name": "kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e",
+                                                        "report_ref": "72233/4/1"
+                                                    }
+                                                ],
+                                                "version": "1.1"
+                                            },
+                                            "queued": 1706896346956,
+                                            "retry_count": 0,
+                                            "retry_ids": [],
+                                            "running": 1706896357734,
+                                            "status": "completed",
+                                            "wsid": 72233
+                                        },
+                                        "jobs": {
+                                            "byId": {
+                                                "65bd2bdaab210ab10e5b0a37": {
+                                                    "batch_id": null,
+                                                    "batch_job": false,
+                                                    "child_jobs": [],
+                                                    "created": 1706896346000,
+                                                    "finished": 1706896533497,
+                                                    "job_id": "65bd2bdaab210ab10e5b0a37",
+                                                    "job_output": {
+                                                        "id": "65bd2bdaab210ab10e5b0a37",
+                                                        "result": [
+                                                            {
+                                                                "report_name": "kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e",
+                                                                "report_ref": "72233/4/1"
+                                                            }
+                                                        ],
+                                                        "version": "1.1"
+                                                    },
+                                                    "queued": 1706896346956,
+                                                    "retry_count": 0,
+                                                    "retry_ids": [],
+                                                    "running": 1706896357734,
+                                                    "status": "completed",
+                                                    "wsid": 72233
+                                                }
+                                            }
+                                        },
+                                        "launchState": {
+                                            "cell_id": "f1f60570-d659-4e10-ac70-803aac4a24a6",
+                                            "event": "launched_job",
+                                            "event_at": "2024-02-02T17:52:27.123726Z",
+                                            "job_id": "65bd2bdaab210ab10e5b0a37",
+                                            "run_id": "62da1c89-acd3-40f5-867d-51d215f72953"
+                                        },
+                                        "outputWidgetInfo": {
+                                            "name": "no-display",
+                                            "params": {
+                                                "report_name": "kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e",
+                                                "report_ref": "72233/4/1",
+                                                "workspace_name": "wjriehl:narrative_1706895747734"
+                                            },
+                                            "tag": "release"
+                                        }
+                                    },
+                                    "executionStats": {
+                                        "full_app_id": "kb_fastqc/runFastQC",
+                                        "module_name": "kb_fastqc",
+                                        "number_of_calls": 68,
+                                        "number_of_errors": 6,
+                                        "time_range": "*",
+                                        "total_exec_time": 14281.180732011795,
+                                        "total_queue_time": 4401.6533007621765,
+                                        "type": "a"
+                                    },
+                                    "fsm": {"currentState": {"mode": "success"}},
+                                    "output": {
+                                        "byJob": {
+                                            "65bd2bdaab210ab10e5b0a37": {
+                                                "cell": {"created": false},
+                                                "createdAt": "Fri, 02 Feb 2024 17:55:33 GMT",
+                                                "params": {"input_file_ref": "72233/3/1"}
+                                            }
+                                        }
+                                    },
+                                    "paramDisplay": {},
+                                    "params": {"input_file_ref": "72233/3/1"},
+                                    "user-settings": {"showCodeInputArea": false}
+                                },
+                                "attributes": {
+                                    "created": "Fri, 02 Feb 2024 17:52:19 GMT",
+                                    "id": "f1f60570-d659-4e10-ac70-803aac4a24a6",
+                                    "info": {
+                                        "label": "more...",
+                                        "url": "/#appcatalog/app/kb_fastqc/runFastQC/release"
+                                    },
+                                    "lastLoaded": "Wed, 21 Feb 2024 16:31:03 GMT",
+                                    "status": "new",
+                                    "subtitle": "A quality control application for high throughput sequence data.",
+                                    "title": "Assess Read Quality with FastQC - v0.11.5"
+                                },
+                                "type": "app"
+                            }
+                        },
+                        "outputs": [],
+                        "source": "from biokbase.narrative.jobs.appmanager import AppManager\nAppManager().run_app(\n    \"kb_fastqc/runFastQC\",\n    {\n        \"input_file_ref\": \"72233/3/1\"\n    },\n    tag=\"release\",\n    version=\"1.1.0\",\n    cell_id=\"f1f60570-d659-4e10-ac70-803aac4a24a6\",\n    run_id=\"62da1c89-acd3-40f5-867d-51d215f72953\"\n)"
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": 1,
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": "Mon, 12 Feb 2024 21:22:07 GMT",
+                                    "icon": "code",
+                                    "id": "1964fe98-eb70-4c39-86f8-8460a217bebd",
+                                    "lastLoaded": "Mon, 12 Feb 2024 21:22:07 GMT",
+                                    "status": "new",
+                                    "subtitle": "python",
+                                    "title": "Code Cell"
+                                },
+                                "codeCell": {"user-settings": {"showCodeInputArea": true}},
+                                "type": "code"
+                            }
+                        },
+                        "outputs": [
+                            {
+                                "data": {
+                                    "text/html": "\n            <table class=\"table table-bordered table-striped table-condensed\">\n                <tr>\n                    <th>Id</th>\n                    <th>Name</th>\n                    <th>Submitted</th>\n                    <th>Batch ID</th>\n                    <th>Submitted By</th>\n                    <th>Status</th>\n                    <th>Run Time</th>\n                    <th>Complete Time</th>\n                </tr>\n                \n                <tr>\n                    <td class=\"job_id\">65bd2bdaab210ab10e5b0a37</td>\n                    <td class=\"app_id\">kb_fastqc/runFastQC</td>\n                    <td class=\"created\">2024-02-02 17:52:26</td>\n                    <td class=\"batch_id\">None</td>\n                    <td class=\"user\">wjriehl</td>\n                    <td class=\"status\">completed</td>\n                    <td class=\"run_time\">0:02:55</td>\n                    <td class=\"finish_time\">2024-02-02 17:55:33</td>\n                </tr>\n                \n            </table>\n            ",
+                                    "text/plain": "<IPython.core.display.HTML object>"
+                                },
+                                "execution_count": 1,
+                                "metadata": {},
+                                "output_type": "execute_result"
+                            }
+                        ],
+                        "source": "from biokbase.narrative.jobs.jobmanager import JobManager\njm = JobManager()\njm.list_jobs()"
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": 1,
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": "Mon, 12 Feb 2024 21:22:25 GMT",
+                                    "icon": "code",
+                                    "id": "d9021151-d0ce-4e07-8ccf-642637105cc9",
+                                    "lastLoaded": "Mon, 12 Feb 2024 21:22:25 GMT",
+                                    "status": "new",
+                                    "title": "Code Cell"
+                                },
+                                "codeCell": {"user-settings": {"showCodeInputArea": true}},
+                                "type": "code"
+                            }
+                        },
+                        "outputs": [],
+                        "source": "ws = biokbase.narrative.clients.get(\"workspace\")"
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": 6,
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": "Mon, 12 Feb 2024 21:23:43 GMT",
+                                    "icon": "code",
+                                    "id": "5aa3a847-0a4e-413c-86ec-c576c0bc2231",
+                                    "lastLoaded": "Mon, 12 Feb 2024 21:23:43 GMT",
+                                    "status": "new",
+                                    "title": "Code Cell"
+                                },
+                                "codeCell": {"user-settings": {"showCodeInputArea": true}},
+                                "type": "code"
+                            }
+                        },
+                        "outputs": [
+                            {
+                                "data": {
+                                    "text/plain": "[5,\n 'copied_report',\n 'KBaseReport.Report-3.0',\n '2024-02-12T21:25:42+0000',\n 1,\n 'wjriehl',\n 72233,\n 'wjriehl:narrative_1706895747734',\n '768202029fa4440b217d6c7a41a27a58',\n 1089,\n {'Size(characters)': 'NaN', 'Objects Created': '0', 'Warnings': '0'}]"
+                                },
+                                "execution_count": 6,
+                                "metadata": {},
+                                "output_type": "execute_result"
+                            }
+                        ],
+                        "source": "ws.copy_object({\"from\": {\"ref\": \"72233/4/1\"}, \"to\": {\"wsid\": 72233, \"name\": \"copied_report\"}})"
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": 4,
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": "Mon, 12 Feb 2024 21:23:48 GMT",
+                                    "icon": "code",
+                                    "id": "0f868230-4581-46aa-9dcf-3737cb206faa",
+                                    "lastLoaded": "Mon, 12 Feb 2024 21:23:48 GMT",
+                                    "status": "new",
+                                    "title": "Code Cell"
+                                },
+                                "codeCell": {"user-settings": {"showCodeInputArea": true}},
+                                "type": "code"
+                            }
+                        },
+                        "outputs": [],
+                        "source": "narr = ws.get_objects2({\"objects\": [{\"ref\": \"72233/1/5\"}]})[\"data\"][0]"
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": 9,
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": "Wed, 21 Feb 2024 16:31:37 GMT",
+                                    "icon": "code",
+                                    "id": "029c6488-269b-4c95-b45b-040269d3d20f",
+                                    "lastLoaded": "Wed, 21 Feb 2024 16:31:37 GMT",
+                                    "status": "new",
+                                    "title": "Code Cell"
+                                },
+                                "codeCell": {"user-settings": {"showCodeInputArea": true}},
+                                "type": "code"
+                            }
+                        },
+                        "outputs": [
+                            {
+                                "data": {
+                                    "text/plain": "[{'cell_type': 'code',\n  'execution_count': None,\n  'metadata': {'kbase': {'attributes': {'created': 'Fri, 02 Feb 2024 17:42:53 GMT',\n     'icon': 'code',\n     'id': '396c186d-3f1e-4616-b25d-8026b169b1dd',\n     'lastLoaded': 'Fri, 02 Feb 2024 17:42:53 GMT',\n     'status': 'new',\n     'title': 'Code Cell'},\n    'codeCell': {'user-settings': {'showCodeInputArea': True}},\n    'type': 'code'}},\n  'outputs': [],\n  'source': ''},\n {'cell_type': 'code',\n  'execution_count': 3,\n  'metadata': {'kbase': {'appCell': {'app': {'gitCommitHash': 'b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4',\n      'id': 'kb_fastqc/runFastQC',\n      'spec': {'behavior': {'kb_service_input_mapping': [{'narrative_system_variable': 'workspace',\n          'target_property': 'input_ws'},\n         {'input_parameter': 'input_file_ref',\n          'target_property': 'input_file_ref',\n          'target_type_transform': 'resolved-ref'}],\n        'kb_service_method': 'runFastQC',\n        'kb_service_name': 'kb_fastqc',\n        'kb_service_output_mapping': [{'service_method_output_path': ['0',\n           'report_name'],\n          'target_property': 'report_name'},\n         {'service_method_output_path': ['0', 'report_ref'],\n          'target_property': 'report_ref'},\n         {'narrative_system_variable': 'workspace',\n          'target_property': 'workspace_name'}],\n        'kb_service_url': '',\n        'kb_service_version': 'b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4'},\n       'fixed_parameters': [],\n       'full_info': {'app_type': 'app',\n        'authors': ['seaver'],\n        'categories': ['active', 'reads'],\n        'contact': '',\n        'description': '<p>FastQC is a quality control application that allows users to perform numerous quality control checks on raw sequence data generated by high throughput sequencing pipelines such as Illumina and ABI SOLiD platforms in FASTQ format. It generates as output a comprehensive multi-page report on the composition and quality of reads in HTML format, with one page for each of the reads (e.g. Single End, Paired End: forward, Paired End: reverse). The report can be viewed inside the Narrative or as a new web page that can also be downloaded.</p>\\n\\n<p>The HTML report includes results from multiple modules that were run by FastQC, and provides a quick assessment of the quality of the results labeled as normal (green checkmark), slightly abnormal (orange triangle), and very unusual (red cross) reads. The modules included in the report are as follows:</p>\\n<ul>\\n  <li><b>Basic Statistics:</b> provides introductory compositional statistics such as filename, file type, encoding, total sequences, number of sequences flagged as poor quality, sequence length and %GC for the analyzed read.</li>\\n  <li><b>Per Base Sequence Quality:</b> displays an overview of the range of quality values across all bases at each position in the FASTQ file. The graph is vertically partitioned into three quality ranges: good (green), reasonable (orange), poor (red).</li>\\n  <li><b>Per Sequence Quality Scores:</b> displays the quality score distribution over all the sequences, which allows users to see if a subset of the sequences have universally low-quality values.</li>\\n  <li><b>Per Base Sequence Content:</b> displays the proportion of each DNA base (A, T, C, G) called at a given position in all the sequences.</li>\\n  <li><b>Per Sequence GC content:</b> displays the GC distribution over all the sequences across the whole length and compares it to a modeled normal distribution of GC content.</li>\\n  <li><b>Per Base N Content:</b> displays the percentage of base calls at each position for which an N was called.  N  at a given position indicates the inability to make a normal base call with sufficient confidence.</li>\\n  <li><b>Sequence Length Distribution:</b> displays the distribution of fragment sizes across all sequences and is highly dependent on the sequencing platform.</li>\\n  <li><b>Sequence Duplication Levels:</b> counts the degree of duplication for every sequence in a library and creates a plot showing the proportion of sequences with different degrees of duplication (in blue) and de-duplicated sequences (in red).</li>\\n  <li><b>Overrepresented Sequences:</b> lists all of the sequence which make up more than 0.1% of the total. An overrepresented sequence implies that either it is highly biologically significant, the library is contaminated, or is not that diverse.</li>\\n  <li><b>Adapter Content:</b> displays the proportion of sequences which have an adapter sequence at a given position. This is informative in deciding whether there is a significant amount of adapter present in the sequences and can be subjected to trimming.</li>\\n  <li><b>Kmer Content:</b> displays relative K-mer (k=7) enrichment over the read length for the top six K-mers. More specifically, it measures the number of each 7-mer at each position in the library and then uses a binomial test to look for significant deviations from an even coverage at all positions and reports the 7-mers with positionally biased enrichment.</li>\\n</ul>',\n        'git_commit_hash': 'b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4',\n        'icon': {'url': 'img?method_id=kb_fastqc/runFastQC&image_name=fastqc-pink.png&tag=release'},\n        'id': 'kb_fastqc/runFastQC',\n        'module_name': 'kb_fastqc',\n        'name': 'Assess Read Quality with FastQC - v0.11.5',\n        'namespace': 'kb_fastqc',\n        'publications': [{'display_text': 'FastQC source: Bioinformatics Group at the Babraham Institute, UK.\\n',\n          'link': 'http://www.bioinformatics.babraham.ac.uk/projects/fastqc/'}],\n        'screenshots': [],\n        'subtitle': 'A quality control application for high throughput sequence data.',\n        'suggestions': {'next_apps': [],\n         'next_methods': [],\n         'related_apps': [],\n         'related_methods': []},\n        'technical_description': '',\n        'tooltip': 'A quality control application for high throughput sequence data.',\n        'ver': '1.1.0'},\n       'info': {'app_type': 'app',\n        'authors': ['seaver'],\n        'categories': ['active', 'reads'],\n        'git_commit_hash': 'b7ea69cd0fe0f62e45a8e6ea4ddeba3cba17a8d4',\n        'icon': {'url': 'img?method_id=kb_fastqc/runFastQC&image_name=fastqc-pink.png&tag=release'},\n        'id': 'kb_fastqc/runFastQC',\n        'input_types': ['KBaseAssembly.PairedEndLibrary',\n         'KBaseAssembly.SingleEndLibrary',\n         'KBaseFile.PairedEndLibrary',\n         'KBaseFile.SingleEndLibrary',\n         'KBaseRNASeq.RNASeqSampleSet'],\n        'module_name': 'kb_fastqc',\n        'name': 'Assess Read Quality with FastQC - v0.11.5',\n        'namespace': 'kb_fastqc',\n        'output_types': [],\n        'subtitle': 'A quality control application for high throughput sequence data.',\n        'tooltip': 'A quality control application for high throughput sequence data.',\n        'ver': '1.1.0'},\n       'job_id_output_field': 'docker',\n       'parameters': [{'advanced': 0,\n         'allow_multiple': 0,\n         'default_values': [''],\n         'description': '',\n         'disabled': 0,\n         'field_type': 'text',\n         'id': 'input_file_ref',\n         'optional': 0,\n         'short_hint': 'Select the Read Library or RNA-seq Sample Set to run quality control on.',\n         'text_options': {'is_output_name': 0,\n          'placeholder': '',\n          'regex_constraint': [],\n          'valid_ws_types': ['KBaseFile.PairedEndLibrary',\n           'KBaseAssembly.PairedEndLibrary',\n           'KBaseAssembly.SingleEndLibrary',\n           'KBaseFile.SingleEndLibrary',\n           'KBaseRNASeq.RNASeqSampleSet']},\n         'ui_class': 'input',\n         'ui_name': 'Read Library/RNA-seq Sample Set <font color=red>*</font.'}],\n       'widgets': {'input': 'null', 'output': 'no-display'}},\n      'tag': 'release',\n      'version': '1.1.0'},\n     'exec': {'jobState': {'batch_id': None,\n       'batch_job': False,\n       'child_jobs': [],\n       'created': 1706896346000,\n       'finished': 1706896533497,\n       'job_id': '65bd2bdaab210ab10e5b0a37',\n       'job_output': {'id': '65bd2bdaab210ab10e5b0a37',\n        'result': [{'report_name': 'kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e',\n          'report_ref': '72233/4/1'}],\n        'version': '1.1'},\n       'queued': 1706896346956,\n       'retry_count': 0,\n       'retry_ids': [],\n       'running': 1706896357734,\n       'status': 'completed',\n       'wsid': 72233},\n      'jobs': {'byId': {'65bd2bdaab210ab10e5b0a37': {'batch_id': None,\n         'batch_job': False,\n         'child_jobs': [],\n         'created': 1706896346000,\n         'finished': 1706896533497,\n         'job_id': '65bd2bdaab210ab10e5b0a37',\n         'job_output': {'id': '65bd2bdaab210ab10e5b0a37',\n          'result': [{'report_name': 'kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e',\n            'report_ref': '72233/4/1'}],\n          'version': '1.1'},\n         'queued': 1706896346956,\n         'retry_count': 0,\n         'retry_ids': [],\n         'running': 1706896357734,\n         'status': 'completed',\n         'wsid': 72233}}},\n      'launchState': {'cell_id': 'f1f60570-d659-4e10-ac70-803aac4a24a6',\n       'event': 'launched_job',\n       'event_at': '2024-02-02T17:52:27.123726Z',\n       'job_id': '65bd2bdaab210ab10e5b0a37',\n       'run_id': '62da1c89-acd3-40f5-867d-51d215f72953'},\n      'outputWidgetInfo': {'name': 'no-display',\n       'params': {'report_name': 'kb_fastqc_report_87b384da-cd20-4fef-9049-20ad7e868d3e',\n        'report_ref': '72233/4/1',\n        'workspace_name': 'wjriehl:narrative_1706895747734'},\n       'tag': 'release'}},\n     'executionStats': {'full_app_id': 'kb_fastqc/runFastQC',\n      'module_name': 'kb_fastqc',\n      'number_of_calls': 68,\n      'number_of_errors': 6,\n      'time_range': '*',\n      'total_exec_time': 14281.180732011795,\n      'total_queue_time': 4401.6533007621765,\n      'type': 'a'},\n     'fsm': {'currentState': {'mode': 'success'}},\n     'output': {'byJob': {'65bd2bdaab210ab10e5b0a37': {'cell': {'created': False},\n        'createdAt': 'Fri, 02 Feb 2024 17:55:33 GMT',\n        'params': {'input_file_ref': '72233/3/1'}}}},\n     'paramDisplay': {},\n     'params': {'input_file_ref': '72233/3/1'},\n     'user-settings': {'showCodeInputArea': False}},\n    'attributes': {'created': 'Fri, 02 Feb 2024 17:52:19 GMT',\n     'id': 'f1f60570-d659-4e10-ac70-803aac4a24a6',\n     'info': {'label': 'more...',\n      'url': '/#appcatalog/app/kb_fastqc/runFastQC/release'},\n     'lastLoaded': 'Mon, 12 Feb 2024 21:21:52 GMT',\n     'status': 'new',\n     'subtitle': 'A quality control application for high throughput sequence data.',\n     'title': 'Assess Read Quality with FastQC - v0.11.5'},\n    'type': 'app'}},\n  'outputs': [],\n  'source': 'from biokbase.narrative.jobs.appmanager import AppManager\\nAppManager().run_app(\\n    \"kb_fastqc/runFastQC\",\\n    {\\n        \"input_file_ref\": \"72233/3/1\"\\n    },\\n    tag=\"release\",\\n    version=\"1.1.0\",\\n    cell_id=\"f1f60570-d659-4e10-ac70-803aac4a24a6\",\\n    run_id=\"62da1c89-acd3-40f5-867d-51d215f72953\"\\n)'},\n {'cell_type': 'code',\n  'execution_count': 1,\n  'metadata': {'kbase': {'attributes': {'created': 'Mon, 12 Feb 2024 21:22:07 GMT',\n     'icon': 'code',\n     'id': '1964fe98-eb70-4c39-86f8-8460a217bebd',\n     'lastLoaded': 'Mon, 12 Feb 2024 21:22:07 GMT',\n     'status': 'new',\n     'subtitle': 'python',\n     'title': 'Code Cell'},\n    'codeCell': {'user-settings': {'showCodeInputArea': True}},\n    'type': 'code'}},\n  'outputs': [{'data': {'text/html': '\\n            <table class=\"table table-bordered table-striped table-condensed\">\\n                <tr>\\n                    <th>Id</th>\\n                    <th>Name</th>\\n                    <th>Submitted</th>\\n                    <th>Batch ID</th>\\n                    <th>Submitted By</th>\\n                    <th>Status</th>\\n                    <th>Run Time</th>\\n                    <th>Complete Time</th>\\n                </tr>\\n                \\n                <tr>\\n                    <td class=\"job_id\">65bd2bdaab210ab10e5b0a37</td>\\n                    <td class=\"app_id\">kb_fastqc/runFastQC</td>\\n                    <td class=\"created\">2024-02-02 17:52:26</td>\\n                    <td class=\"batch_id\">None</td>\\n                    <td class=\"user\">wjriehl</td>\\n                    <td class=\"status\">completed</td>\\n                    <td class=\"run_time\">0:02:55</td>\\n                    <td class=\"finish_time\">2024-02-02 17:55:33</td>\\n                </tr>\\n                \\n            </table>\\n            ',\n     'text/plain': '<IPython.core.display.HTML object>'},\n    'execution_count': 1,\n    'metadata': {},\n    'output_type': 'execute_result'}],\n  'source': 'from biokbase.narrative.jobs.jobmanager import JobManager\\njm = JobManager()\\njm.list_jobs()'},\n {'cell_type': 'code',\n  'execution_count': 3,\n  'metadata': {'kbase': {'attributes': {'created': 'Mon, 12 Feb 2024 21:22:25 GMT',\n     'icon': 'code',\n     'id': 'd9021151-d0ce-4e07-8ccf-642637105cc9',\n     'lastLoaded': 'Mon, 12 Feb 2024 21:22:25 GMT',\n     'status': 'new',\n     'title': 'Code Cell'},\n    'codeCell': {'user-settings': {'showCodeInputArea': True}},\n    'type': 'code'}},\n  'outputs': [],\n  'source': 'ws = biokbase.narrative.clients.get(\"workspace\")'},\n {'cell_type': 'code',\n  'execution_count': 6,\n  'metadata': {'kbase': {'attributes': {'created': 'Mon, 12 Feb 2024 21:23:43 GMT',\n     'icon': 'code',\n     'id': '5aa3a847-0a4e-413c-86ec-c576c0bc2231',\n     'lastLoaded': 'Mon, 12 Feb 2024 21:23:43 GMT',\n     'status': 'new',\n     'title': 'Code Cell'},\n    'codeCell': {'user-settings': {'showCodeInputArea': True}},\n    'type': 'code'}},\n  'outputs': [{'data': {'text/plain': \"[5,\\n 'copied_report',\\n 'KBaseReport.Report-3.0',\\n '2024-02-12T21:25:42+0000',\\n 1,\\n 'wjriehl',\\n 72233,\\n 'wjriehl:narrative_1706895747734',\\n '768202029fa4440b217d6c7a41a27a58',\\n 1089,\\n {'Size(characters)': 'NaN', 'Objects Created': '0', 'Warnings': '0'}]\"},\n    'execution_count': 6,\n    'metadata': {},\n    'output_type': 'execute_result'}],\n  'source': 'ws.copy_object({\"from\": {\"ref\": \"72233/4/1\"}, \"to\": {\"wsid\": 72233, \"name\": \"copied_report\"}})'},\n {'cell_type': 'code',\n  'execution_count': None,\n  'metadata': {'kbase': {'attributes': {'created': 'Mon, 12 Feb 2024 21:23:48 GMT',\n     'icon': 'code',\n     'id': '0f868230-4581-46aa-9dcf-3737cb206faa',\n     'lastLoaded': 'Mon, 12 Feb 2024 21:23:48 GMT',\n     'status': 'new',\n     'title': 'Code Cell'},\n    'codeCell': {'user-settings': {'showCodeInputArea': True}},\n    'type': 'code'}},\n  'outputs': [],\n  'source': ''}]"
+                                },
+                                "execution_count": 9,
+                                "metadata": {},
+                                "output_type": "execute_result"
+                            }
+                        ],
+                        "source": "narr[\"data\"][\"cells\"]"
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": null,
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": "Wed, 21 Feb 2024 16:32:15 GMT",
+                                    "icon": "code",
+                                    "id": "b28447b5-bec6-4967-aacd-8bf17eca7503",
+                                    "lastLoaded": "Wed, 21 Feb 2024 16:32:15 GMT",
+                                    "status": "new",
+                                    "title": "Code Cell"
+                                },
+                                "codeCell": {"user-settings": {"showCodeInputArea": true}},
+                                "type": "code"
+                            }
+                        },
+                        "outputs": [],
+                        "source": ""
+                    },
+                    {
+                        "cell_type": "markdown",
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": [2024, 2, 21, 20, 52, 40, 2, 52, 0],
+                                    "icon": "paragraph",
+                                    "id": "4dd7e0f0-e703-441e-94f0-9dc89ad1aba5",
+                                    "title": "Code Cell"
+                                },
+                                "type": "markdown"
+                            }
+                        },
+                        "outputs": [],
+                        "source": "This is a new markdown cell.\n# BEHOLD!"
+                    },
+                    {
+                        "cell_type": "markdown",
+                        "metadata": {
+                            "kbase": {
+                                "attributes": {
+                                    "created": [2024, 2, 22, 19, 11, 46, 3, 53, 0],
+                                    "icon": "paragraph",
+                                    "id": "04d095b1-c13c-4be5-bea0-bc43938a7199",
+                                    "title": "Code Cell"
+                                },
+                                "type": "markdown"
+                            }
+                        },
+                        "outputs": [],
+                        "source": "## Agent Markdown Cell\n**This is a test piece of markdown.**"
+                    }
+                ],
+                "metadata": {
+                    "creator": "wjriehl",
+                    "data_dependencies": [],
+                    "description": "",
+                    "format": "ipynb",
+                    "is_temporary": "false",
+                    "job_ids": {
+                        "apps": [],
+                        "job_usage": {"queue_time": 0, "run_time": 0},
+                        "methods": []
+                    },
+                    "kbase": {
+                        "creator": "wjriehl",
+                        "job_ids": {
+                            "apps": [],
+                            "job_usage": {"queue_time": 0, "run_time": 0},
+                            "methods": []
+                        },
+                        "name": "Untitled",
+                        "ws_name": "wjriehl:narrative_1706895747734"
+                    },
+                    "kernelspec": {
+                        "display_name": "Python 3 (ipykernel)",
+                        "language": "python",
+                        "name": "python3"
+                    },
+                    "language_info": {
+                        "codemirror_mode": {"name": "ipython", "version": 3},
+                        "file_extension": ".py",
+                        "mimetype": "text/x-python",
+                        "name": "python",
+                        "nbconvert_exporter": "python",
+                        "pygments_lexer": "ipython3",
+                        "version": "3.10.7"
+                    },
+                    "name": "Genome paper LLM work",
+                    "type": "KBaseNarrative.Narrative",
+                    "ws_name": "wjriehl:narrative_1706895747734"
+                },
+                "nbformat": 4,
+                "nbformat_minor": 1
+            },
+            "info": [
+                1,
+                "a_narrative",
+                "KBaseNarrative.Narrative-3.0",
+                "2025-01-23T17:27:37+0000",
+                1,
+                "wjriehl",
+                1000,
+                "wjriehl:narrative_1714065046758",
+                "fb92cc3f810a388725c6bd23d8756469",
+                420,
+                {
+                    "Size(characters)": "0",
+                    "Objects Created": "1",
+                    "Warnings": "0"
+                }
+            ],
+            "path": ["1000/1/1"],
+            "provenance": [{}],
+            "creator": "wjriehl",
+            "orig_wsid": 1000,
+            "created": "2025-01-23T17:27:37+0000",
+            "epoch": 1737653257173,
+            "refs": [],
+            "copy_source_inaccessible": 0,
+            "extracted_ids": {}
+        },
         "6": {
             "data": {
                 "direct_html": "",
