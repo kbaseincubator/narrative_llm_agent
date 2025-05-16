@@ -15,10 +15,6 @@ from narrative_llm_agent.kbase.clients.narrative_method_store import (
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.agents import Tool, AgentExecutor, create_react_agent, create_tool_calling_agent
 from narrative_llm_agent.tools.kgtool_cosine_sim import InformationTool
-# from langchain_core.runnables import RunnableConfig
-# import chainlit as cl
-# from narrative_llm_agent.tools.human_tool import HumanInputChainlit
-# from narrative_llm_agent.tools.human_tool_not_chainlit import HumanInputRun
 from narrative_llm_agent.config import get_config
 
 class AnalystInput(BaseModel):
@@ -50,27 +46,17 @@ class AnalystAgent(KBaseAgent):
         provider: str,
         token: str = None,
         api_key: str = None,
-        catalog_db_dir: Path | str = None,
-        tutorial_db_dir: Path | str = None,
-        docs_db_dir: Path | str = None,
+        catalog_db_dir: Path = DEFAULT_CATALOG_DB_DIR,
+        tutorial_db_dir: Path = DEFAULT_TUTORIAL_DB_DIR,
+        docs_db_dir: Path = DEFAULT_DOCS_DB_DIR,
     ):
         super().__init__(llm, token=token)
         self._api_key = self.__setup_api_key(api_key, provider=provider)
         self._embeddings = self.__setup_embeddings_model(provider=provider)
 
-        if catalog_db_dir is not None:
-            self._catalog_db_dir = Path(catalog_db_dir)
-        else:
-            self._catalog_db_dir = DEFAULT_CATALOG_DB_DIR
-
-        if docs_db_dir is not None:
-            self._docs_db_dir = Path(docs_db_dir)
-        else:
-            self._docs_db_dir = DEFAULT_DOCS_DB_DIR
-        if tutorial_db_dir is not None:
-            self._tutorial_db_dir = Path(tutorial_db_dir)
-        else:
-            self._tutorial_db_dir = DEFAULT_TUTORIAL_DB_DIR
+        self._catalog_db_dir = catalog_db_dir
+        self._docs_db_dir = docs_db_dir
+        self._tutorials_db_dir = tutorial_db_dir
 
         for db_path in [self._catalog_db_dir, self._docs_db_dir, self._tutorial_db_dir]:
             self.__check_db_directories(db_path)
@@ -124,13 +110,6 @@ class AnalystAgent(KBaseAgent):
                                      dimensionality=768)
 
     def __init_agent(self: "AnalystAgent") -> None:
-        # cfg = RunnableConfig()
-        # Check if running with Chainlit
-        additional_tools = []
-        # additional_tools = [HumanInputRun()]
-        # if os.getenv("CHAINLIT_RUN"):
-        #     cfg["callbacks"] = [cl.LangchainCallbackHandler()]
-        #     additional_tools = [HumanInputChainlit()]
 
         @tool("kbase_doc_tool")
         def kbase_docs_retrieval_tool(query: str):
@@ -154,16 +133,14 @@ class AnalystAgent(KBaseAgent):
             """Use this tool to search the KBase app catalog. This will provide apps that are available in KBase.
             All apps in the catalog also have a name, app_id, version, tooltip, categories, and description to help you
             to decide which app to use. Input should be a fully formed question."""
-            print("running query against the catalog retrieval tool:")
-            print(query)
+
             result = self._create_doc_chain(
                 persist_directory=self._catalog_db_dir
             ).invoke({"query": query})
-            print("got result")
-            print(result)
+
             return result
 
-        @tool("kabse_app_validator_tool")
+        @tool("kbase_app_validator_tool")
         def kbase_app_validator(app_id: str) -> bool:
             """Use this tool to validate if an app is available in KBase.
 
@@ -193,8 +170,7 @@ class AnalystAgent(KBaseAgent):
         kbase_tutorial_retrieval_tool,
         KGretrieval_tool,
         ]
-        # tool_names = ', '.join([tool.name for tool in tools])
-        # tool_descriptions = "\n".join([f"{t.name}: {t.description}" for t in tools])
+
         SYSTEM_PROMPT_TEMPLATE = f"""You are {self.role}.
         {self.backstory}
         Your personal goal is: {self.goal}"""

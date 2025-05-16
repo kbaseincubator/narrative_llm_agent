@@ -3,10 +3,10 @@ from typing import List, Dict, Any, Optional
 
 # Define a model for each analysis step
 class AnalysisStep(BaseModel):
-    Step: int
-    Name: str
-    App: str
-    Description: str
+    step: int
+    name: str
+    app: str
+    description: str
     expect_new_object: bool
     app_id: str
     input_data_object: List[str]

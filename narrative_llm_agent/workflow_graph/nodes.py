@@ -11,10 +11,10 @@ import os
 
 # Define a model for each analysis step
 class AnalysisStep(BaseModel):
-    Step: int
-    Name: str
-    App: str
-    Description: str
+    step: int
+    name: str
+    app: str
+    description: str
     expect_new_object: bool
     app_id: str
     input_data_object: List[str]
@@ -214,7 +214,7 @@ class WorkflowNodes:
                 {json.dumps(next_step)}
                 If this is the first step, i.e. Last step executed is None, then the input object for this step should be paired-end reads object with id {state.reads_id}.
                 IMPORTANT: For the input_object_upa field, you MUST use the actual UPA from the previous step's output or the {state.reads_id} for the paired-end reads object.
-                A valid UPA has the format "workspace_id/object_id/version_id" (like "12345/6/1"). DO NOT make up UPA values - they must be actual reference IDs extracted from the previous step's output or the initial state.
+                A valid UPA has the format "workspace_id/object_id/version_id" (like "12345/6/1").UPA fields must be numbers. DO NOT make up UPA values - they must be actual reference IDs extracted from the previous step's output or the initial state.
 
                 Based on the outcome of the last step, evaluate if the next step is still appropriate or needs to be modified.
                 Keep in mind that the output object from the last step will be used as input for the next step.
@@ -232,7 +232,8 @@ class WorkflowNodes:
                     "input_object_upa": "upa of the input object for the next step",
                     "modified_next_steps": [] // If modifications are needed, include the modified steps here
                 }}
-                ```"""
+                ```
+                """
             
             output = validator.agent.invoke({"input":description})
             
