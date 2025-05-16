@@ -1,7 +1,7 @@
 from crewai import Crew, Task
 from narrative_llm_agent.agents.workflow import WorkflowRunner
 from narrative_llm_agent.agents.validator import WorkflowValidatorAgent
-from narrative_llm_agent.agents.analyst import AnalystAgent
+from narrative_llm_agent.agents.analyst_lang import AnalystAgent
 from narrative_llm_agent.util.json_util import extract_json_from_string, extract_json_from_string_curly
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional, TypedDict
@@ -11,10 +11,10 @@ import os
 
 # Define a model for each analysis step
 class AnalysisStep(BaseModel):
-    Step: int
-    Name: str
-    App: str
-    Description: str
+    step: int
+    name: str
+    app: str
+    description: str
     expect_new_object: bool
     app_id: str
     input_data_object: List[str]
@@ -76,33 +76,32 @@ class WorkflowNodes:
             description = state.description
             
             # Initialize the analyst agent
-            llm = self.llm_factory("gpt-o1-cborg")
+            llm = self.llm_factory("gpt-4.1-cborg")
             analyst_expert = AnalystAgent(
                 llm=llm, 
                 token=self.token, 
-                tools_model="o1", 
                 provider="cborg"
             )
             
-            # Create the analysis task
-            analysis_agent_task = Task(
-                description=description,
-                expected_output="a json of the analysis workflow",
-                output_json=AnalysisPipeline,
-                agent=analyst_expert.agent
-            )
+            # # Create the analysis task
+            # analysis_agent_task = Task(
+            #     description=description,
+            #     expected_output="a json of the analysis workflow",
+            #     output_json=AnalysisPipeline,
+            #     agent=analyst_expert.agent
+            # )
             
-            # Create and run the crew
-            crew = Crew(
-                agents=[analyst_expert.agent],
-                tasks=[analysis_agent_task],
-                verbose=True,
-            )
+            # # Create and run the crew
+            # crew = Crew(
+            #     agents=[analyst_expert.agent],
+            #     tasks=[analysis_agent_task],
+            #     verbose=True,
+            # )
             
-            output = crew.kickoff()
-            
+            # output = crew.kickoff()
+            output = analyst_expert.agent.invoke({"input":description})
             # Extract the JSON from the output
-            analysis_plan = extract_json_from_string(output.raw)
+            analysis_plan = extract_json_from_string(output['output'])
             
             # Return updated state with analysis plan
             return state.model_copy(update={"steps_to_run": analysis_plan, "error": None})
@@ -194,12 +193,12 @@ class WorkflowNodes:
                 })
             
             # Initialize the validator agent
-            llm = self.llm_factory("gpt-o1-cborg")
+            llm = self.llm_factory("gpt-4.1-cborg")
             validator = WorkflowValidatorAgent(llm, token=self.token)
             
             # Create the validation task
-            validation_task = Task(
-                description=f"""
+            
+            description=f"""
                 Analyze the result of the last executed step and determine if the next planned step is appropriate.
                 
                 Last step executed:
@@ -208,10 +207,15 @@ class WorkflowNodes:
                 Result of the last step:
                 {last_step_result}
                 
-                
+                If the last step resulted in an error caused by a wrong app id for eg:
+                Unable to start the job due to repository `kb_checkm` not being registered. Please contact KBase support for further assistance.'
+                Then use the available tools to correct the app id and re-run the last step.
                 Next planned step:
                 {json.dumps(next_step)}
                 If this is the first step, i.e. Last step executed is None, then the input object for this step should be paired-end reads object with id {state.reads_id}.
+                IMPORTANT: For the input_object_upa field, you MUST use the actual UPA from the previous step's output or the {state.reads_id} for the paired-end reads object.
+                A valid UPA has the format "workspace_id/object_id/version_id" (like "12345/6/1").UPA fields must be numbers. DO NOT make up UPA values - they must be actual reference IDs extracted from the previous step's output or the initial state.
+
                 Based on the outcome of the last step, evaluate if the next step is still appropriate or needs to be modified.
                 Keep in mind that the output object from the last step will be used as input for the next step.
                 Consider these factors:
@@ -229,26 +233,12 @@ class WorkflowNodes:
                     "modified_next_steps": [] // If modifications are needed, include the modified steps here
                 }}
                 ```
-                """,
-                
-                expected_output="A JSON decision on whether to proceed with the next step as planned or modify the workflow.",
-                agent=validator.agent,
-                output_json=WorkflowDecision,
-            )
+                """
             
-            # Create and run the crew
-            crew = Crew(
-                agents=[validator.agent],
-                tasks=[validation_task],
-                verbose=True,
-            )
+            output = validator.agent.invoke({"input":description})
             
-            result = crew.kickoff()
-            
-            # Parse the result to get the decision
-            decision_text = result.raw
             # Extract JSON from the result text
-            decision_json = extract_json_from_string_curly(decision_text)
+            decision_json = extract_json_from_string_curly(output['output'])
             print(f"Decision JSON: {decision_json}")
             if not decision_json:
                 # Fallback if JSON extraction fails

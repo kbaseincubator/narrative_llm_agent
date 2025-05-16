@@ -1,4 +1,4 @@
-from narrative_llm_agent.agents.analyst import AnalystAgent
+from narrative_llm_agent.agents.analyst_lang import AnalystAgent
 import os
 import pytest
 from pathlib import Path
@@ -22,7 +22,6 @@ def test_init_openai_ok(mock_llm):
     agent = AnalystAgent(
         llm=mock_llm, 
         provider="openai", 
-        tools_model=FAKE_TOOLS_MODEL, 
         token=token, 
         api_key=FAKE_OPENAI_KEY
     )
@@ -35,7 +34,6 @@ def test_init_cborg_ok(mock_llm):
     agent = AnalystAgent(
         llm=mock_llm, 
         provider="cborg", 
-        tools_model=FAKE_TOOLS_MODEL, 
         token=token, 
         api_key=FAKE_CBORG_KEY
     )
@@ -48,7 +46,6 @@ def test_init_with_env_var_openai(mock_llm):
     agent = AnalystAgent(
         llm=mock_llm, 
         provider="openai", 
-        tools_model=FAKE_TOOLS_MODEL, 
         token=token
     )
     assert agent.role == "KBase Analyst and Information Provider"
@@ -60,7 +57,6 @@ def test_init_with_env_var_cborg(mock_llm):
     agent = AnalystAgent(
         llm=mock_llm, 
         provider="cborg", 
-        tools_model=FAKE_TOOLS_MODEL, 
         token=token
     )
     assert agent.role == "KBase Analyst and Information Provider"
@@ -80,7 +76,6 @@ def test_init_fail_without_envvar_openai(mock_llm, monkeypatch):
         AnalystAgent(
             llm=mock_llm, 
             provider="openai", 
-            tools_model=FAKE_TOOLS_MODEL, 
             token=token
         )
 
@@ -91,7 +86,6 @@ def test_init_fail_without_envvar_cborg(mock_llm, monkeypatch):
         AnalystAgent(
             llm=mock_llm, 
             provider="cborg", 
-            tools_model=FAKE_TOOLS_MODEL, 
             token=token
         )
 
@@ -104,7 +98,7 @@ def test_init_fail_missing_db_dirs(mock_llm, db_arg):
     with pytest.raises(
         RuntimeError, match=f"Database directory {missing_dir} not found"
     ):
-        AnalystAgent(mock_llm, provider = "cborg", tools_model=FAKE_TOOLS_MODEL, token=token, api_key=FAKE_CBORG_KEY, **{db_arg: missing_dir})
+        AnalystAgent(mock_llm, provider = "cborg", token=token, api_key=FAKE_CBORG_KEY, **{db_arg: missing_dir})
 
 
 @pytest.mark.parametrize("db_arg", DB_ARGS)
@@ -114,7 +108,7 @@ def test_init_fail_missing_db_file(mock_llm, tmp_path, db_arg):
     with pytest.raises(
         RuntimeError, match=f"Database file {tmp_dir}/chroma.sqlite3 not found"
     ):
-        AnalystAgent(mock_llm, provider = "openai", tools_model=FAKE_TOOLS_MODEL, token=token,api_key=FAKE_OPENAI_KEY, **{db_arg: tmp_dir})
+        AnalystAgent(mock_llm, provider = "openai", token=token,api_key=FAKE_OPENAI_KEY, **{db_arg: tmp_dir})
 
 
 @pytest.mark.parametrize("db_arg", DB_ARGS)
@@ -126,4 +120,4 @@ def test_init_fail_db_dir_is_file(mock_llm, tmp_path, db_arg):
     with pytest.raises(
         RuntimeError, match=f"Database directory {tmp_file} is not a directory"
     ):
-        AnalystAgent(mock_llm, provider = "cborg", tools_model=FAKE_TOOLS_MODEL, token=token, api_key=FAKE_CBORG_KEY, **{db_arg: tmp_file})
+        AnalystAgent(mock_llm, provider = "cborg", token=token, api_key=FAKE_CBORG_KEY, **{db_arg: tmp_file})
