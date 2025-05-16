@@ -1,6 +1,7 @@
 from narrative_llm_agent.agents.analyst import AnalystAgent
 import os
 import pytest
+from pathlib import Path
 
 token = "not_a_token"
 FAKE_OPENAI_KEY = "fake_openai_api_key"
@@ -99,7 +100,7 @@ DB_ARGS = ["catalog_db_dir", "docs_db_dir", "tutorial_db_dir"]
 
 @pytest.mark.parametrize("db_arg", DB_ARGS)
 def test_init_fail_missing_db_dirs(mock_llm, db_arg):
-    missing_dir = "foo"
+    missing_dir = Path("foo")
     with pytest.raises(
         RuntimeError, match=f"Database directory {missing_dir} not found"
     ):

@@ -25,7 +25,7 @@ class AnalystInput(BaseModel):
 
 DEFAULT_CATALOG_DB_DIR: Path = Path(__file__).parent / "Nomic_vector_db_app_catalog"
 DEFAULT_DOCS_DB_DIR: Path = Path(__file__).parent / "Nomic_vector_db_kbase_docs"
-DEFAULT_TUTORIAL_DB_DIR: Path = Path(__file__).parent / "Nomic_vector_db_app_catalog"
+DEFAULT_TUTORIAL_DB_DIR: Path = Path(__file__).parent / "Nomic_tutorials_db"
 
 
 
@@ -58,7 +58,7 @@ class AnalystAgent(KBaseAgent):
         self._docs_db_dir = docs_db_dir
         self._tutorials_db_dir = tutorial_db_dir
 
-        for db_path in [self._catalog_db_dir, self._docs_db_dir, self._tutorial_db_dir]:
+        for db_path in [self._catalog_db_dir, self._docs_db_dir, self._tutorials_db_dir]:
             self.__check_db_directories(db_path)
         self.__init_agent()
 
