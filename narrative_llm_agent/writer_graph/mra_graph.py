@@ -1,4 +1,3 @@
-from pydantic import BaseModel, ConfigDict
 from langgraph.graph import StateGraph, START, END
 
 from narrative_llm_agent.tools.narrative_tools import get_narrative_state, create_markdown_cell
@@ -7,6 +6,8 @@ from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 
 from narrative_llm_agent.config import get_llm
 from langchain_core.prompts import ChatPromptTemplate
+
+from narrative_llm_agent.writer_graph.writeup_state import WriteupState
 
 
 # Writer agent workflow(s)
@@ -150,23 +151,11 @@ Acknowledgments
 References
 * Leave this section blank for the user to fill out
 """
-
 mra_writing_prompt_template = ChatPromptTemplate(
     [("system", writing_system_prompt), ("user", mra_writing_prompt)]
 )
 
-
-class WriteupState(BaseModel):
-    narrative_data: str
-    narrative_id: int
-    writeup_doc: str | None = None
-    error: str | None = None
-    ws_client: Workspace
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-def writer_node(state: WriteupState) -> WriteupState:
+def mra_writer_node(state: WriteupState) -> WriteupState:
     """
     Makes a call to (ideally) a more reasoning LLM to write up the document about the
     narrative. Expects state.narrative_data to be populated.
@@ -198,29 +187,13 @@ def checker_node(state: WriteupState) -> WriteupState:
         return state.model_copy(update={"error": "error: some error happened"})
 
 
-def save_node(state: WriteupState) -> WriteupState:
-    """
-    Saves the writeup document, if present. Right now, it saves the document
-    as a new markdown cell.
-
-    TODO: decide where to save that for real.
-    """
-    create_markdown_cell(state.narrative_id, state.writeup_doc, state.ws_client)
-    return state
-
-
-def error_node(state: WriteupState) -> WriteupState:
-    print(f"error: {state.error}")
-    return state
-
-
 def check_analysis_state(state: WriteupState) -> str:
     if state.error is not None:
         return "error"
     return "ok"
 
 
-class WriterGraph:
+class MraWriterGraph:
     """
     Usage:
     Instantiate a WriterGraph object with a narrative id, and optionally a KBase auth token.
@@ -230,30 +203,38 @@ class WriterGraph:
 
     # TODO: add a reference check that'll automatically grab refs from apps, where applicable
     """
-    def __init__(self, narrative_id: int, token: str = None):
+    def __init__(self, narrative_id: int, ws_client: Workspace, ee_client: ExecutionEngine, token: str = None):
         self._narrative_id = narrative_id
-        self._workflow = self._build_graph()
         self._token = token
+        self._ws_client = ws_client
+        self._ee_client = ee_client
+        self._workflow = self._build_graph()
 
     def run_workflow(self):
-        ws = Workspace(token=self._token)
         initial_state = WriteupState(
             narrative_data=get_narrative_state(
                 self._narrative_id,
-                ws,
-                ExecutionEngine(token=self._token),
+                self._ws_client,
+                self._ee_client,
             ),
-            narrative_id=self._narrative_id,
-            ws_client=ws
+            narrative_id=self._narrative_id
         )
         self._workflow.invoke(initial_state)
+
+    def _save_writeup(self, state: WriteupState) -> WriteupState:
+        create_markdown_cell(state.narrative_id, state.writeup_doc, self._ws_client)
+        return state
+
+    def _error(self, state: WriteupState) -> WriteupState:
+        print(f"error: {state.error}")
+        return state
 
     def _build_graph(self):
         writer_graph = StateGraph(WriteupState)
         writer_graph.add_node("analyze", checker_node)
-        writer_graph.add_node("writeup", writer_node)
-        writer_graph.add_node("save_writeup", save_node)
-        writer_graph.add_node("error_state", error_node)
+        writer_graph.add_node("writeup", mra_writer_node)
+        writer_graph.add_node("save_writeup", self._save_writeup)
+        writer_graph.add_node("error_state", self._error)
 
         writer_graph.add_edge(START, "analyze")
         writer_graph.add_conditional_edges(
