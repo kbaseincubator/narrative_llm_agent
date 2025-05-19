@@ -1,4 +1,5 @@
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import START, END
+from langgraph.graph.state import StateGraph, CompiledStateGraph
 
 from narrative_llm_agent.tools.narrative_tools import get_narrative_state, create_markdown_cell
 from narrative_llm_agent.kbase.clients.workspace import Workspace
@@ -38,14 +39,14 @@ from narrative_llm_agent.writer_graph.writeup_state import WriteupState
 # Now we're looking at a Graph workflow.
 
 
-writing_system_prompt = """You are a scientific writing assistant tasked with interpreting biological data and
+WRITING_SYSTEM_PROMPT = """You are a scientific writing assistant tasked with interpreting biological data and
 composing clear, accurate summaries. Your writing should reflect scientific precision while remaining accessible
 to non-specialist readers. Explain key findings, contextualize results, and highlight biological significance using
 well-structured, concise language. Avoid jargon where possible, and define any necessary technical terms. Tailor
 tone and detail to a professional yet readable standard, suitable for reports, research summaries, or funding
 communications."""
 
-mra_writing_prompt = """This KBase Narrative document contains a series of apps used to assemble and annotate
+MRA_WRITING_PROMPT = """This KBase Narrative document contains a series of apps used to assemble and annotate
 one (or more) sets of genomic reads.
 Document: {narrative}
 
@@ -151,46 +152,6 @@ Acknowledgments
 References
 * Leave this section blank for the user to fill out
 """
-mra_writing_prompt_template = ChatPromptTemplate(
-    [("system", writing_system_prompt), ("user", mra_writing_prompt)]
-)
-
-def mra_writer_node(state: WriteupState) -> WriteupState:
-    """
-    Makes a call to (ideally) a more reasoning LLM to write up the document about the
-    narrative. Expects state.narrative_data to be populated.
-    """
-    llm = get_llm("gpt-o1-cborg")
-    msg = llm.invoke(
-        mra_writing_prompt_template.invoke({"narrative": state.narrative_data})
-    )
-    return state.model_copy(update={"writeup_doc": msg.content})
-
-
-def checker_node(state: WriteupState) -> WriteupState:
-    """
-    Checks the state of the Narrative before passing it on to the writer node.
-    If the Narrative looks incomplete, this adds an error to the state.
-    Otherwise, it just passes the state along.
-
-    TODO: actually make this check the Narrative state. Should probably be in two forms
-    1. Programmatically check for presense of every app. I don't think an LLM needs
-    to get involved with that.
-    2. Make sure each app looks finished, and the overall summary looks like an overall
-    summary. An LLM should do that.
-    """
-    # msg = llm.invoke(f"check state is ok with context: {state.narrative_data}")
-    is_ok = True
-    if is_ok:
-        return state
-    else:
-        return state.model_copy(update={"error": "error: some error happened"})
-
-
-def check_analysis_state(state: WriteupState) -> str:
-    if state.error is not None:
-        return "error"
-    return "ok"
 
 
 class MraWriterGraph:
@@ -203,42 +164,41 @@ class MraWriterGraph:
 
     # TODO: add a reference check that'll automatically grab refs from apps, where applicable
     """
-    def __init__(self, narrative_id: int, ws_client: Workspace, ee_client: ExecutionEngine, token: str = None):
-        self._narrative_id = narrative_id
+    def __init__(self, ws_client: Workspace, ee_client: ExecutionEngine, token: str = None):
         self._token = token
         self._ws_client = ws_client
         self._ee_client = ee_client
         self._workflow = self._build_graph()
 
-    def run_workflow(self):
+    def run_workflow(self, narrative_id: int):
         initial_state = WriteupState(
             narrative_data=get_narrative_state(
-                self._narrative_id,
+                narrative_id,
                 self._ws_client,
                 self._ee_client,
             ),
-            narrative_id=self._narrative_id
+            narrative_id=narrative_id
         )
         self._workflow.invoke(initial_state)
 
-    def _save_writeup(self, state: WriteupState) -> WriteupState:
+    def save_writeup(self, state: WriteupState) -> WriteupState:
         create_markdown_cell(state.narrative_id, state.writeup_doc, self._ws_client)
         return state
 
-    def _error(self, state: WriteupState) -> WriteupState:
+    def error(self, state: WriteupState) -> WriteupState:
         print(f"error: {state.error}")
         return state
 
-    def _build_graph(self):
+    def _build_graph(self) -> CompiledStateGraph:
         writer_graph = StateGraph(WriteupState)
-        writer_graph.add_node("analyze", checker_node)
-        writer_graph.add_node("writeup", mra_writer_node)
-        writer_graph.add_node("save_writeup", self._save_writeup)
-        writer_graph.add_node("error_state", self._error)
+        writer_graph.add_node("analyze", self.checker_node)
+        writer_graph.add_node("writeup", self.writer_node)
+        writer_graph.add_node("save_writeup", self.save_writeup)
+        writer_graph.add_node("error_state", self.error)
 
         writer_graph.add_edge(START, "analyze")
         writer_graph.add_conditional_edges(
-            "analyze", check_analysis_state, {"ok": "writeup", "error": "error_state"}
+            "analyze", self.check_analysis_state, {"ok": "writeup", "error": "error_state"}
         )
         writer_graph.add_edge("writeup", "save_writeup")
         writer_graph.add_edge("save_writeup", END)
@@ -246,3 +206,42 @@ class MraWriterGraph:
 
         workflow = writer_graph.compile()
         return workflow
+
+    def check_analysis_state(self, state: WriteupState) -> str:
+        if state.error is not None:
+            return "error"
+        return "ok"
+
+    def checker_node(self, state: WriteupState) -> WriteupState:
+        """
+        Checks the state of the Narrative before passing it on to the writer node.
+        If the Narrative looks incomplete, this adds an error to the state.
+        Otherwise, it just passes the state along.
+
+        TODO: actually make this check the Narrative state. Should probably be in two forms
+        1. Programmatically check for presense of every app. I don't think an LLM needs
+        to get involved with that.
+        2. Make sure each app looks finished, and the overall summary looks like an overall
+        summary. An LLM should do that.
+        """
+        # msg = llm.invoke(f"check state is ok with context: {state.narrative_data}")
+        is_ok = True
+        if is_ok:
+            return state
+        else:
+            return state.model_copy(update={"error": "error: some error happened"})
+
+    def writer_node(self, state: WriteupState) -> WriteupState:
+        """
+        Makes a call to (ideally) a more reasoning LLM to write up the document about the
+        narrative. Expects state.narrative_data to be populated.
+        """
+        mra_writing_prompt_template = ChatPromptTemplate(
+            [("system", WRITING_SYSTEM_PROMPT), ("user", MRA_WRITING_PROMPT)]
+        )
+
+        llm = get_llm("gpt-o1-cborg")
+        msg = llm.invoke(
+            mra_writing_prompt_template.invoke({"narrative": state.narrative_data})
+        )
+        return state.model_copy(update={"writeup_doc": msg.content})
