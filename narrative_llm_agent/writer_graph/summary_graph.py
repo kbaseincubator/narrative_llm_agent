@@ -26,11 +26,6 @@ narrative markdown cells:
 {narrative_text}
 """
 
-summary_prompt_template = ChatPromptTemplate(
-    [("system", writing_system_prompt), ("user", summary_writing_prompt)]
-)
-
-
 class SummaryWriterGraph:
     """
     Usage:
@@ -57,6 +52,9 @@ class SummaryWriterGraph:
         self._workflow.invoke(initial_state)
 
     def _summary_writer_node(self, state: WriteupState) -> WriteupState:
+        summary_prompt_template = ChatPromptTemplate(
+            [("system", writing_system_prompt), ("user", summary_writing_prompt)]
+        )
         llm = get_llm("gpt-o1-cborg")
         msg = llm.invoke(
             summary_prompt_template.invoke({"narrative_text": state.narrative_data, "app_list": self._app_list})
