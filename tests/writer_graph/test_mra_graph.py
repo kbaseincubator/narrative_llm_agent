@@ -1,7 +1,5 @@
 import pytest
-from narrative_llm_agent.writer_graph.mra_graph import (
-    MraWriterGraph,
-)
+from narrative_llm_agent.writer_graph.mra_graph import MraWriterGraph
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.writer_graph.writeup_state import WriteupState
