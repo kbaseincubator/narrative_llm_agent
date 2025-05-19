@@ -1,8 +1,7 @@
 import pytest
-from narrative_llm_agent.writer_graph.mra_graph import MraWriterGraph
+from narrative_llm_agent.writer_graph.mra_graph import MraWriterGraph, MraWriteupState
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
-from narrative_llm_agent.writer_graph.writeup_state import WriteupState
 
 # Mock data for testing
 MOCK_NARRATIVE_DATA = """
@@ -36,7 +35,7 @@ def mock_llm(mocker):
 
 @pytest.fixture
 def initial_state(mock_workspace):
-    return WriteupState(
+    return MraWriteupState(
         narrative_data=MOCK_NARRATIVE_DATA, narrative_id=12345, ws_client=mock_workspace
     )
 
@@ -98,7 +97,7 @@ def test_check_analysis_state_error(mocker, mock_workspace, mock_execution_engin
     """Test check_analysis_state routing logic."""
     # Test error state
     writer = MraWriterGraph(mock_workspace, mock_execution_engine)
-    error_state = WriteupState(
+    error_state = MraWriteupState(
         narrative_data="test",
         narrative_id=12345,
         error="Test error",
@@ -111,7 +110,7 @@ def test_check_analysis_state_ok(mocker, mock_workspace, mock_execution_engine):
     # Test error state
     writer = MraWriterGraph(mock_workspace, mock_execution_engine)
     # Test success state
-    success_state = WriteupState(
+    success_state = MraWriteupState(
         narrative_data="test", narrative_id=12345, ws_client=mocker.Mock(spec=Workspace)
     )
     assert writer.check_analysis_state(success_state) == "ok"
@@ -164,10 +163,10 @@ def test_writer_graph_error_handling(mocker, mock_workspace, mock_execution_engi
 
 
 def test_writeup_state_validation(mocker):
-    """Test WriteupState model validation."""
+    """Test MraWriteupState model validation."""
     narrative_id = 12345
     # Test valid state
-    valid_state = WriteupState(
+    valid_state = MraWriteupState(
         narrative_data="test", narrative_id=narrative_id, ws_client=mocker.Mock(spec=Workspace)
     )
     assert valid_state.narrative_id == narrative_id
@@ -175,7 +174,7 @@ def test_writeup_state_validation(mocker):
 
     # Test invalid state (missing required fields)
     with pytest.raises(ValueError):
-        WriteupState(
+        MraWriteupState(
             narrative_data="test"
             # Missing ws_client
         )

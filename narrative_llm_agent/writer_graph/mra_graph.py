@@ -7,7 +7,7 @@ from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.config import get_llm
 from langchain_core.prompts import ChatPromptTemplate
 
-from narrative_llm_agent.writer_graph.writeup_state import WriteupState
+from pydantic import BaseModel, ConfigDict
 
 
 # Writer agent workflow(s)
@@ -36,6 +36,19 @@ from narrative_llm_agent.writer_graph.writeup_state import WriteupState
 # 6. End.
 
 # Now we're looking at a Graph workflow.
+
+class MraWriteupState(BaseModel):
+    """
+    Includes a Workspace client that can get passed around the nodes,
+    to avoid nodes having to deal with auth.
+    Though I guess that's implicit with the Workspace...
+    """
+    narrative_data: str
+    narrative_id: int
+    writeup_doc: str | None = None
+    error: str | None = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 WRITING_SYSTEM_PROMPT = """You are a scientific writing assistant tasked with interpreting biological data and
@@ -170,7 +183,7 @@ class MraWriterGraph:
         self._workflow = self._build_graph()
 
     def run_workflow(self, narrative_id: int):
-        initial_state = WriteupState(
+        initial_state = MraWriteupState(
             narrative_data=get_narrative_state(
                 narrative_id,
                 self._ws_client,
@@ -180,16 +193,16 @@ class MraWriterGraph:
         )
         self._workflow.invoke(initial_state)
 
-    def save_writeup(self, state: WriteupState) -> WriteupState:
+    def save_writeup(self, state: MraWriteupState) -> MraWriteupState:
         create_markdown_cell(state.narrative_id, state.writeup_doc, self._ws_client)
         return state
 
-    def error(self, state: WriteupState) -> WriteupState:
+    def error(self, state: MraWriteupState) -> MraWriteupState:
         print(f"error: {state.error}")
         return state
 
     def _build_graph(self) -> CompiledStateGraph:
-        writer_graph = StateGraph(WriteupState)
+        writer_graph = StateGraph(MraWriteupState)
         writer_graph.add_node("analyze", self.checker_node)
         writer_graph.add_node("writeup", self.writer_node)
         writer_graph.add_node("save_writeup", self.save_writeup)
@@ -206,12 +219,12 @@ class MraWriterGraph:
         workflow = writer_graph.compile()
         return workflow
 
-    def check_analysis_state(self, state: WriteupState) -> str:
+    def check_analysis_state(self, state: MraWriteupState) -> str:
         if state.error is not None:
             return "error"
         return "ok"
 
-    def checker_node(self, state: WriteupState) -> WriteupState:
+    def checker_node(self, state: MraWriteupState) -> MraWriteupState:
         """
         Checks the state of the Narrative before passing it on to the writer node.
         If the Narrative looks incomplete, this adds an error to the state.
@@ -230,7 +243,7 @@ class MraWriterGraph:
         else:
             return state.model_copy(update={"error": "error: some error happened"})
 
-    def writer_node(self, state: WriteupState) -> WriteupState:
+    def writer_node(self, state: MraWriteupState) -> MraWriteupState:
         """
         Makes a call to (ideally) a more reasoning LLM to write up the document about the
         narrative. Expects state.narrative_data to be populated.
