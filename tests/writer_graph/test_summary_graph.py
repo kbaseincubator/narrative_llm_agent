@@ -1,5 +1,8 @@
 import pytest
-from narrative_llm_agent.writer_graph.summary_graph import SummaryWriterGraph, SummaryWriteupState
+from narrative_llm_agent.writer_graph.summary_graph import (
+    SummaryWriterGraph,
+    SummaryWriteupState,
+)
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 
 # Mock data for testing
@@ -12,8 +15,9 @@ MOCK_NARRATIVE_DATA = [
     """App: Annotation
     - Input: assembly.fasta
     - Output: annotation.gff
-    - Status: completed"""
+    - Status: completed""",
 ]
+
 
 @pytest.fixture
 def mock_llm(mocker):
@@ -28,7 +32,10 @@ def mock_llm(mocker):
 @pytest.fixture
 def initial_state(mock_workspace):
     return SummaryWriteupState(
-        narrative_markdown=MOCK_NARRATIVE_DATA, narrative_id=12345, ws_client=mock_workspace, app_list=["kb_quast/run_QUAST_app"]
+        narrative_markdown=MOCK_NARRATIVE_DATA,
+        narrative_id=12345,
+        ws_client=mock_workspace,
+        app_list=["kb_quast/run_QUAST_app"],
     )
 
 
@@ -64,9 +71,7 @@ def test_writer_graph_initialization(mock_workspace):
     assert graph._token is None
 
 
-def test_writer_graph_run_workflow(
-    mock_llm, initial_state, mock_workspace, mocker
-):
+def test_writer_graph_run_workflow(mock_llm, initial_state, mock_workspace, mocker):
     narrative_id = 12345
     """Test the complete workflow execution."""
     mock_workspace.save_objects.return_value = [[]]
@@ -75,7 +80,8 @@ def test_writer_graph_run_workflow(
         return_value=MOCK_NARRATIVE_DATA,
     )
     mocker.patch(
-        "narrative_llm_agent.writer_graph.summary_graph.Workspace", return_value=mock_workspace
+        "narrative_llm_agent.writer_graph.summary_graph.Workspace",
+        return_value=mock_workspace,
     )
     graph = SummaryWriterGraph(mock_workspace)
     graph.run_workflow(narrative_id, ["foobar/baz"])
@@ -104,7 +110,10 @@ def test_writeup_state_validation(mocker):
     narrative_id = 12345
     # Test valid state
     valid_state = SummaryWriteupState(
-        narrative_markdown=["test"], narrative_id=narrative_id, ws_client=mocker.Mock(spec=Workspace), app_list=[]
+        narrative_markdown=["test"],
+        narrative_id=narrative_id,
+        ws_client=mocker.Mock(spec=Workspace),
+        app_list=[],
     )
     assert valid_state.narrative_id == narrative_id
     assert valid_state.narrative_markdown == ["test"]

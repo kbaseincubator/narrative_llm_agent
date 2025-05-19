@@ -1,6 +1,9 @@
 from langgraph.graph.state import StateGraph, CompiledStateGraph, START, END
 
-from narrative_llm_agent.tools.narrative_tools import get_narrative_state, create_markdown_cell
+from narrative_llm_agent.tools.narrative_tools import (
+    get_narrative_state,
+    create_markdown_cell,
+)
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 
@@ -37,12 +40,14 @@ from pydantic import BaseModel, ConfigDict
 
 # Now we're looking at a Graph workflow.
 
+
 class MraWriteupState(BaseModel):
     """
     Includes a Workspace client that can get passed around the nodes,
     to avoid nodes having to deal with auth.
     Though I guess that's implicit with the Workspace...
     """
+
     narrative_data: str
     narrative_id: int
     writeup_doc: str | None = None
@@ -176,7 +181,10 @@ class MraWriterGraph:
 
     # TODO: add a reference check that'll automatically grab refs from apps, where applicable
     """
-    def __init__(self, ws_client: Workspace, ee_client: ExecutionEngine, token: str = None):
+
+    def __init__(
+        self, ws_client: Workspace, ee_client: ExecutionEngine, token: str = None
+    ):
         self._token = token
         self._ws_client = ws_client
         self._ee_client = ee_client
@@ -189,7 +197,7 @@ class MraWriterGraph:
                 self._ws_client,
                 self._ee_client,
             ),
-            narrative_id=narrative_id
+            narrative_id=narrative_id,
         )
         self._workflow.invoke(initial_state)
 
@@ -210,7 +218,9 @@ class MraWriterGraph:
 
         writer_graph.add_edge(START, "analyze")
         writer_graph.add_conditional_edges(
-            "analyze", self.check_analysis_state, {"ok": "writeup", "error": "error_state"}
+            "analyze",
+            self.check_analysis_state,
+            {"ok": "writeup", "error": "error_state"},
         )
         writer_graph.add_edge("writeup", "save_writeup")
         writer_graph.add_edge("save_writeup", END)

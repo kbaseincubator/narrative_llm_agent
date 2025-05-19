@@ -105,6 +105,7 @@ def test_check_analysis_state_error(mocker, mock_workspace, mock_execution_engin
     )
     assert writer.check_analysis_state(error_state) == "error"
 
+
 def test_check_analysis_state_ok(mocker, mock_workspace, mock_execution_engine):
     """Test check_analysis_state routing logic."""
     # Test error state
@@ -134,7 +135,8 @@ def test_writer_graph_run_workflow(
         return_value=MOCK_NARRATIVE_DATA,
     )
     mocker.patch(
-        "narrative_llm_agent.writer_graph.mra_graph.Workspace", return_value=mock_workspace
+        "narrative_llm_agent.writer_graph.mra_graph.Workspace",
+        return_value=mock_workspace,
     )
     mocker.patch(
         "narrative_llm_agent.writer_graph.mra_graph.ExecutionEngine",
@@ -144,7 +146,9 @@ def test_writer_graph_run_workflow(
     graph.run_workflow(narrative_id)
 
     # Verify narrative state was retrieved
-    mock_get_state.assert_called_once_with(narrative_id, mock_workspace, mock_execution_engine)
+    mock_get_state.assert_called_once_with(
+        narrative_id, mock_workspace, mock_execution_engine
+    )
 
 
 def test_writer_graph_error_handling(mocker, mock_workspace, mock_execution_engine):
@@ -167,7 +171,9 @@ def test_writeup_state_validation(mocker):
     narrative_id = 12345
     # Test valid state
     valid_state = MraWriteupState(
-        narrative_data="test", narrative_id=narrative_id, ws_client=mocker.Mock(spec=Workspace)
+        narrative_data="test",
+        narrative_id=narrative_id,
+        ws_client=mocker.Mock(spec=Workspace),
     )
     assert valid_state.narrative_id == narrative_id
     assert valid_state.narrative_data == "test"

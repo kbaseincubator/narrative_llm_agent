@@ -1,12 +1,15 @@
-
 from narrative_llm_agent.config import get_llm
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from narrative_llm_agent.tools.narrative_tools import create_markdown_cell, get_all_markdown_text
+from narrative_llm_agent.tools.narrative_tools import (
+    create_markdown_cell,
+    get_all_markdown_text,
+)
 from langgraph.graph.state import StateGraph, CompiledStateGraph, START, END
 
 from langchain_core.prompts import ChatPromptTemplate
 
 from pydantic import BaseModel, ConfigDict
+
 
 class SummaryWriteupState(BaseModel):
     """
@@ -14,13 +17,13 @@ class SummaryWriteupState(BaseModel):
     to avoid nodes having to deal with auth.
     Though I guess that's implicit with the Workspace...
     """
+
     narrative_markdown: list[str]
     narrative_id: int
     writeup_doc: str | None = None
     error: str | None = None
     app_list: list[str] = []
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
 
 
 writing_system_prompt = """You are a scientific writing assistant tasked with interpreting biological data and
@@ -41,7 +44,6 @@ narrative markdown cells:
 """
 
 
-
 class SummaryWriterGraph:
     """
     Usage:
@@ -52,6 +54,7 @@ class SummaryWriterGraph:
 
     # TODO: add a reference check that'll automatically grab refs from apps, where applicable
     """
+
     def __init__(self, ws_client: Workspace, token: str = None):
         self._token = token
         self._ws_client = ws_client
@@ -61,7 +64,7 @@ class SummaryWriterGraph:
         initial_state = SummaryWriteupState(
             narrative_markdown=get_all_markdown_text(narrative_id, self._ws_client),
             narrative_id=narrative_id,
-            app_list=app_list
+            app_list=app_list,
         )
         self._workflow.invoke(initial_state)
 
@@ -71,7 +74,9 @@ class SummaryWriterGraph:
         )
         llm = get_llm("gpt-o1-cborg")
         msg = llm.invoke(
-            summary_prompt_template.invoke({"narrative_text": state.narrative_markdown, "app_list": state.app_list})
+            summary_prompt_template.invoke(
+                {"narrative_text": state.narrative_markdown, "app_list": state.app_list}
+            )
         )
         return state.model_copy(update={"writeup_doc": msg.content})
 
