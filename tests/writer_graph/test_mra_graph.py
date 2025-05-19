@@ -43,10 +43,6 @@ def initial_state(mock_workspace):
     )
 
 
-@pytest.fixture
-def mra_writer(mock_workspace, mock_execution_engine):
-    return MraWriterGraph(mock_workspace, mock_execution_engine)
-
 def test_writer_node(initial_state, mock_llm, mock_workspace, mock_execution_engine):
     """Test that writer_node correctly processes narrative data and generates a writeup."""
     writer = MraWriterGraph(mock_workspace, mock_execution_engine)
