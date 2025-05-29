@@ -95,17 +95,17 @@ class AnalystAgent(KBaseAgent):
             return os.environ[env_var]
         raise KeyError(f"Missing environment variable {provider} API KEY")
 
-    def __setup_embeddings_model(self,provider: str) -> None:
+    def __setup_embeddings_model(self,provider: str) -> OpenAIEmbeddings | NomicEmbeddings:
         """
         Sets up the llm for the tools
         """
-        if provider == "cborg":
-            #If using cborg, use this embedding
-            return OpenAIEmbeddings(openai_api_key=self._api_key,
-                                          openai_api_base="https://api.cborg.lbl.gov/v1", model="lbl/nomic-embed-text")
-        else:
-            # If using openai, Embedding functions to use
-            return NomicEmbeddings(nomic_api_key=os.environ.get("NOMIC_API_KEY"),
+        # if provider == "cborg":
+        #     #If using cborg, use this embedding
+        #     return OpenAIEmbeddings(openai_api_key=self._api_key,
+        #                                   openai_api_base="https://api.cborg.lbl.gov", model="lbl/nomic-embed-text")
+        # else:
+        #     # If using openai, Embedding functions to use
+        return NomicEmbeddings(nomic_api_key=os.environ.get("NOMIC_API_KEY"),
                                      model="nomic-embed-text-v1.5",
                                      dimensionality=768)
 
@@ -117,6 +117,7 @@ class AnalystAgent(KBaseAgent):
             It is useful for answering questions about how to use KBase applications.
             It does not contain a list of KBase apps. Do not use it to search for KBase app
             presence. Input should be a fully formed question."""
+            print(self._docs_db_dir)
             return self._create_doc_chain(persist_directory=self._docs_db_dir).invoke(
                 {"query": query}
             )
