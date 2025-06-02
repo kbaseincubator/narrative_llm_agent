@@ -581,8 +581,10 @@ def main():
         3. **Execution**: KBase applications are run automatically in sequence
         4. **Results**: View comprehensive analysis results and generated data objects
         """)
+        #logo_path = os.path.join(os.path.dirname(__file__), "KBase_Logo.png")
+        #st.image(logo_path, width=300)
 
-        st.image("KBase_Logo.png", width=300)
+        #st.image("KBase_Logo.png", width=300)
 
     with tab3:
         display_connection_test()
