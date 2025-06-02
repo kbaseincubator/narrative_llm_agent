@@ -1,4 +1,4 @@
-from narrative_llm_agent.agents.job import CompletedJobAndReport, JobAgent, AppStartInfo
+from narrative_llm_agent.agents.job import JobAgent, AppStartInfo
 from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
@@ -6,6 +6,7 @@ from narrative_llm_agent.agents.writer import WriterAgent
 from narrative_llm_agent.agents.metadata import MetadataAgent
 from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
+from crewai.crew import CrewOutput
 
 from narrative_llm_agent.tools.job_tools import CompletedJob, CreatedObject
 
@@ -41,7 +42,7 @@ class JobCrew:
             self._writer.agent
         ]
 
-    def start_job(self, app_name: str, input_object_upa: str, narrative_id: int, app_id: str|None=None) -> str:
+    def start_job(self, app_name: str, input_object_upa: str, narrative_id: int, app_id: str|None=None) -> CrewOutput:
         """
         Starts the job from a given app name (note this isn't the ID. Name like "Prokka" not id like "ProkkaAnnotation/annotate_contigs")
         and input object to be run in a given narrative.

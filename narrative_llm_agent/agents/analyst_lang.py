@@ -51,8 +51,8 @@ class AnalystAgent(KBaseAgent):
         docs_db_dir: Path = DEFAULT_DOCS_DB_DIR,
     ):
         super().__init__(llm, token=token)
-        self._api_key = self.__setup_api_key(api_key, provider=provider)
-        self._embeddings = self.__setup_embeddings_model(provider=provider)
+        self._api_key = self.__setup_api_key(api_key, provider)
+        self._embeddings = self.__setup_embeddings_model(provider)
 
         self._catalog_db_dir = catalog_db_dir
         self._docs_db_dir = docs_db_dir
@@ -100,14 +100,20 @@ class AnalystAgent(KBaseAgent):
         Sets up the llm for the tools
         """
         if provider == "cborg":
-            #If using cborg, use this embedding
-            return OpenAIEmbeddings(openai_api_key=self._api_key,
-                                          openai_api_base="https://api.cborg.lbl.gov/v1", model="lbl/nomic-embed-text")
+            # If using cborg, use this embedding
+            return OpenAIEmbeddings(
+                openai_api_key=self._api_key,
+                openai_api_base="https://api.cborg.lbl.gov",
+                model="lbl/nomic-embed-text",
+                check_embedding_ctx_length=False
+            )
         else:
             # If using openai, Embedding functions to use
-            return NomicEmbeddings(nomic_api_key=os.environ.get("NOMIC_API_KEY"),
-                                     model="nomic-embed-text-v1.5",
-                                     dimensionality=768)
+            return NomicEmbeddings(
+                nomic_api_key=os.environ.get("NOMIC_API_KEY"),
+                model="nomic-embed-text-v1.5",
+                dimensionality=768
+            )
 
     def __init_agent(self: "AnalystAgent") -> None:
 
@@ -151,6 +157,7 @@ class AnalystAgent(KBaseAgent):
             except ServerError:
                 return False
             return True
+
         @tool("kg_retrieval_tool")
         def KGretrieval_tool(input: str):
            """This tool has the KBase app Knowledge Graph. Useful for when you need to confirm the existance of KBase applications and their appid, tooltip, version, category and data objects.
@@ -165,10 +172,11 @@ class AnalystAgent(KBaseAgent):
            if 'output' in response:
                 return response['output']
            return "No response from the tool"
+
         tools = [
-        kbase_docs_retrieval_tool,
-        kbase_tutorial_retrieval_tool,
-        KGretrieval_tool,
+            kbase_docs_retrieval_tool,
+            kbase_tutorial_retrieval_tool,
+            KGretrieval_tool,
         ]
 
         SYSTEM_PROMPT_TEMPLATE = f"""You are {self.role}.
@@ -199,8 +207,8 @@ class AnalystAgent(KBaseAgent):
 
         Final Answer: the final answer to the original input question.
         Always follow these:
-        -Stop after you arrive at the Final Answer. 
-        
+        -Stop after you arrive at the Final Answer.
+
         - Before proceeding, validate that your output conforms to the required format:
             -Each `Thought:` must be followed by an `Action:` or lead to a `Final Answer:`.
             -Never skip required fields or mix them together.
@@ -218,14 +226,14 @@ class AnalystAgent(KBaseAgent):
         Thought:{agent_scratchpad}
         """
         prompt = ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate.from_template(
-            template=SYSTEM_PROMPT_TEMPLATE
-        ),
-        MessagesPlaceholder(variable_name='react_chat_history', optional=True),
-        HumanMessagePromptTemplate.from_template(
-            input_variables=["tools", "input", "react_chat_history", "agent_scratchpad"],
-            template=HUMAN_PROMPT_TEMPLATE
-        )
+            SystemMessagePromptTemplate.from_template(
+                template=SYSTEM_PROMPT_TEMPLATE
+            ),
+            MessagesPlaceholder(variable_name='react_chat_history', optional=True),
+            HumanMessagePromptTemplate.from_template(
+                input_variables=["tools", "input", "react_chat_history", "agent_scratchpad"],
+                template=HUMAN_PROMPT_TEMPLATE
+            )
         ])
 
         agent = create_react_agent(
@@ -233,20 +241,21 @@ class AnalystAgent(KBaseAgent):
             tools=tools,
             prompt=prompt,
         )
-        
+
         self.agent = AgentExecutor(
-        agent=agent,
-        tools=tools,
-        verbose=True,
-        memory=ConversationBufferMemory(memory_key="react_chat_history", return_messages=True),
-        handle_parsing_errors=True
+            agent=agent,
+            tools=tools,
+            verbose=True,
+            memory=ConversationBufferMemory(memory_key="react_chat_history", return_messages=True),
+            handle_parsing_errors=True
         )
 
     def _create_doc_chain(self, persist_directory: str | Path):
         """Create a retrieval qa chain for the given embeddings model and persist directory."""
         # Use the persisted database
         vectordb = Chroma(
-            persist_directory=str(persist_directory), embedding_function=self._embeddings
+            persist_directory=str(persist_directory),
+            embedding_function=self._embeddings
         )
         retriever = vectordb.as_retriever()
 
@@ -263,6 +272,7 @@ class AnalystAgent(KBaseAgent):
         )
 
         return qa_chain
+
     def _create_KG_agent(self):
 
         prompt = ChatPromptTemplate.from_messages(
