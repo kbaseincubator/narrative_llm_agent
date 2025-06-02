@@ -43,23 +43,31 @@ class WorkflowState(BaseModel):
     error: Optional[str] = None
     results: Optional[str] = None
 
-
 class WorkflowNodes:
     """
     Class that encapsulates all node functions used in the workflow graph.
     This class handles creating and managing agents for different steps in the workflow.
     """
 
-    def __init__(self, token=None):
+    def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token=None):
         """
         Initialize the WorkflowNodes class.
 
         Args:
+            analyst_llm (str): config name for LLM for the analyst
+            validator_llm (str): config name for the LLM for the validator
+            app_flow_llm (str): config name for the LLM for the app running workflow
+            writer_llm (str): config name for the LLM for the summary and report writer
+            embedding_provider (str): (one of "cborg" or "nomic"), used for embedding queries to the knowledge graph
             token (str, optional): Authentication token for the KBase API.
                 If not provided, will be read from KB_AUTH_TOKEN environment variable.
-            llm_factory (callable, optional): Function to create LLM instances.
-                If not provided, will use the default get_llm function.
+
         """
+        self._analyst_llm = analyst_llm.lower()
+        self._validator_llm = validator_llm.lower()
+        self._app_flow_llm = app_flow_llm.lower()
+        self._writer_llm = writer_llm.lower()
+        self._embedding_provider = embedding_provider.lower()
         self.token = token or os.environ.get("KB_AUTH_TOKEN")
         if not self.token:
             raise ValueError("KB_AUTH_TOKEN must be provided either as parameter or environment variable")
@@ -80,18 +88,18 @@ class WorkflowNodes:
             description = state.description
 
             # Initialize the analyst agent
-            llm = self.llm_factory("gpt-4.1-mini-cborg")
+            llm = self.llm_factory(self._analyst_llm)
 
             analyst_expert = AnalystAgent(
                 llm,
-                "cborg",
+                self._embedding_provider,
                 token=self.token,
             )
 
             output = analyst_expert.agent.invoke({"input": description})
 
             # Extract the JSON from the output
-            analysis_plan = extract_json_from_string(output['output'])
+            analysis_plan = extract_json_from_string(output["output"])
 
             # Return updated state with analysis plan
             return state.model_copy(update={"steps_to_run": analysis_plan, "error": None})
@@ -115,7 +123,10 @@ class WorkflowNodes:
         app_id = current_step["app_id"]
         input_object_upa = state.input_object_upa
         try:
-            jc = JobCrew(self.llm_factory("gpt-4o-cborg", return_crewai=True))  # TODO: make this configurable. part of state?
+            jc = JobCrew(
+                self.llm_factory(self._app_flow_llm, return_crewai=True),
+                self.llm_factory(self._writer_llm, return_crewai=True)
+            )
             result = jc.start_job(app_id, input_object_upa, state.narrative_id, app_id=app_id)
             job_result: CompletedJob = result.pydantic
             return state.model_copy(update={
@@ -158,7 +169,7 @@ class WorkflowNodes:
                 })
 
             # Initialize the validator agent
-            llm = self.llm_factory("gpt-4.1-mini-cborg")
+            llm = self.llm_factory(self._validator_llm)
             validator = WorkflowValidatorAgent(llm, token=self.token)
 
             # Create the validation task
@@ -200,7 +211,7 @@ class WorkflowNodes:
                 ```
                 """
 
-            output = validator.agent.invoke({"input":description})
+            output = validator.agent.invoke({"input": description})
 
             # Extract JSON from the result text
             decision_json = extract_json_from_string_curly(output['output'])
@@ -255,14 +266,13 @@ class WorkflowNodes:
         return state.model_copy(update={"results": "✅ Workflow complete."})
 
 # functional-style access to the node methods
-def create_workflow_nodes(token=None, llm_factory=None):
+def create_workflow_nodes(token: str=None):
     """
     Create workflow nodes instance and return node functions.
     For langgraph add node which expects a function to be passed.
 
     Args:
         token (str, optional): Authentication token for the KBase API.
-        llm_factory (callable, optional): Function to create LLM instances.
 
     Returns:
         dict: Dictionary containing all node functions.

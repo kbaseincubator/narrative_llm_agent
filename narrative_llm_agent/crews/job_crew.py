@@ -23,16 +23,15 @@ class JobCrew:
     _llm: LLM
     _crew_results: list
 
-    def __init__(self, llm: LLM, token: str = None) -> None:
+    def __init__(self, workflow_llm: LLM, writer_llm: LLM, token: str = None) -> None:
         self._crew_results = []
         self._token = token
-        self._llm = llm
-        self._narr = NarrativeAgent(llm, token=token)
-        self._job = JobAgent(llm, token=token)
-        self._workspace = WorkspaceAgent(llm, token=token)
-        self._coordinator = CoordinatorAgent(llm)
-        self._metadata = MetadataAgent(llm, token=token)
-        self._writer = WriterAgent(llm)
+        self._narr = NarrativeAgent(workflow_llm, token=token)
+        self._job = JobAgent(workflow_llm, token=token)
+        self._workspace = WorkspaceAgent(workflow_llm, token=token)
+        self._coordinator = CoordinatorAgent(workflow_llm)
+        self._metadata = MetadataAgent(workflow_llm, token=token)
+        self._writer = WriterAgent(writer_llm)
         self._agents = [
             self._narr.agent,
             self._job.agent,
