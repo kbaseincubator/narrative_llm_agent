@@ -9,9 +9,10 @@ from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.kbase.clients.narrative_method_store import (
     NarrativeMethodStore,
 )
-from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
+from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.narrative import Narrative
+from narrative_llm_agent.kbase.objects.workspace import WorkspaceInfo
 from narrative_llm_agent.kbase.service_client import ServerError
 from narrative_llm_agent.tools.narrative_tools import (
     create_app_cell,
@@ -24,14 +25,11 @@ from narrative_llm_agent.tools.narrative_tools import (
 )
 from tests.test_data.test_data import get_test_narrative, load_test_data_json
 
-
-class MockWorkspaceInfo(WorkspaceInfo):
-    def __init__(self, ws_id, include_meta=True):
-        info = [ws_id, "my_ws", "me", "123", 5, "a", "n", "n"]
-        meta = {"narrative": 1, "is_temporary": 0} if include_meta else {}
-        info.append(meta)
-        super().__init__(info)
-
+def create_mock_workspace_info(ws_id: int, include_meta: bool = True):
+    info = [ws_id, "my_ws", "me", "123", 5, "a", "n", "n"]
+    meta = {"narrative": "1", "is_temporary": "0"} if include_meta else {}
+    info.append(meta)
+    return WorkspaceInfo.model_validate(info)
 
 class MockWorkspace(Workspace):
     def __init__(
@@ -48,7 +46,7 @@ class MockWorkspace(Workspace):
         if self.missing_ws:
             raise ServerError("no workspace", 500, f"no workspace with id {ws_id}")
         include_meta = False if self.missing_narr_meta else True
-        return MockWorkspaceInfo(ws_id, include_meta=include_meta)
+        return create_mock_workspace_info(ws_id, include_meta=include_meta)
 
     def save_objects(self, ws_id: int, objects: list[Any]) -> list[list[Any]]:
         return [self._fake_save_narr_info(ws_id)] * len(objects)
@@ -133,7 +131,7 @@ def test_get_narrative_from_wsid_no_narr():
 def test_save_narrative(mocker: MockerFixture):
     ws_id = 123
     mocker.patch.object(
-        Workspace, "get_workspace_info", return_value=MockWorkspaceInfo(ws_id)
+        Workspace, "get_workspace_info", return_value=create_mock_workspace_info(ws_id)
     )
     mocker.patch.object(Workspace, "save_objects", return_value=[["my", "info"]])
     fake_ws = Workspace("fake", "not_an_endpoint")

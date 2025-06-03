@@ -266,7 +266,7 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
 
     ws.get_object_info.side_effect = get_object_info_side_effect
     ws.get_objects.side_effect = get_objects_side_effect
-    ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["ws_info"])
+    ws.get_workspace_info.return_value = WorkspaceInfo.model_validate(ws_data["ws_info"])
     return ws
 
 

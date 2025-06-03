@@ -169,7 +169,7 @@ def test_start_job_tool(app_spec: AppSpec, mocker: MockerFixture):
     mock_ee.run_job.return_value = job_id
 
     mock_ws = mocker.Mock(spec=Workspace)
-    mock_ws.get_workspace_info.return_value = WorkspaceInfo(
+    mock_ws.get_workspace_info.return_value = WorkspaceInfo.model_validate(
         [narrative_id, "test_workspace", "test_user", "12345", 100, "a", "n", "n", {}]
     )
     mock_ws.get_object_info.return_value = Workspace.obj_info_to_json(
@@ -248,7 +248,7 @@ def test_run_job_tool(app_spec: AppSpec, mocker: MockerFixture):
     mock_nms.get_app_spec.return_value = app_spec.model_dump()
 
     mock_ws = mocker.Mock(spec=Workspace)
-    mock_ws.get_workspace_info.return_value = WorkspaceInfo(
+    mock_ws.get_workspace_info.return_value = WorkspaceInfo.model_validate(
         [narr_id, "test_workspace", "test_user", "12345", 100, "a", "n", "n", {"narrative": "1"}]
     )
     mock_ws.get_object_info.return_value = Workspace.obj_info_to_json(
