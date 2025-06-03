@@ -92,7 +92,7 @@ class WorkflowNodes:
             )
             
             #Create combined description for the agent
-            description_complete = description + f"""This analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
+            description_complete = description + f"""/nThis analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
                     - The analysis steps should begin with read quality assessment.
                     - Make sure you select appropriate KBase apps based on genome type.
                     - Relevant statistics for the assembly (e.g., number of contigs and N50 values).
