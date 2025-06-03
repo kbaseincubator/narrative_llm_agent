@@ -5,7 +5,7 @@ from crewai import Task
 
 @pytest.fixture
 def job_crew(mock_llm):
-    return JobCrew(llm=mock_llm, token="fake_token")
+    return JobCrew(mock_llm, mock_llm, token="fake_token")
 
 
 def test_initialization(job_crew):

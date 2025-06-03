@@ -266,7 +266,7 @@ class WorkflowNodes:
         return state.model_copy(update={"results": "✅ Workflow complete."})
 
 # functional-style access to the node methods
-def create_workflow_nodes(token: str=None):
+def create_workflow_nodes(analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token: str=None):
     """
     Create workflow nodes instance and return node functions.
     For langgraph add node which expects a function to be passed.
@@ -277,7 +277,7 @@ def create_workflow_nodes(token: str=None):
     Returns:
         dict: Dictionary containing all node functions.
     """
-    nodes = WorkflowNodes(token=token)
+    nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=token)
     return {
         "analyst_node": nodes.analyst_node,
         "app_runner_node": nodes.app_runner_node,
