@@ -92,7 +92,7 @@ def get_report_created_objects(report_upa: str, ws: Workspace) -> set[CreatedObj
     for new_object in report.objects_created:
         obj_info = ws.get_object_info(new_object.ref)
         created_objects.add(
-            CreatedObject(object_upa=obj_info["upa"], object_name=obj_info["name"])
+            CreatedObject(object_upa=obj_info.upa, object_name=obj_info.name)
         )
     return created_objects
 
@@ -164,7 +164,7 @@ def get_app_created_objects(
             out_obj_info = ws.get_object_info(f"{narrative_id}/{name}")
             created_objects.add(
                 CreatedObject(
-                    object_upa=out_obj_info["upa"], object_name=out_obj_info["name"]
+                    object_upa=out_obj_info.upa, object_name=out_obj_info.name
                 )
             )
         except ServerError:

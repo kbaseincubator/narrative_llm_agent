@@ -5,6 +5,7 @@ from typing import Any, Callable
 from pytest_mock import MockerFixture
 from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
 from narrative_llm_agent.tools.job_tools import (
     CreatedObject,
     CompletedJob,
@@ -172,7 +173,7 @@ def test_start_job_tool(app_spec: AppSpec, mocker: MockerFixture):
     mock_ws.get_workspace_info.return_value = WorkspaceInfo.model_validate(
         [narrative_id, "test_workspace", "test_user", "12345", 100, "a", "n", "n", {}]
     )
-    mock_ws.get_object_info.return_value = Workspace.obj_info_to_json(
+    mock_ws.get_object_info.return_value = ObjectInfo.model_validate(
         [
             2,
             "some_object",
@@ -251,7 +252,7 @@ def test_run_job_tool(app_spec: AppSpec, mocker: MockerFixture):
     mock_ws.get_workspace_info.return_value = WorkspaceInfo.model_validate(
         [narr_id, "test_workspace", "test_user", "12345", 100, "a", "n", "n", {"narrative": "1"}]
     )
-    mock_ws.get_object_info.return_value = Workspace.obj_info_to_json(
+    mock_ws.get_object_info.return_value = ObjectInfo.model_validate(
         [
             5,
             "NewGenomeObject",

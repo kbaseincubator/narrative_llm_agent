@@ -93,7 +93,7 @@ class WorkspaceAgent(KBaseAgent):
             """Get the name of a data object from its UPA. This returns the name string. An UPA input must
             be a string with the format number/number/number."""
             ws = Workspace(token=self._token)
-            return ws.get_object_info(process_tool_input(upa, "upa"))["name"]
+            return ws.get_object_info(process_tool_input(upa, "upa")).name
 
         self.agent = Agent(
             role=self.role,

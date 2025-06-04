@@ -491,11 +491,11 @@ def transform_object_value(
         )
 
     if is_path or transform_type in ["resolved-ref", "upa"]:
-        return ";".join(obj_info["path"])
+        return ";".join(obj_info.path)
     if transform_type in ["ref", "unresolved-ref", "putative-ref"]:
-        return f"{obj_info['ws_name']}/{obj_info['name']}"
+        return f"{obj_info.ws_name}/{obj_info.name}"
     if transform_type is None:
-        return obj_info["name"]
+        return obj_info.name
     return value
 
 
@@ -644,14 +644,12 @@ def resolve_single_ref(value: str, ws_id: int, ws_client: Workspace) -> str:
                     f"Object reference {value} has too many slashes - should be ws/object/version"
                 )
         info = ws_client.get_object_info(value)
-        path_items[len(path_items) - 1] = (
-            f"{info['ws_id']}/{info['obj_id']}/{info['version']}"
-        )
+        path_items[len(path_items) - 1] = info.upa
         ret = ";".join(path_items)
     # Otherwise, assume it's a name, not a reference.
     else:
         info = ws_client.get_object_info(f"{ws_id}/{value}")
-        ret = f"{info['ws_id']}/{info['obj_id']}/{info['version']}"
+        ret = info.upa
     return ret
 
 

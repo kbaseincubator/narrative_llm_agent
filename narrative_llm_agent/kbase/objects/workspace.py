@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict, List, Optional, Tuple, Union
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, computed_field, model_validator
 
 class ObjectInfo(BaseModel):
     ws_id: int
@@ -9,14 +9,14 @@ class ObjectInfo(BaseModel):
     name: str
     ws_name: str
     type: str
-    saved: int
+    saved: str
     saved_by: str
     size_bytes: int
-    upa: str
-    metadata: Dict[str, str]
+    metadata: Optional[Dict[str, str]] = {}
     path: Optional[List[str]] = []
 
     @model_validator(mode="before")
+    @classmethod
     def _unpack_obj_info_list(cls, obj_info: Union[List[Any], Tuple[Any, ...], dict]) -> dict:
         if isinstance(obj_info, (list, tuple)):
             if len(obj_info) != 12 and len(obj_info) != 11:
@@ -31,14 +31,17 @@ class ObjectInfo(BaseModel):
                 "saved": obj_info[3],
                 "version": obj_info[4],
                 "saved_by": obj_info[5],
-                "size_bytes": obj_info[9],
-                "upa": f"{obj_info[6]}/{obj_info[0]}/{obj_info[4]}"
+                "size_bytes": obj_info[9]
             }
             if len(obj_info) == 12:
                 converted["path"] = obj_info[11]
             return converted
-        return obj_info
+        else:
+            return obj_info
 
+    @computed_field
+    def upa(self) -> str:
+        return f"{self.ws_id}/{self.obj_id}/{self.version}"
 
 class WorkspaceObjectId(BaseModel):
     upa: Optional[str] = None

@@ -18,7 +18,7 @@ class Workspace(ServiceClient):
 
     def list_workspace_objects(
         self: "Workspace", ws_id: int, object_type: str = None, as_dict: bool = False
-    ) -> list[list]:
+    ) -> list[list] | list[ObjectInfo]:
         ws_info = self.get_workspace_info(ws_id)
         chunk_size = 10000
         current_max = 0
@@ -62,19 +62,3 @@ class Workspace(ServiceClient):
         self: "Workspace", ws_id: int, objects: list[Any]
     ) -> list[list[Any]]:
         return self.simple_call("save_objects", {"id": ws_id, "objects": objects})
-
-    @classmethod
-    def obj_info_to_json(cls, obj_info: list[Any]) -> dict[str, Any]:
-        return {
-            "ws_id": obj_info[6],
-            "obj_id": obj_info[0],
-            "name": obj_info[1],
-            "ws_name": obj_info[7],
-            "metadata": obj_info[10],
-            "type": obj_info[2],
-            "saved": obj_info[3],
-            "version": obj_info[4],
-            "saved_by": obj_info[5],
-            "size_bytes": obj_info[9],
-            "upa": f"{obj_info[6]}/{obj_info[0]}/{obj_info[4]}",
-        }
