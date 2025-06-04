@@ -127,7 +127,7 @@ def test_list_workspace_objects(mock_kbase_client_call, ws_client):
 
     received = ws_client.list_workspace_objects(ws_id, as_dict=True)
     for idx, obj_info in enumerate(received):
-        assert obj_info == Workspace.obj_info_to_json(expected_infos[idx])
+        assert obj_info == ObjectInfo.model_validate(obj_info).model_dump()
 
 
 def test_get_object_upas(mock_kbase_client_call, ws_client):

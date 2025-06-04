@@ -14,14 +14,14 @@ class ObjectInfo(BaseModel):
     size_bytes: int
     upa: str
     metadata: Dict[str, str]
-    path: List[str]
+    path: Optional[List[str]] = []
 
     @model_validator(mode="before")
     def _unpack_obj_info_list(cls, obj_info: Union[List[Any], Tuple[Any, ...], dict]) -> dict:
         if isinstance(obj_info, (list, tuple)):
-            if len(obj_info) != 12:
-                raise ValueError("Expected exactly 11 items in the object info list")
-            return {
+            if len(obj_info) != 12 and len(obj_info) != 11:
+                raise ValueError("Expected either 11 or 12 items in the object info list")
+            converted = {
                 "ws_id": obj_info[6],
                 "obj_id": obj_info[0],
                 "name": obj_info[1],
@@ -32,9 +32,11 @@ class ObjectInfo(BaseModel):
                 "version": obj_info[4],
                 "saved_by": obj_info[5],
                 "size_bytes": obj_info[9],
-                "upa": f"{obj_info[6]}/{obj_info[0]}/{obj_info[4]}",
-                "path": obj_info[11]
+                "upa": f"{obj_info[6]}/{obj_info[0]}/{obj_info[4]}"
             }
+            if len(obj_info) == 12:
+                converted["path"] = obj_info[11]
+            return converted
         return obj_info
 
 

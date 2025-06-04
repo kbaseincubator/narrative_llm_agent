@@ -8,6 +8,9 @@ from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
 from crewai.crew import CrewOutput
 
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.tools.app_tools import get_app_params
 from narrative_llm_agent.tools.job_tools import CompletedJob, CreatedObject
 
 class JobCrew:
@@ -47,6 +50,9 @@ class JobCrew:
         and input object to be run in a given narrative.
         """
         # TODO: convert UPA to name, pass both to build_tasks
+        param_template = get_app_params(app_id, NarrativeMethodStore())
+        ws = Workspace()
+        object_info = ws.get_object_info(input_object_upa)
         self._tasks = self.build_tasks(app_name, narrative_id, input_object_upa, app_id)
         crew = Crew(
             agents=self._agents,
@@ -117,15 +123,9 @@ class JobCrew:
     def build_tasks(
         self, app_name: str, narrative_id: int, input_object_upa: str, app_id: str | None
     ) -> list[Task]:
-        get_app_task = Task(
-            description=f"Get the app id for the KBase {app_name} app. Return only the app id. This can be found in the catalog.",
-            expected_output="An app id with the format module/app, with a single forward-slash",
-            agent=self._coordinator.agent,
-        )
-
         # TODO: make sure that input objects are ALWAYS UPAs
-        get_app_params_task = Task(
-            name=f"1. Get parameters for {app_name}",
+        build_params_task = Task(
+            name=f"1. Build the parameters for {app_name}",
             description=f"""
             From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
             for assistance. Using the data object with UPA "{input_object_upa}", populate a dictionary
@@ -146,8 +146,7 @@ class JobCrew:
             """,
             expected_output="A dictionary of parameters used to run the app with the given id along with the narrative id.",
             output_pydantic=AppStartInfo,
-            agent=self._coordinator.agent,
-            context=[get_app_task]
+            agent=self._coordinator.agent
         )
 
         start_job_task = Task(
@@ -166,7 +165,7 @@ class JobCrew:
             expected_output="The CompletedJobAndReport object returned by the monitor_job tool.",
             output_pydantic=CompletedJob,
             agent=self._job.agent,
-            context=[get_app_params_task],
+            context=[build_params_task],
         )
 
         report_retrieval_task = Task(
@@ -226,7 +225,7 @@ class JobCrew:
         )
 
         return [
-            get_app_params_task,
+            build_params_task,
             start_job_task,
             report_retrieval_task,
             report_analysis_task,

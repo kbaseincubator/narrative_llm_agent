@@ -473,7 +473,7 @@ def transform_object_value(
     if not is_upa and not is_ref:
         search_ref = f"{ws_id}/{value}"
     try:
-        obj_info = ws_client.get_object_info(search_ref, include_path=True)
+        obj_info = ws_client.get_object_info(search_ref)
     except Exception as e:
         # a putative-ref can be an extant or a to-be-created object; if the object
         # is not found, the workspace name/object name can be returned
