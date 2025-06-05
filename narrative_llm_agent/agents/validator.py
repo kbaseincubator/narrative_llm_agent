@@ -3,8 +3,10 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents import Tool, AgentExecutor, create_tool_calling_agent
 from narrative_llm_agent.tools.kgtool_cosine_sim import InformationTool
 import os
+import json
 from langchain.tools import tool
-
+from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.util.tool import process_tool_input
 
 class WorkflowValidatorAgent(KBaseAgent):
     role: str = "You are a workflow validator, responsible for analyzing app run results and determining next steps."
@@ -17,7 +19,17 @@ class WorkflowValidatorAgent(KBaseAgent):
     def __init__(self: "WorkflowValidatorAgent", llm, token: str = None):
         self._llm = llm
         self._token = token
-
+        @tool("list_objects")
+        def list_objects_tool(narrative_id: int) -> str:
+            """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted
+            list of all objects in a narrative. The narrative_id input must be an integer. Do not
+            pass in a dictionary or a JSON-formatted string."""
+            ws = Workspace(token=self._token)
+            return json.dumps(
+                ws.list_workspace_objects(
+                    process_tool_input(narrative_id, "narrative_id"), as_dict=True
+                )
+            )
         @tool("kg_retrieval_tool")
         def KGretrieval_tool(input: str):
             """This tool has the KBase app Knowledge Graph. Useful for when you need to confirm the existance of KBase applications and their appid, tooltip, version, category and data objects.
@@ -39,7 +51,7 @@ class WorkflowValidatorAgent(KBaseAgent):
                 MessagesPlaceholder(variable_name="agent_scratchpad"),
             ]
         )
-        tools = [KGretrieval_tool]
+        tools = [KGretrieval_tool, list_objects_tool]
         agent = create_tool_calling_agent(
             llm=self._llm,
             tools=tools,
