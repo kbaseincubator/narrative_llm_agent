@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import Mock
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.narrative import Narrative
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
 from narrative_llm_agent.kbase.service_client import ServiceClient, ServerError
 from narrative_llm_agent.kbase.clients.workspace import Workspace, WorkspaceInfo
 from tests.test_data.test_data import get_test_narrative, load_test_data_json
@@ -244,7 +245,7 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
     ):
         key = _key_from_ref(ref)
         if key in ws_data["object_info"]:
-            return ws_data["object_info"][key]
+            return ObjectInfo.model_validate(ws_data["object_info"][key])
         else:
             raise ServerError(
                 "WorkspaceError", 500, "Not in ws"
@@ -266,7 +267,7 @@ def mock_workspace(mocker: pytest.MonkeyPatch) -> Mock:
 
     ws.get_object_info.side_effect = get_object_info_side_effect
     ws.get_objects.side_effect = get_objects_side_effect
-    ws.get_workspace_info.return_value = WorkspaceInfo(ws_data["ws_info"])
+    ws.get_workspace_info.return_value = WorkspaceInfo.model_validate(ws_data["ws_info"])
     return ws
 
 

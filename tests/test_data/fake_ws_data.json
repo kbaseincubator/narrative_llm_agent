@@ -11,12 +11,84 @@
         {"narrative": "1"}
     ],
     "object_info": {
-        "1": {"ws_id": 1000, "obj_id": 1, "version": 1, "name": "narrative", "upa": "1000/1/1", "type": "KBaseNarrative.Narrative-3.0"},
-        "2": {"ws_id": 1000, "obj_id": 2, "version": 3, "name": "foo", "upa": "1000/2/3"},
-        "3": {"ws_id": 1000, "obj_id": 3, "version": 4, "name": "bar", "upa": "1000/3/4"},
-        "4": {"ws_id": 1000, "obj_id": 4, "version": 1, "name": "genome", "upa": "1000/4/1"},
-        "5": {"ws_id": 1000, "obj_id": 5, "version": 1, "name": "new_genome", "upa": "1000/5/1"},
-        "6": {"ws_id": 1000, "obj_id": 6, "version": 1, "name": "some_app_report", "upa": "1000/6/1"}
+        "1": {
+            "ws_id": 1000,
+            "obj_id": 1,
+            "version": 1,
+            "name": "narrative",
+            "upa": "1000/1/1",
+            "type": "KBaseNarrative.Narrative-3.0",
+            "saved_by": "user",
+            "saved": "some_timestamp",
+            "ws_name": "a_workspace",
+            "size_bytes": 42,
+            "metadata": {}
+        },
+        "2": {
+            "ws_id": 1000,
+            "obj_id": 2,
+            "version": 3,
+            "name": "foo",
+            "upa": "1000/2/3",
+            "type": "KBaseGenomes.Genome-1.0",
+            "saved_by": "user",
+            "saved": "some_timestamp",
+            "ws_name": "a_workspace",
+            "size_bytes": 42,
+            "metadata": {}
+        },
+        "3": {
+            "ws_id": 1000,
+            "obj_id": 3,
+            "version": 4,
+            "name": "bar",
+            "upa": "1000/3/4",
+            "type": "KBaseGenomes.Genome-1.0",
+            "saved_by": "user",
+            "saved": "some_timestamp",
+            "ws_name": "a_workspace",
+            "size_bytes": 42,
+            "metadata": {}
+        },
+        "4": {
+            "ws_id": 1000,
+            "obj_id": 4,
+            "version": 1,
+            "name": "genome",
+            "upa": "1000/4/1",
+            "type": "KBaseGenomes.Genome-1.0",
+            "saved_by": "user",
+            "saved": "some_timestamp",
+            "ws_name": "a_workspace",
+            "size_bytes": 42,
+            "metadata": {}
+        },
+        "5": {
+            "ws_id": 1000,
+            "obj_id": 5,
+            "version": 1,
+            "name": "new_genome",
+            "upa": "1000/5/1",
+            "type": "KBaseGenomes.Genome-1.0",
+            "saved_by": "user",
+            "saved": "some_timestamp",
+            "ws_name": "a_workspace",
+            "size_bytes": 42,
+            "metadata": {}
+        },
+        "6": {
+            "ws_id": 1000,
+            "obj_id": 6,
+            "version": 1,
+            "name": "some_app_report",
+            "upa": "1000/6/1",
+            "type": "KBaseReports.Report-1.0",
+            "saved_by": "user",
+            "saved": "some_timestamp",
+            "ws_name": "a_workspace",
+            "size_bytes": 42,
+            "metadata": {}
+        }
     },
     "object_data": {
         "1": {

@@ -1,23 +1,24 @@
 
 from pytest_mock import MockerFixture
 from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
 from narrative_llm_agent.tools.workspace_tools import get_object_metadata
 
 
-def mock_obj_info(upa: str, metadata: dict[str, str] | None) -> dict:
+def mock_obj_info(upa: str, metadata: dict[str, str] | None) -> ObjectInfo:
     ws_id, obj_id, ver = upa.split("/")
-    return {
+    return ObjectInfo.model_validate({
         "ws_id": ws_id,
         "obj_id": obj_id,
         "name": "some_obj",
         "ws_name": "some_ws",
         "type": "SomeObject.Test-1.0",
-        "saved": 12345,
+        "saved": "12345",
         "version": ver,
         "saved_by": "user",
         "size_bytes": 12345,
-        "metadata": metadata,
-    }
+        "metadata": metadata
+    })
 
 def build_mock_ws(mocker: MockerFixture, upa: str, meta: dict[str|str] | None):
     my_obj_info = mock_obj_info(upa, meta)

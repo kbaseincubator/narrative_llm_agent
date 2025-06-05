@@ -7,6 +7,8 @@ from narrative_llm_agent.kbase.clients.workspace import (
 
 import pytest
 
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
+
 
 @pytest.fixture
 def ws_client():
@@ -63,7 +65,7 @@ def test_get_ws_info(mock_kbase_client_call, ws_client):
     ws_id = 123
     ws_info = [ws_id, "my_workspace", "me", "some_date", 11000, "o", "n", "n", {}]
     mock_kbase_client_call(ws_client, ws_info)
-    expected_info = WorkspaceInfo(ws_info)
+    expected_info = WorkspaceInfo.model_validate(ws_info)
     ret_info = ws_client.get_workspace_info(ws_id)
     assert str(expected_info) == str(ret_info)
 
@@ -125,7 +127,7 @@ def test_list_workspace_objects(mock_kbase_client_call, ws_client):
 
     received = ws_client.list_workspace_objects(ws_id, as_dict=True)
     for idx, obj_info in enumerate(received):
-        assert obj_info == Workspace.obj_info_to_json(expected_infos[idx])
+        assert obj_info == ObjectInfo.model_validate(obj_info).model_dump()
 
 
 def test_get_object_upas(mock_kbase_client_call, ws_client):
@@ -176,9 +178,9 @@ def test_get_object_upas(mock_kbase_client_call, ws_client):
         ],
     ]
     expected = [
-        WorkspaceObjectId.from_upa("123456/1/4"),
-        WorkspaceObjectId.from_upa("123456/2/5"),
-        WorkspaceObjectId.from_upa("123456/3/6"),
+        WorkspaceObjectId(upa="123456/1/4"),
+        WorkspaceObjectId(upa="123456/2/5"),
+        WorkspaceObjectId(upa="123456/3/6")
     ]
     mock_kbase_client_call(ws_client, ws_info, "get_workspace_info")
     mock_kbase_client_call(ws_client, object_infos, "list_objects")
@@ -243,40 +245,21 @@ def test_save_objects(mock_kbase_client_call, ws_client):
     assert ws_client.save_objects(3, [{"myobject": "lives_here"}]) == [obj_info]
 
 
-def test_obj_info_to_json():
-    obj_id = 1
-    ws_id = 123
-    ver = 456
-    name = "some_obj"
-    ws_name = "some_ws"
-    metadata = {"this": "stuff"}
-    obj_type = "SomeModule.ObjectType"
-    saved = "123123123123"
-    saved_by = "me"
-    size_bytes = 123456
-    info = [
-        obj_id,
-        name,
-        obj_type,
-        saved,
-        ver,
-        saved_by,
-        ws_id,
-        ws_name,
+def test_get_object_info(mock_kbase_client_call, ws_client):
+    obj_info = [
+        1,
+        "foo",
+        "bar",
+        "123",
+        2,
+        "me",
+        3,
         "nope",
-        size_bytes,
-        metadata,
+        "noway",
+        1231234,
+        {"some": "meta"},
     ]
-    assert Workspace.obj_info_to_json(info) == {
-        "ws_id": ws_id,
-        "obj_id": obj_id,
-        "name": name,
-        "ws_name": ws_name,
-        "metadata": metadata,
-        "type": obj_type,
-        "saved": saved,
-        "version": ver,
-        "saved_by": saved_by,
-        "size_bytes": size_bytes,
-        "upa": "123/1/456",
-    }
+    path = []
+    mock_kbase_client_call(ws_client, {"infos": [obj_info], "paths": [path]})
+    processed_info = ObjectInfo.model_validate(obj_info + [path])
+    assert ws_client.get_object_info("3/1/2") == processed_info

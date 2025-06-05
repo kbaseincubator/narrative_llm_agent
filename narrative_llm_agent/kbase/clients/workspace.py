@@ -1,80 +1,8 @@
 from ..service_client import ServiceClient
 from typing import Any
 from copy import deepcopy
-import json
 from narrative_llm_agent.config import get_config
-
-
-class WorkspaceObjectId:
-    upa: str
-    ws_id: int
-    obj_id: int
-    version: int
-
-    def __init__(self: "WorkspaceObjectId", upa: str) -> None:
-        self.upa = upa
-        self._process_upa()
-
-    def _process_upa(self: "WorkspaceObjectId"):
-        split_upa = self.upa.split("/")
-        self.ws_id = int(split_upa[0])
-        self.obj_id = int(split_upa[1])
-        self.version = int(split_upa[2])
-
-    @classmethod
-    def from_upa(cls: "WorkspaceObjectId", upa: str) -> "WorkspaceObjectId":
-        return cls(upa)
-
-    @classmethod
-    def from_ids(
-        cls: "WorkspaceObjectId", ws_id: int, obj_id: int, version: int
-    ) -> "WorkspaceObjectId":
-        return cls(f"{ws_id}/{obj_id}/{version}")
-
-    def __repr__(self: "WorkspaceObjectId") -> str:
-        return self.upa
-
-    def __str__(self: "WorkspaceObjectId") -> str:
-        return self.__repr__()
-
-
-class WorkspaceInfo:
-    ws_id: int
-    name: str
-    owner: str
-    mod_date: str
-    max_objid: int
-    perm: str
-    global_read: str
-    lock_status: str
-    meta: dict[str, str]
-
-    def __init__(self: "WorkspaceInfo", info: list[Any]) -> None:
-        self.ws_id = info[0]
-        self.name = info[1]
-        self.owner = info[2]
-        self.mod_date = info[3]
-        self.max_objid = info[4]
-        self.perm = info[5]
-        self.global_read = info[6]
-        self.lock_status = info[7]
-        self.meta = info[8] or {}
-
-    def __str__(self: "WorkspaceInfo") -> str:
-        return json.dumps(
-            [
-                self.ws_id,
-                self.name,
-                self.owner,
-                self.mod_date,
-                self.max_objid,
-                self.perm,
-                self.global_read,
-                self.lock_status,
-                self.meta,
-            ]
-        )
-
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo, WorkspaceObjectId, WorkspaceInfo
 
 class Workspace(ServiceClient):
     _service = "Workspace"
@@ -86,11 +14,11 @@ class Workspace(ServiceClient):
 
     def get_workspace_info(self: "Workspace", ws_id: int) -> WorkspaceInfo:
         ws_info = self.simple_call("get_workspace_info", {"id": ws_id})
-        return WorkspaceInfo(ws_info)
+        return WorkspaceInfo.model_validate(ws_info)
 
     def list_workspace_objects(
         self: "Workspace", ws_id: int, object_type: str = None, as_dict: bool = False
-    ) -> list[list]:
+    ) -> list[list] | list[ObjectInfo]:
         ws_info = self.get_workspace_info(ws_id)
         chunk_size = 10000
         current_max = 0
@@ -106,23 +34,18 @@ class Workspace(ServiceClient):
             current_max += chunk_size + 1
         if not as_dict:
             return objects
-        return [self.obj_info_to_json(info) for info in objects]
+        return [ObjectInfo.model_validate(info).model_dump() for info in objects]
 
-    def get_object_info(
-        self: "Workspace", obj_ref: str, include_path: bool = False
-    ) -> dict:
+    def get_object_info(self: "Workspace", obj_ref: str) -> ObjectInfo:
         obj_info = self.simple_call("get_object_info3", {"objects": [{"ref": obj_ref}]})
-        info_dict = self.obj_info_to_json(obj_info["infos"][0])
-        if include_path:
-            info_dict["path"] = obj_info["paths"][0]
-        return info_dict
+        return ObjectInfo.model_validate(obj_info["infos"][0] + [obj_info["paths"][0]])
 
     def get_object_upas(
         self: "Workspace", ws_id: int, object_type: str = None
     ) -> list[WorkspaceObjectId]:
         obj_infos = self.list_workspace_objects(ws_id, object_type=object_type)
         return [
-            WorkspaceObjectId.from_ids(info[6], info[0], info[4]) for info in obj_infos
+            WorkspaceObjectId(ws_id=info[6], obj_id=info[0], version=info[4]) for info in obj_infos
         ]
 
     def get_objects(
@@ -139,19 +62,3 @@ class Workspace(ServiceClient):
         self: "Workspace", ws_id: int, objects: list[Any]
     ) -> list[list[Any]]:
         return self.simple_call("save_objects", {"id": ws_id, "objects": objects})
-
-    @classmethod
-    def obj_info_to_json(cls, obj_info: list[Any]) -> dict[str, Any]:
-        return {
-            "ws_id": obj_info[6],
-            "obj_id": obj_info[0],
-            "name": obj_info[1],
-            "ws_name": obj_info[7],
-            "metadata": obj_info[10],
-            "type": obj_info[2],
-            "saved": obj_info[3],
-            "version": obj_info[4],
-            "saved_by": obj_info[5],
-            "size_bytes": obj_info[9],
-            "upa": f"{obj_info[6]}/{obj_info[0]}/{obj_info[4]}",
-        }
