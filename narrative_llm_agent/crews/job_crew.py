@@ -8,6 +8,9 @@ from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
 from crewai.crew import CrewOutput
 
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.tools.app_tools import get_app_params
 from narrative_llm_agent.tools.job_tools import CompletedJob, CreatedObject
 
 class JobCrew:
@@ -47,6 +50,9 @@ class JobCrew:
         and input object to be run in a given narrative.
         """
         # TODO: convert UPA to name, pass both to build_tasks
+        param_template = get_app_params(app_id, NarrativeMethodStore())
+        ws = Workspace()
+        object_info = ws.get_object_info(input_object_upa)
         self._tasks = self.build_tasks(app_name, narrative_id, input_object_upa, app_id)
         crew = Crew(
             agents=self._agents,
