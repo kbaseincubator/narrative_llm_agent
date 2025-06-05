@@ -13,7 +13,9 @@ def base_state():
     return WorkflowState(
         description="Test workflow",
         narrative_id=123,
-        reads_id="test_reads"
+        reads_id="test_reads",
+        last_executed_step={},
+        completed_steps=[]
     )
 
 def test_next_step_router_with_error(base_state):
@@ -85,24 +87,26 @@ def test_router_integration():
         description="Test integration",
         narrative_id=123,
         reads_id="test_reads",
-        steps_to_run=[{"Step": 1, "Name": "First Step"}]
+        steps_to_run=[{"Step": 1, "Name": "First Step"}],
+        last_executed_step={},
+        completed_steps=[]
     )
-    
+
     # Simulate workflow execution
-    
+
     # Step 1: After analyst node
     next_node = analyst_router(state)
     assert next_node == "validate_step"
-    
+
     # Step 2: After validation
     next_node = post_validation_router(state)
     assert next_node == "run_workflow_step"
-    
+
     # Step 3: After running the step, remove steps to simulate completion
     state = state.model_copy(update={"steps_to_run": []})
     next_node = next_step_router(state)
     assert next_node == "workflow_end"
-    
+
     # Alternative path: Error handling
     state = state.model_copy(update={"error": "Something failed", "steps_to_run": [{"Step": 2}]})
     next_node = next_step_router(state)

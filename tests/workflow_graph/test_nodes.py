@@ -1,8 +1,8 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import json
+from unittest.mock import Mock, patch
 import os
-from narrative_llm_agent.workflow_graph.nodes import WorkflowNodes, WorkflowState, AnalysisStep
+from narrative_llm_agent.tools.job_tools import CompletedJob
+from narrative_llm_agent.workflow_graph.nodes import WorkflowNodes, WorkflowState
 
 @pytest.fixture
 def mock_llm_factory():
@@ -23,13 +23,12 @@ def mock_analyst_agent():
         yield mock_agent
 
 @pytest.fixture
-def mock_workflow_runner():
-    """Mock the WorkflowRunner class."""
-    with patch('narrative_llm_agent.workflow_graph.nodes.WorkflowRunner') as mock_runner:
-        mock_runner_instance = Mock()
-        mock_runner.return_value = mock_runner_instance
-        mock_runner_instance.agent = Mock()
-        yield mock_runner
+def mock_job_crew():
+    """Mock the JobCrew class."""
+    with patch('narrative_llm_agent.workflow_graph.nodes.JobCrew') as mock_job_crew:
+        mock_jc_instance = Mock()
+        mock_job_crew.return_value = mock_jc_instance
+        yield mock_job_crew
 
 @pytest.fixture
 def mock_validator_agent():
@@ -43,23 +42,6 @@ def mock_validator_agent():
             'output': 'test output with JSON {"continue_as_planned": true, "reasoning": "Test reasoning", "input_object_upa": "1/2/3/4"}'
         }
         yield mock_validator
-
-@pytest.fixture
-def mock_task():
-    """Mock the Task class."""
-    with patch('narrative_llm_agent.workflow_graph.nodes.Task') as mock_task:
-        mock_task_instance = Mock()
-        mock_task.return_value = mock_task_instance
-        yield mock_task
-
-@pytest.fixture
-def mock_crew():
-    """Mock the Crew class."""
-    with patch('narrative_llm_agent.workflow_graph.nodes.Crew') as mock_crew:
-        mock_crew_instance = Mock()
-        mock_crew.return_value = mock_crew_instance
-        mock_crew_instance.kickoff.return_value = Mock(raw="{'continue_as_planned': true}")
-        yield mock_crew
 
 @pytest.fixture
 def mock_extract_json():
@@ -112,21 +94,24 @@ def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_extract_j
     state = WorkflowState(
         description="Test genome analysis",
         narrative_id=123,
-        reads_id="test_reads"
+        reads_id="test_reads",
+        steps_to_run=[],
+        last_executed_step={},
+        completed_steps=[]
     )
-    
+
     # Call the node function
     result = workflow_nodes.analyst_node(state)
-    
+
     # Check that the analyst agent was created correctly
     mock_analyst_agent.assert_called_once()
-    
+
     # Check that the agent was invoked directly
     #mock_analyst_agent.return_value.agent.invoke.assert_called_once_with({"input": "Test genome analysis"})
     
     # Check that the results were processed correctly
     mock_extract_json.assert_called_once()
-    
+
     # Check that the state was updated correctly
     assert result.steps_to_run == [{"Step": 1, "Name": "Test Step", "App": "TestApp"}]
     assert result.error is None
@@ -135,54 +120,54 @@ def test_analyst_node_error(workflow_nodes, mock_analyst_agent):
     """Test handling errors in the analyst_node function."""
     # Set up the mock agent to raise an exception
     mock_analyst_agent.return_value.agent.invoke.side_effect = Exception("Test error")
-    
+
     # Create a state to pass to the node
     state = WorkflowState(
         description="Test genome analysis",
         narrative_id=123,
-        reads_id="test_reads"
+        reads_id="test_reads",
+        steps_to_run=[],
+        last_executed_step={},
+        completed_steps=[]
     )
-    
+
     # Call the node function
     result = workflow_nodes.analyst_node(state)
-    
+
     # Check error handling
     assert result.steps_to_run is None
     assert result.error == "Test error"
 
-def test_workflow_runner_node_success(workflow_nodes, mock_workflow_runner, mock_crew, mock_task):
-    """Test the workflow_runner_node function successfully executes a step."""
+def test_app_runner_node_success(workflow_nodes, mock_job_crew):
+    """Test the app_runner_node function successfully executes a step."""
     # Create a state with steps to run
     state = WorkflowState(
         description="Test workflow",
         narrative_id=123,
         reads_id="test_reads",
         steps_to_run=[
-            {"Step": 1, "Name": "Step 1", "App": "App1"},
-            {"Step": 2, "Name": "Step 2", "App": "App2"}
+            {"Step": 1, "Name": "Step 1", "App": "App1", "app_id": "Module1/app1"},
+            {"Step": 2, "Name": "Step 2", "App": "App2", "app_id": "Module2/app2"}
         ],
+        completed_steps=[],
+        last_executed_step={},
         input_object_upa="1/2/3"
     )
-    
+
     # Set up the mock crew result
-    mock_crew.return_value.kickoff.return_value = Mock(raw="Step executed successfully")
-    
+    mock_job_crew.return_value.start_job.return_value = Mock(
+        pydantic=CompletedJob(job_id="123", job_status="completed", created_objects=[], narrative_id=123)
+    )
+
     # Call the node function
-    result = workflow_nodes.workflow_runner_node(state)
-    
+    result = workflow_nodes.app_runner_node(state)
+
     # Check that WorkflowRunner was created correctly
-    mock_workflow_runner.assert_called_once()
-    
-    # Check that Task was created
-    mock_task.assert_called_once()
-    
+    mock_job_crew.assert_called_once()
+
     # Check that Crew was used to run the task
-    mock_crew.assert_called_once()
-    # Verify it's using the implementation pattern with tasks list
-    crew_call_kwargs = mock_crew.call_args[1]
-    assert 'tasks' in crew_call_kwargs
-    assert 'verbose' in crew_call_kwargs
-    
+    mock_job_crew.assert_called_once()
+
     # Check that the state was updated correctly
     assert result.step_result is not None  # This will be the mock response
     assert len(result.steps_to_run) == 1
@@ -190,23 +175,26 @@ def test_workflow_runner_node_success(workflow_nodes, mock_workflow_runner, mock
     assert result.last_executed_step["Step"] == 1
     assert result.error is None
 
-def test_workflow_runner_node_error(workflow_nodes, mock_workflow_runner, mock_crew, mock_task):
-    """Test handling errors in the workflow_runner_node function."""
+def test_app_runner_node_error(workflow_nodes, mock_job_crew):
+    """Test handling errors in the app_runner_node function."""
     # Set up the mock crew to raise an exception
-    mock_crew.return_value.kickoff.side_effect = Exception("Execution error")
-    
+    mock_job_crew.return_value.start_job.side_effect = Exception("Execution error")
+    # mock_crew.return_value.kickoff.side_effect = Exception("Execution error")
+
     # Create a state with steps to run
     state = WorkflowState(
         description="Test workflow",
         narrative_id=123,
         reads_id="test_reads",
-        steps_to_run=[{"Step": 1, "Name": "Step 1", "App": "App1"}],
+        steps_to_run=[{"Step": 1, "Name": "Step 1", "App": "App1", "app_id": "Module1/app1"}],
+        completed_steps=[],
+        last_executed_step={},
         input_object_upa="1/2/3"
     )
-    
+
     # Call the node function
-    result = workflow_nodes.workflow_runner_node(state)
-    
+    result = workflow_nodes.app_runner_node(state)
+
     # Check error handling
     assert result.results is None
     assert result.error == "Execution error"
@@ -220,12 +208,13 @@ def test_workflow_validator_node_no_next_step(workflow_nodes):
         reads_id="test_reads",
         steps_to_run=[],
         last_executed_step={"Step": 1, "Name": "Final Step", "App": "FinalApp"},
-        step_result="Final step executed"
+        completed_steps=[],
+        step_result=CompletedJob(job_id="123", job_status="completed", created_objects=[], narrative_id=123)
     )
-    
+
     # Call the node function
     result = workflow_nodes.workflow_validator_node(state)
-    
+
     # Check that completion was recognized
     assert "Workflow complete" in result.results
     assert result.error is None
@@ -239,29 +228,30 @@ def test_workflow_validator_node_continue(workflow_nodes, mock_validator_agent, 
         reads_id="test_reads",
         steps_to_run=[{"Step": 2, "Name": "Next Step", "App": "NextApp"}],
         last_executed_step={"Step": 1, "Name": "Previous Step", "App": "PrevApp"},
-        step_result="Step executed successfully",
+        completed_steps=[],
+        step_result=CompletedJob(job_id="123", job_status="completed", created_objects=[], narrative_id=123),
         input_object_upa="1/2/3"
     )
-    
+
     # Set up the mock extraction to indicate continue as planned
     mock_extract_json_curly.return_value = {
         "continue_as_planned": True,
         "reasoning": "All looks good",
         "input_object_upa": "1/2/3/4"
     }
-    
+
     # Call the node function
     result = workflow_nodes.workflow_validator_node(state)
-    
+
     # Check that the validator was created correctly
     mock_validator_agent.assert_called_once()
-    
+
     # Check that the agent was invoked directly with appropriate input
     mock_validator_agent.return_value.agent.invoke.assert_called_once()
-    
+
     # Check that JSON extraction was called
     mock_extract_json_curly.assert_called_once()
-    
+
     # Check that the state was updated correctly
     assert result.error is None
     assert result.input_object_upa == "1/2/3/4"
@@ -277,10 +267,11 @@ def test_workflow_validator_node_modify(workflow_nodes, mock_validator_agent, mo
         reads_id="test_reads",
         steps_to_run=[{"Step": 2, "Name": "Original Next Step", "App": "OrigApp"}],
         last_executed_step={"Step": 1, "Name": "Previous Step", "App": "PrevApp"},
-        step_result="Step executed with warnings",
+        completed_steps=[],
+        step_result=CompletedJob(job_id="123", job_status="completed", created_objects=[], narrative_id=123),
         input_object_upa="1/2/3"
     )
-    
+
     # Set up the mock extraction to indicate modified steps
     modified_steps = [{"Step": 2, "Name": "Modified Step", "App": "ModApp"}]
     mock_extract_json_curly.return_value = {
@@ -289,10 +280,10 @@ def test_workflow_validator_node_modify(workflow_nodes, mock_validator_agent, mo
         "input_object_upa": "1/2/3/updated",
         "modified_next_steps": modified_steps
     }
-    
+
     # Call the node function
     result = workflow_nodes.workflow_validator_node(state)
-    
+
     # Check that the state was updated correctly with the modified steps
     assert result.error is None
     assert result.input_object_upa == "1/2/3/updated"
@@ -303,7 +294,7 @@ def test_workflow_validator_node_error(workflow_nodes, mock_validator_agent):
     """Test handling errors in the workflow_validator_node function."""
     # Set up the mock agent to raise an exception
     mock_validator_agent.return_value.agent.invoke.side_effect = Exception("Validation error")
-    
+
     # Create a state with steps left to run
     state = WorkflowState(
         description="Test workflow",
@@ -311,12 +302,13 @@ def test_workflow_validator_node_error(workflow_nodes, mock_validator_agent):
         reads_id="test_reads",
         steps_to_run=[{"Step": 2, "Name": "Next Step", "App": "NextApp"}],
         last_executed_step={"Step": 1, "Name": "Previous Step", "App": "PrevApp"},
-        step_result="Step executed"
+        completed_steps=[],
+        step_result=CompletedJob(job_id="123", job_status="completed", created_objects=[], narrative_id=123)
     )
-    
+
     # Call the node function
     result = workflow_nodes.workflow_validator_node(state)
-    
+
     # Check error handling
     assert result.error == "Validation error"
 
@@ -327,12 +319,14 @@ def test_handle_error(workflow_nodes):
         description="Test workflow",
         narrative_id=123,
         reads_id="test_reads",
-        error="Test error occurred"
+        error="Test error occurred",
+        completed_steps=[],
+        last_executed_step={}
     )
-    
+
     # Call the node function
     result = workflow_nodes.handle_error(state)
-    
+
     # Check that the error was properly recorded in results
     assert result.results == "Error: Test error occurred"
 
@@ -343,25 +337,27 @@ def test_workflow_end(workflow_nodes):
         description="Test workflow",
         narrative_id=123,
         reads_id="test_reads",
-        results="Initial results"
+        results="Initial results",
+        completed_steps=[],
+        last_executed_step={}
     )
-    
+
     # Call the node function
     result = workflow_nodes.workflow_end(state)
-    
+
     # Check that the completion message was set
     assert result.results == "✅ Workflow complete."
 
 def test_create_workflow_nodes():
     """Test the create_workflow_nodes helper function."""
     from narrative_llm_agent.workflow_graph.nodes import create_workflow_nodes
-    
+
     # Call the function
     node_functions = create_workflow_nodes(token="test_token")
-    
+
     # Check that it returns a dictionary with the expected keys
     assert isinstance(node_functions, dict)
-    expected_keys = ["analyst_node", "workflow_runner_node", "workflow_validator_node", "handle_error", "workflow_end"]
+    expected_keys = ["analyst_node", "app_runner_node", "workflow_validator_node", "handle_error", "workflow_end"]
     for key in expected_keys:
         assert key in node_functions
         assert callable(node_functions[key])
