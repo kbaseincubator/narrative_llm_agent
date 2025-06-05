@@ -31,7 +31,7 @@ def test_analysis_workflow_init(mock_workflow_nodes):
     workflow = AnalysisWorkflow(token="test_token")
 
     # Check that WorkflowNodes was initialized with the token
-    mock_workflow_nodes.assert_called_once_with(token="test_token")
+    mock_workflow_nodes.assert_called_once_with("gpt-4.1-mini-cborg", "gpt-4.1-mini-cborg", "gpt-4.1-mini-cborg", "gpt-4.1-mini-cborg", "cborg", token="test_token")
 
     # Check that the graph was built
     assert workflow.graph is not None

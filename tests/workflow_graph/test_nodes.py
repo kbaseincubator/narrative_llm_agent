@@ -4,6 +4,8 @@ import os
 from narrative_llm_agent.tools.job_tools import CompletedJob
 from narrative_llm_agent.workflow_graph.nodes import WorkflowNodes, WorkflowState
 
+VALID_LLM_NAME = "gpt-4.1-mini-cborg"
+
 @pytest.fixture
 def mock_llm_factory():
     """Mock the LLM factory function."""
@@ -67,18 +69,18 @@ def mock_analysis_pipeline():
 def workflow_nodes(mock_llm_factory):
     """Create a WorkflowNodes instance with a mock token."""
     os.environ["KB_AUTH_TOKEN"] = "mock_token"
-    nodes = WorkflowNodes(token="mock_token")
+    nodes = WorkflowNodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg", token="mock_token")
     return nodes
 
 def test_workflow_nodes_init_with_token():
     """Test initializing WorkflowNodes with a token."""
-    nodes = WorkflowNodes(token="test_token")
+    nodes = WorkflowNodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg", token="test_token")
     assert nodes.token == "test_token"
 
 def test_workflow_nodes_init_from_env():
     """Test initializing WorkflowNodes from environment variable."""
     os.environ["KB_AUTH_TOKEN"] = "env_token"
-    nodes = WorkflowNodes()
+    nodes = WorkflowNodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg")
     assert nodes.token == "env_token"
 
 def test_workflow_nodes_init_missing_token():
@@ -86,7 +88,7 @@ def test_workflow_nodes_init_missing_token():
     if "KB_AUTH_TOKEN" in os.environ:
         del os.environ["KB_AUTH_TOKEN"]
     with pytest.raises(ValueError, match="KB_AUTH_TOKEN must be provided"):
-        WorkflowNodes()
+        WorkflowNodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg")
 
 def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_extract_json, mock_analysis_pipeline):
     """Test the analyst_node function successfully creates an analysis plan."""
@@ -161,9 +163,6 @@ def test_app_runner_node_success(workflow_nodes, mock_job_crew):
 
     # Call the node function
     result = workflow_nodes.app_runner_node(state)
-
-    # Check that WorkflowRunner was created correctly
-    mock_job_crew.assert_called_once()
 
     # Check that Crew was used to run the task
     mock_job_crew.assert_called_once()
@@ -353,7 +352,7 @@ def test_create_workflow_nodes():
     from narrative_llm_agent.workflow_graph.nodes import create_workflow_nodes
 
     # Call the function
-    node_functions = create_workflow_nodes(token="test_token")
+    node_functions = create_workflow_nodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg", token="test_token")
 
     # Check that it returns a dictionary with the expected keys
     assert isinstance(node_functions, dict)

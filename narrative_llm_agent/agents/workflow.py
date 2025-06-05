@@ -16,7 +16,11 @@ class WorkflowRunner(KBaseAgent):
     backstory: str = "You are a dedicated and effective computational biologist. You have deep knowledge of how to run workflows in the DOE KBase system and have years of experience using this to produce high quality scientific knowledge."
 
     def __init__(self, llm, token: str = None):
-        self.job_crew = JobCrew(llm)
+        """
+        Deprecated in favor of using the workflow graph. See narrative_llm_agent.workflow_graph.graph.AnalysisWorkflow
+        Note this uses the same llm for both the app runner and writers.
+        """
+        self.job_crew = JobCrew(llm, llm)
         self._llm = llm
         self._token = token
 

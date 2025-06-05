@@ -7,9 +7,27 @@ class AnalysisWorkflow:
     Class to handle analysis workflows using LangGraph.
     """
 
-    def __init__(self,token=None):
-        """Initialize the workflow graph."""
-        self.nodes = WorkflowNodes(token=token)
+    def __init__(self, token:str=None, analyst_llm:str=None, validator_llm:str=None, app_flow_llm:str=None, writer_llm:str=None, embedding_provider:str=None):
+        """Initialize the workflow graph.
+        See config.cfg for allowed llm names.
+        defaults:
+        analyst = gpt-4.1-mini-cborg
+        validator = gpt-4.1-mini-cborg
+        app_flow = gpt-4.1-mini-cborg
+        writer = gpt-4.1-mini-cborg
+        embedding_provider = cborg (either cborg or nomic are allowed)
+        """
+        if analyst_llm is None:
+            analyst_llm = "gpt-4.1-mini-cborg"
+        if validator_llm is None:
+            validator_llm = "gpt-4.1-mini-cborg"
+        if app_flow_llm is None:
+            app_flow_llm = "gpt-4.1-mini-cborg"
+        if writer_llm is None:
+            writer_llm = "gpt-4.1-mini-cborg"
+        if embedding_provider is None:
+            embedding_provider = "cborg"
+        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=token)
         self.graph = self._build_graph()
 
     def _build_graph(self):
