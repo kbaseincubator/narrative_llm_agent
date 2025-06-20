@@ -70,10 +70,10 @@ def process_default_values(param: AppParameter, param_type: str) -> str | int | 
     if defaults is None:
         return None
     if len(defaults) and len(defaults[0]):
-        return _cast_param_value(param_type, defaults[0])
+        return _cast_default_param_value(param_type, defaults[0])
     return None
 
-def _cast_param_value(param_type: str, value: Any) -> Any:
+def _cast_default_param_value(param_type: str, value: Any) -> Any:
     """
     Casts a value to match parameter type.
     Most types are text, so nothing is done.
@@ -87,11 +87,11 @@ def _cast_param_value(param_type: str, value: Any) -> Any:
     if param_type in {"text", "textarea", "textsubdata", "checkbox", "radio", "tab", "file", "dynamic_dropdown"}:
         return value
     if param_type == "int":
-        if value == "":
+        if value == "" or value.lower() == "null":  # I hate people.
             return None
         return int(value)
     if param_type == "float":
-        if value == "":
+        if value == "" or value.lower() == "null":  # I really hate people.
             return None
         return float(value)
     if param_type == "dropdown" and value == "":
@@ -113,15 +113,16 @@ def process_param_type(param: AppParameter) -> tuple:
             field_type = "data_object"
             allowed_values = opts.valid_ws_types
         elif opts.validate_as is not None:
-            valid_type = opts.validate_as
-            field_type = valid_type
-            min_val = getattr(opts, f"min_{valid_type}")
-            if min_val is None:
-                min_val = float("-inf")
-            max_val = getattr(opts, f"max_{valid_type}")
-            if max_val is None:
-                max_val = float("inf")
-            allowed_values = [min_val, max_val]
+            valid_type = opts.validate_as.lower()
+            if valid_type in ["int", "float"]:
+                field_type = valid_type
+                min_val = getattr(opts, f"min_{valid_type}")
+                if min_val is None:
+                    min_val = float("-inf")
+                max_val = getattr(opts, f"max_{valid_type}")
+                if max_val is None:
+                    max_val = float("inf")
+                allowed_values = [min_val, max_val]
     if field_type == "dropdown" and param.dropdown_options is not None:
         allowed_values = [
             {

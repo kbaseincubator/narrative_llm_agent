@@ -1,6 +1,6 @@
 from typing import Any
 from narrative_llm_agent.util.app import (
-    _cast_param_value,
+    _cast_default_param_value,
     get_processed_app_spec_params,
     map_inputs_from_job,
     process_param_type,
@@ -169,8 +169,8 @@ default_none_value_cases = [
     ("dropdown", "")
 ]
 @pytest.mark.parametrize("param_type,value", default_none_value_cases)
-def test_cast_param_value_edge(param_type: int, value: str | None):
-    assert _cast_param_value(param_type, value) is None
+def test_cast_default_param_value_edge(param_type: int, value: str | None):
+    assert _cast_default_param_value(param_type, value) is None
 
 
 def test_get_ws_object_refs(app_spec: AppSpec, input_params: dict):
