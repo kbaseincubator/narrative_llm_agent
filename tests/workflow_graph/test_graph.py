@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
+from narrative_llm_agent.tools.job_tools import CompletedJob
 from narrative_llm_agent.workflow_graph.graph import AnalysisWorkflow
 from narrative_llm_agent.workflow_graph.nodes import WorkflowState
 
@@ -116,7 +117,12 @@ def test_workflow_end_to_end():
             return state.model_copy(update={
                 "steps_to_run": remaining,
                 "last_executed_step": current,
-                "step_result": "Step executed",
+                "step_result": CompletedJob(
+                    narrative_id=123,
+                    job_id="foo",
+                    job_status="completed",
+                    created_objects=[]
+                ),
                 "error": None
             })
 
