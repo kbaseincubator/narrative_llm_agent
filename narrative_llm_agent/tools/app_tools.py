@@ -1,4 +1,4 @@
-from typing import Annotated, Literal, Tuple
+from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, create_model
 from narrative_llm_agent.kbase.clients.narrative_method_store import (
     NarrativeMethodStore,
@@ -26,11 +26,6 @@ def app_params_pydantic(app_spec: AppSpec) -> BaseModel:
             param_group_params.update(param_group.parameter_ids)
             group_model_atts = {}
             for param_id in param_group.parameter_ids:
-                # print(param_group.id)
-                # print(param_id)
-                # print(param_group)
-                # print(proc[param_group.id])
-                # print(proc[param_group.id]["params"].keys())
                 group_model_atts[param_id] = _param_to_model_attribute(
                     params_dict[param_id],
                     proc[param_group.id]["params"][param_id]["type"]

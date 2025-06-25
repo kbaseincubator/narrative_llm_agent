@@ -53,7 +53,6 @@ class JobCrew:
         Starts the job from a given app name (note this isn't the ID. Name like "Prokka" not id like "ProkkaAnnotation/annotate_contigs")
         and input object to be run in a given narrative.
         """
-        # TODO: convert UPA to name, pass both to build_tasks
         ws = Workspace()
         object_info = ws.get_object_info(input_object_upa)
         self._tasks = self.build_tasks(app_id, narrative_id, object_info)
