@@ -1,4 +1,4 @@
-from narrative_llm_agent.agents.job import JobAgent, AppStartInfo
+from narrative_llm_agent.agents.job import JobAgent
 from narrative_llm_agent.agents.narrative import NarrativeAgent
 from narrative_llm_agent.agents.workspace import WorkspaceAgent
 from narrative_llm_agent.agents.coordinator import CoordinatorAgent
@@ -8,6 +8,11 @@ from langchain_core.language_models.llms import LLM
 from crewai import Crew, Task
 from crewai.crew import CrewOutput
 
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
+from narrative_llm_agent.tools.app_tools import app_params_pydantic, get_app_params
 from narrative_llm_agent.tools.job_tools import CompletedJob, CreatedObject
 
 class JobCrew:
@@ -24,8 +29,10 @@ class JobCrew:
     _crew_results: list
 
     def __init__(self, workflow_llm: LLM, writer_llm: LLM, token: str = None) -> None:
+        self._workflow_llm = workflow_llm
         self._crew_results = []
         self._token = token
+        self._nms = NarrativeMethodStore()
         self._narr = NarrativeAgent(workflow_llm, token=token)
         self._job = JobAgent(workflow_llm, token=token)
         self._workspace = WorkspaceAgent(workflow_llm, token=token)
@@ -46,12 +53,14 @@ class JobCrew:
         Starts the job from a given app name (note this isn't the ID. Name like "Prokka" not id like "ProkkaAnnotation/annotate_contigs")
         and input object to be run in a given narrative.
         """
-        # TODO: convert UPA to name, pass both to build_tasks
-        self._tasks = self.build_tasks(app_name, narrative_id, input_object_upa, app_id)
+        ws = Workspace()
+        object_info = ws.get_object_info(input_object_upa)
+        self._tasks = self.build_tasks(app_id, narrative_id, object_info)
         crew = Crew(
             agents=self._agents,
             tasks=self._tasks,
-            verbose=True,
+            # verbose=True,
+            function_calling_llm=self._workflow_llm
         )
         self._crew_results.append(crew.kickoff())
         return self._crew_results[-1]
@@ -115,16 +124,21 @@ class JobCrew:
         )
 
     def build_tasks(
-        self, app_name: str, narrative_id: int, input_object_upa: str, app_id: str | None
+        self, app_id: str, narrative_id: int, object_info: ObjectInfo
     ) -> list[Task]:
         # TODO: make sure that input objects are ALWAYS UPAs
+        param_template = get_app_params(app_id, self._nms)
+        spec = AppSpec(**self._nms.get_app_spec(app_id))
+        param_model = app_params_pydantic(spec)
+
         build_params_task = Task(
-            name=f"1. Build the parameters for {app_name}",
+            name=f"1. Build the parameters for {app_id}",
             description=f"""
             From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
-            for assistance. Using the data object with UPA "{input_object_upa}", populate a dictionary
+            for assistance. Using the data object with UPA "{object_info.upa}" and name "{object_info.name}", populate a dictionary
             with the parameters where the keys are parameter ids, and values are the proper parameter values, or their
             default values if no value can be found or calculated.
+            Here is the parameter information you must use: {param_template}
             Any input object parameter must be the input object UPA.
             Be sure to make sure there is a non-null value for any parameter that is not optional.
             Any parameter that has a true value for "is_output_object" must have a valid name for the new object.
@@ -139,16 +153,16 @@ class JobCrew:
             reform them. The dictionary of inputs and the app id must not be combined into a single dictionary.
             """,
             expected_output="A dictionary of parameters used to run the app with the given id along with the narrative id.",
-            output_pydantic=AppStartInfo,
+            output_pydantic=param_model,
             agent=self._coordinator.agent
         )
 
         start_job_task = Task(
-            name=f"2. Run app {app_name}",
+            name=f"2. Run app {app_id}",
             description=f"""
-            Using the app parameters, app id, and narrative id {narrative_id}, use the `run_job` tool to run a new KBase app. This will run
-            the app and return a `CompletedJobAndReport` object that contains the output from the job and a report from the app, if
-            applicable.
+            Using the app parameters from the context, app id {app_id}, and narrative id {narrative_id}, use the `run_job` tool to run a new
+            KBase app. This will run the app and return a `CompletedJobAndReport` object that contains the output from the job and a
+            report from the app, if applicable.
 
             - If the job is in an error state, the tool will indicate this in the job_error field.
             - Your job is to call the tool, and return its result directly — do not modify the structure or add commentary.
@@ -163,7 +177,7 @@ class JobCrew:
         )
 
         report_retrieval_task = Task(
-            name=f"3. Retrieve the report for the finished {app_name} job",
+            name=f"3. Retrieve the report for the finished {app_id} job",
             description="""
                 You have received a `CompletedJob` object from the previous task. Use its `report_upa` field to locate the report UPA in the Workspace.
 
@@ -180,7 +194,7 @@ class JobCrew:
         )
 
         report_analysis_task = Task(
-            name=f"4. Analyze the report from the {app_name} job",
+            name=f"4. Analyze the report from the {app_id} job",
             description=
             """Analyze the given report and derive some biological insight into the result.
             If the report is not in JSON format, then interpret the document as-is.
@@ -205,7 +219,7 @@ class JobCrew:
         )
 
         save_analysis_task = Task(
-            name=f"5. Save the report analysis for {app_name} as markdown",
+            name=f"5. Save the report analysis for {app_id} as markdown",
             description=f"""Save the analysis by adding a markdown cell to the Narrative with id {narrative_id}. The markdown text must
             be the analysis text. If not successful, say so and stop. If an output object was created, ensure that it has both an UPA and name.
             In the end, return the results of the job completion task with both UPA and name for output object. The return result must be normalized to contain

@@ -1,7 +1,12 @@
+from pathlib import Path
 import pytest
 from narrative_llm_agent.crews.job_crew import JobCrew
 from narrative_llm_agent.tools.job_tools import CompletedJob
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
 from crewai import Task
+
+from tests.test_data.test_data import load_test_data_json
 
 @pytest.fixture
 def job_crew(mock_llm):
@@ -14,8 +19,22 @@ def test_initialization(job_crew):
     assert all(agent is not None for agent in job_crew._agents)
 
 
-def test_build_tasks_returns_list(job_crew):
-    tasks = job_crew.build_tasks("Prokka", 123, "1/2/3", "prokka/annotate_contigs")
+def test_build_tasks_returns_list(job_crew, mocker):
+    obj_info = ObjectInfo(
+        ws_id=1,
+        obj_id=2,
+        version=3,
+        name="some_object",
+        ws_name="my_ws",
+        type="Module.Object-1.0",
+        saved="whenever",
+        saved_by="me",
+        size_bytes=2
+    )
+    job_crew._nms = mocker.Mock(spec=NarrativeMethodStore)
+    job_crew._nms.get_app_spec.return_value = load_test_data_json(Path("app_spec_data") / "test_app_spec.json")
+
+    tasks = job_crew.build_tasks("prokka/annotate_contigs", 123, obj_info)
     assert isinstance(tasks, list)
     assert all(isinstance(t, Task) for t in tasks)
 
