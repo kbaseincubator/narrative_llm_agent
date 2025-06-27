@@ -131,7 +131,7 @@ class AnalystAgent(KBaseAgent):
         def kbase_tutorial_retrieval_tool(query: str):
             """This has the tutorial narratives. Useful for when you need to answer questions about using the KBase platform, apps, and features for establishing a workflow to acheive a scientific goal. Input should be a fully formed question. Do not use it to search for KBase app
             presence. Input should be a fully formed question."""
-            return self._create_doc_chain(persist_directory=self._tutorial_db_dir).invoke(
+            return self._create_doc_chain(persist_directory=self._tutorials_db_dir).invoke(
                 {"query": query}
             )
 
