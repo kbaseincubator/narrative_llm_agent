@@ -161,7 +161,7 @@ def run_genome_analysis(narrative_id, reads_id, description, credentials):
 
         # Create workflow instance
         with st.spinner("Initializing workflow..."):
-            custom_workflow = AnalysisWorkflow()
+            custom_workflow = AnalysisWorkflow(analyst_llm="gpt-4.1-cborg", app_flow_llm="gpt-4.1-cborg")
 
         # Display progress
         progress_placeholder = st.empty()
