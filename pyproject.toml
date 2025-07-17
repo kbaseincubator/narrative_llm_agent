@@ -26,6 +26,7 @@ scikit-learn = "^1.6.1"
 streamlit = "*"
 langchain-nomic = "0.1.4"
 crewai = {git = "https://github.com/briehl/crewAI"}
+dash-bootstrap-components = "^2.0.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
