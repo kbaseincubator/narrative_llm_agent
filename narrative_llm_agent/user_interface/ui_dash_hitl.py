@@ -5,6 +5,7 @@ import json
 import os
 from datetime import datetime
 
+from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
 from narrative_llm_agent.user_interface.components.credentials import create_credentials_form
 from narrative_llm_agent.util.json_util import make_json_serializable
 
@@ -20,6 +21,7 @@ app.title = "KBase Research Agent"
 analysis_history = []
 
 CREDENTIALS_STORE = "credentials-store"
+WORKFLOW_STORE = "workflow-state-store"
 
 # KBase Integration Classes
 def load_kbase_classes():
@@ -50,45 +52,61 @@ def load_kbase_classes():
 
 workflow_instances = {}
 
+def set_environment_credentials(credentials: dict[str, str]) -> str:
+    """
+    TODO (critical!): these should not be set as environment vars.
+    In a multi-user app, these will bleed into multiple user sessions.
+
+    Ok for now for prototyping, but user-set creds should be passed around
+    to the various LLMs.
+
+    returns the kb_auth_token as a str
+    """
+    # Get credentials and set environment variables
+    kb_auth_token = credentials.get("kb_auth_token", "")
+    provider = credentials.get("provider", "openai")
+
+    if provider == "cborg":
+        api_key = credentials.get(
+            "cborg_api_key", os.environ.get("CBORG_API_KEY", "")
+        )
+    else:
+        api_key = credentials.get(
+            "openai_api_key", os.environ.get("OPENAI_API_KEY", "")
+        )
+
+    # Set environment variables
+    # TODO: these should just be passed around, not used as env vars:
+    # the environment will be the same for a multi-user system
+    os.environ["KB_AUTH_TOKEN"] = kb_auth_token
+    if provider == "cborg":
+        os.environ["CBORG_API_KEY"] = api_key
+    else:
+        os.environ["OPENAI_API_KEY"] = api_key
+
+    # Set Neo4j environment variables if they exist
+    neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
+    neo4j_username = credentials.get(
+        "neo4j_username", os.environ.get("NEO4J_USERNAME", "")
+    )
+    neo4j_password = credentials.get(
+        "neo4j_password", os.environ.get("NEO4J_PASSWORD", "")
+    )
+
+    if neo4j_uri:
+        os.environ["NEO4J_URI"] = neo4j_uri
+    if neo4j_username:
+        os.environ["NEO4J_USERNAME"] = neo4j_username
+    if neo4j_password:
+        os.environ["NEO4J_PASSWORD"] = neo4j_password
+
+    return kb_auth_token
+
 
 def run_analysis_planning(narrative_id, reads_id, description, credentials):
     """Run the analysis planning phase only"""
     try:
-        # Get credentials and set environment variables
-        kb_auth_token = credentials.get("kb_auth_token", "")
-        provider = credentials.get("provider", "openai")
-
-        if provider == "cborg":
-            api_key = credentials.get(
-                "cborg_api_key", os.environ.get("CBORG_API_KEY", "")
-            )
-        else:
-            api_key = credentials.get(
-                "openai_api_key", os.environ.get("OPENAI_API_KEY", "")
-            )
-
-        # Set environment variables
-        os.environ["KB_AUTH_TOKEN"] = kb_auth_token
-        if provider == "cborg":
-            os.environ["CBORG_API_KEY"] = api_key
-        else:
-            os.environ["OPENAI_API_KEY"] = api_key
-
-        # Set Neo4j environment variables if they exist
-        neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
-        neo4j_username = credentials.get(
-            "neo4j_username", os.environ.get("NEO4J_USERNAME", "")
-        )
-        neo4j_password = credentials.get(
-            "neo4j_password", os.environ.get("NEO4J_PASSWORD", "")
-        )
-
-        if neo4j_uri:
-            os.environ["NEO4J_URI"] = neo4j_uri
-        if neo4j_username:
-            os.environ["NEO4J_USERNAME"] = neo4j_username
-        if neo4j_password:
-            os.environ["NEO4J_PASSWORD"] = neo4j_password
+        kb_auth_token = set_environment_credentials(credentials)
 
         # Load the KBase classes
         success, result = load_kbase_classes()
@@ -122,7 +140,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
         workflow_instances[workflow_key] = workflow
 
         # Return JSON-serializable data only
-        return {
+        result = {
             "narrative_id": narrative_id,
             "reads_id": reads_id,
             "description": description,
@@ -135,7 +153,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
         }
 
     except Exception as e:
-        return {
+        result = {
             "narrative_id": narrative_id,
             "reads_id": reads_id,
             "description": description,
@@ -144,45 +162,26 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
             "status": "error",
         }
 
+    # Update analysis history
+    global analysis_history
+    analysis_history.append(
+        {
+            "timestamp": datetime.now().isoformat(),
+            "narrative_id": narrative_id,
+            "reads_id": reads_id,
+            "status": result.get("status", "unknown"),
+            "error": result.get("error"),
+        }
+    )
+
+    return result
+
+
 
 def run_analysis_execution(workflow_state, credentials, workflow_key=None):
     """Run the analysis execution phase after approval"""
     try:
-        # Get credentials and set environment variables
-        kb_auth_token = credentials.get("kb_auth_token", "")
-        provider = credentials.get("provider", "openai")
-
-        if provider == "cborg":
-            api_key = credentials.get(
-                "cborg_api_key", os.environ.get("CBORG_API_KEY", "")
-            )
-        else:
-            api_key = credentials.get(
-                "openai_api_key", os.environ.get("OPENAI_API_KEY", "")
-            )
-
-        # Set environment variables
-        os.environ["KB_AUTH_TOKEN"] = kb_auth_token
-        if provider == "cborg":
-            os.environ["CBORG_API_KEY"] = api_key
-        else:
-            os.environ["OPENAI_API_KEY"] = api_key
-
-        # Set Neo4j environment variables if they exist
-        neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
-        neo4j_username = credentials.get(
-            "neo4j_username", os.environ.get("NEO4J_USERNAME", "")
-        )
-        neo4j_password = credentials.get(
-            "neo4j_password", os.environ.get("NEO4J_PASSWORD", "")
-        )
-
-        if neo4j_uri:
-            os.environ["NEO4J_URI"] = neo4j_uri
-        if neo4j_username:
-            os.environ["NEO4J_USERNAME"] = neo4j_username
-        if neo4j_password:
-            os.environ["NEO4J_PASSWORD"] = neo4j_password
+        kb_auth_token = set_environment_credentials(credentials)
 
         # Load the KBase classes
         success, result = load_kbase_classes()
@@ -227,42 +226,6 @@ def run_analysis_execution(workflow_state, credentials, workflow_key=None):
 def generate_mra_draft(narrative_id, credentials):
     """Generate MRA draft using the MraWriterGraph"""
     try:
-        # Set environment variables
-        kb_auth_token = credentials.get("kb_auth_token", "")
-        provider = credentials.get("provider", "openai")
-
-        if provider == "cborg":
-            api_key = credentials.get(
-                "cborg_api_key", os.environ.get("CBORG_API_KEY", "")
-            )
-        else:
-            api_key = credentials.get(
-                "openai_api_key", os.environ.get("OPENAI_API_KEY", "")
-            )
-
-        # Set environment variables
-        os.environ["KB_AUTH_TOKEN"] = kb_auth_token
-        if provider == "cborg":
-            os.environ["CBORG_API_KEY"] = api_key
-        else:
-            os.environ["OPENAI_API_KEY"] = api_key
-
-        # Set Neo4j environment variables if they exist
-        neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
-        neo4j_username = credentials.get(
-            "neo4j_username", os.environ.get("NEO4J_USERNAME", "")
-        )
-        neo4j_password = credentials.get(
-            "neo4j_password", os.environ.get("NEO4J_PASSWORD", "")
-        )
-
-        if neo4j_uri:
-            os.environ["NEO4J_URI"] = neo4j_uri
-        if neo4j_username:
-            os.environ["NEO4J_USERNAME"] = neo4j_username
-        if neo4j_password:
-            os.environ["NEO4J_PASSWORD"] = neo4j_password
-
         # Load the KBase classes
         success, result = load_kbase_classes()
         if not success:
@@ -292,126 +255,6 @@ def generate_mra_draft(narrative_id, credentials):
 
 
 
-
-def create_input_form():
-    return dbc.Card(
-        [
-            dbc.CardHeader("📝 Analysis Parameters"),
-            dbc.CardBody(
-                [
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label("Narrative ID"),
-                                    dbc.Input(
-                                        id="narrative-id", value="217789", type="text"
-                                    ),
-                                ],
-                                width=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label("Reads ID"),
-                                    dbc.Input(
-                                        id="reads-id", value="217789/2/1", type="text"
-                                    ),
-                                ],
-                                width=6,
-                            ),
-                        ],
-                        className="mb-3",
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label("Sequencing Technology"),
-                                    dcc.Dropdown(
-                                        id="sequencing-tech",
-                                        options=[
-                                            {
-                                                "label": "Illumina sequencing",
-                                                "value": "Illumina sequencing",
-                                            },
-                                            {"label": "PacBio", "value": "PacBio"},
-                                            {
-                                                "label": "Oxford Nanopore",
-                                                "value": "Oxford Nanopore",
-                                            },
-                                        ],
-                                        value="Illumina sequencing",
-                                    ),
-                                ],
-                                width=4,
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label("Organism"),
-                                    dbc.Input(
-                                        id="organism",
-                                        value="Bacillus subtilis sp. strain UAMC",
-                                        type="text",
-                                    ),
-                                ],
-                                width=4,
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label("Genome Type"),
-                                    dcc.Dropdown(
-                                        id="genome-type",
-                                        options=[
-                                            {"label": "isolate", "value": "isolate"},
-                                            {
-                                                "label": "metagenome",
-                                                "value": "metagenome",
-                                            },
-                                            {
-                                                "label": "transcriptome",
-                                                "value": "transcriptome",
-                                            },
-                                        ],
-                                        value="isolate",
-                                    ),
-                                ],
-                                width=4,
-                            ),
-                        ],
-                        className="mb-3",
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label("Analysis Description"),
-                                    dbc.Textarea(
-                                        id="description",
-                                        rows=8,
-                                        placeholder="Enter analysis description...",
-                                        value="""The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
-sequencing_technology: Illumina sequencing
-organism: Bacillus subtilis sp. strain UAMC
-genome type: isolate
-
-I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
-The goal is to have a complete annotated genome and classify the microbe.""",
-                                    ),
-                                ]
-                            )
-                        ],
-                        className="mb-3",
-                    ),
-                    dbc.Button(
-                        "🚀 Generate Analysis Plan",
-                        id="run-analysis-btn",
-                        color="success",
-                        size="lg",
-                    ),
-                ]
-            ),
-        ]
-    )
 
 
 # And update your main layout to use Dash's loading component:
@@ -671,133 +514,6 @@ def display_execution_results(execution_state, current_results):
     return execution_display
 
 
-# App Layout
-app.layout = dbc.Container(
-    [
-        dcc.Store(id=CREDENTIALS_STORE),
-        dcc.Store(id="workflow-state-store"),
-        dcc.Store(id="execution-state-store"),
-        dcc.Store(id="analysis-history-store", data=[]),
-        # Header
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.H1("🧬 KBase Research Agent", className="display-4 mb-4"),
-                        html.P(
-                            "Automated genome analysis workflows with human approval",
-                            className="lead",
-                        ),
-                    ]
-                )
-            ],
-            className="mb-4",
-        ),
-        # Main content
-        html.Div(
-            id="main-content",
-            children=[
-                create_credentials_form(CREDENTIALS_STORE),
-                html.Br(),
-                create_input_form(),
-                html.Br(),
-                html.Div(id="analysis-results"),
-            ],
-        ),
-    ],
-    fluid=True,
-)
-
-
-
-
-# Callback for updating description based on inputs
-@app.callback(
-    Output("description", "value"),
-    [
-        Input("sequencing-tech", "value"),
-        Input("organism", "value"),
-        Input("genome-type", "value"),
-    ],
-    prevent_initial_call=True,
-)
-def update_description(sequencing_tech, organism, genome_type):
-    return f"""The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
-sequencing_technology: {sequencing_tech}
-organism: {organism}
-genome type: {genome_type}
-
-I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from {sequencing_tech} for a {genome_type} genome using KBase apps.
-The goal is to have a complete annotated genome and classify the microbe."""
-
-
-# Callback for running analysis planning
-@app.callback(
-    [
-        Output("workflow-state-store", "data"),
-        Output("analysis-results", "children"),
-    ],  # Remove the analysis-loading output
-    Input("run-analysis-btn", "n_clicks"),
-    [
-        State(CREDENTIALS_STORE, "data"),
-        State("narrative-id", "value"),
-        State("reads-id", "value"),
-        State("description", "value"),
-    ],
-    prevent_initial_call=True,
-)
-def run_analysis_planning_callback(
-    n_clicks, credentials, narrative_id, reads_id, description
-):
-    if n_clicks and credentials and credentials.get("kb_auth_token"):
-        # Validate inputs and provide defaults
-        narrative_id = narrative_id or "217789"
-        reads_id = reads_id or "217789/2/1"
-
-        # Ensure description is a valid string
-        if not description or description.strip() == "":
-            description = """The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
-sequencing_technology: Illumina sequencing
-organism: Bacillus subtilis sp. strain UAMC
-genome type: isolate
-
-I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
-The goal is to have a complete annotated genome and classify the microbe."""
-
-        # Run the analysis planning
-        result = run_analysis_planning(narrative_id, reads_id, description, credentials)
-
-        # Update analysis history
-        global analysis_history
-        analysis_history.append(
-            {
-                "timestamp": datetime.now().isoformat(),
-                "narrative_id": narrative_id,
-                "reads_id": reads_id,
-                "status": result.get("status", "unknown"),
-                "error": result.get("error"),
-            }
-        )
-
-        # Create appropriate display based on result
-        if result.get("status") == "awaiting_approval":
-            display_component = create_approval_interface(result["workflow_state"])
-            return result, display_component
-
-        elif result.get("status") == "error":
-            error_component = dbc.Alert(
-                f"❌ Error: {result.get('error', 'Unknown error')}", color="danger"
-            )
-            return result, error_component
-        else:
-            unknown_component = dbc.Alert(
-                f"⚠️ Unexpected status: {result.get('status')}", color="warning"
-            )
-            return result, unknown_component
-
-    return {}, html.Div()
-
-
 def create_approval_interface(workflow_state):
     """Create the approval interface for the analysis plan"""
     print("inside approval interface", workflow_state.get("steps_to_run"))
@@ -990,7 +706,7 @@ def create_approval_interface(workflow_state):
         Input("reject-btn", "n_clicks"),
         Input("cancel-btn", "n_clicks"),
     ],
-    [State("workflow-state-store", "data"), State(CREDENTIALS_STORE, "data")],
+    [State(WORKFLOW_STORE, "data"), State(CREDENTIALS_STORE, "data")],
     prevent_initial_call=True,
 )
 def handle_approval(
@@ -1153,6 +869,44 @@ def generate_mra(n_clicks, credentials, narrative_id):
             return dbc.Alert(f"❌ Error generating MRA: {str(e)}", color="danger")
 
     return html.Div()
+
+
+# App Layout
+app.layout = dbc.Container(
+    [
+        dcc.Store(id=CREDENTIALS_STORE),
+        dcc.Store(id=WORKFLOW_STORE),
+        dcc.Store(id="execution-state-store"),
+        dcc.Store(id="analysis-history-store", data=[]),
+        # Header
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.H1("🧬 KBase Research Agent", className="display-4 mb-4"),
+                        html.P(
+                            "Automated genome analysis workflows with human approval",
+                            className="lead",
+                        ),
+                    ]
+                )
+            ],
+            className="mb-4",
+        ),
+        # Main content
+        html.Div(
+            id="main-content",
+            children=[
+                create_credentials_form(CREDENTIALS_STORE),
+                html.Br(),
+                create_analysis_input_form(CREDENTIALS_STORE, WORKFLOW_STORE, run_analysis_planning),
+                html.Br(),
+                html.Div(id="analysis-results"),
+            ],
+        ),
+    ],
+    fluid=True,
+)
 
 
 # Run the app
