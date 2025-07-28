@@ -196,7 +196,7 @@ def workflow_execution_target(inputs: dict):
     """Target function that runs your workflow execution"""
     workflow_state = inputs["workflow_state"]
     
-    # Your existing execution logic
+    # Execution workflow
     execution_workflow = ExecutionWorkflow(
         analyst_llm="gpt-4.1-cborg", 
         validator_llm="gpt-4.1-cborg",
