@@ -27,6 +27,8 @@ streamlit = "*"
 langchain-nomic = "0.1.4"
 crewai = {git = "https://github.com/briehl/crewAI"}
 dash-bootstrap-components = "^2.0.3"
+ansi2html = "^1.9.2"
+dash-extensions = "^2.0.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
