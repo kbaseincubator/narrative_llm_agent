@@ -6,6 +6,8 @@ from typing import Callable
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback, State
 from threading import Thread
+from ansi2html import Ansi2HTMLConverter
+from dash_extensions import Purify
 
 def analysis_prompt(seq_tech: str, org_name: str, genome_type: str):
     return f"""The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
@@ -28,8 +30,7 @@ class StreamRedirector:
 
 # In-memory buffer
 log_buffer = io.StringIO()
-
-
+converter = Ansi2HTMLConverter(inline=True)
 
 def create_analysis_input_form(credentials_store: str, workflow_store: str, analysis_fn: Callable):
     layout = dbc.Card(
@@ -153,15 +154,24 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                             dbc.Col(
                                 [
                                     dbc.Alert("Running analysis!", id="analysis-status-message"),
-                                    dcc.Interval(id="log-poller", interval=1000, disabled=True),
-                                    html.Pre(
-                                        id="log-output",
-                                        style={
-                                            "whiteSpace": "pre-wrap",
-                                            "height": "300px",
-                                            "overflowY": "auto"
-                                        }
-                                    ),
+                                    html.Div([
+                                        dcc.Interval(id="log-poller", interval=1000, disabled=True),
+                                        dcc.Store(id="analysis-scroll-trigger"),
+                                        html.Div(
+                                            id="log-output",
+                                            style={
+                                                "whiteSpace": "pre-wrap",
+                                                "height": "500px",
+                                                "overflowY": "auto",
+                                                "fontFamily": "monospace",
+                                                "border": "1px solid #dee2e6",
+                                                "padding": "0.375rem 0.75rem",
+                                                "font-size": "1rem",
+                                                "border-radius": "0.375rem",
+
+                                            },
+                                        ),
+                                    ]),
                                 ]
                             )
                         ],
@@ -206,11 +216,13 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
 
     @callback(
         Output("log-output", "children"),
+        Output("analysis-scroll-trigger", "data"),
         Input("log-poller", "n_intervals"),
     )
     def update_log(_):
-        return log_buffer.getvalue()
-
+        log_value = log_buffer.getvalue()
+        html_value = converter.convert(log_value, full=False)
+        return Purify(html=html_value), {"scroll": True}
 
     # Callback for running analysis planning
     @callback(
@@ -241,15 +253,18 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                     "Error: No analysis prompt found!", color="danger"
                 )
 
+            print('starting analysis runner')
             def analysis_runner():
                 return analysis_fn(narrative_id, reads_id, description, credentials)
 
             # Run the analysis planning
             with StreamRedirector(log_buffer):
+                print(datetime.now())
                 print(narrative_id)
                 print(reads_id)
                 print(description)
-                Thread(target=analysis_runner, daemon=True)
+                runner_thread = Thread(target=analysis_runner, daemon=True)
+                runner_thread.run()
                 # result = analysis_fn(narrative_id, reads_id, description, credentials)
 
             # # Create appropriate display based on result

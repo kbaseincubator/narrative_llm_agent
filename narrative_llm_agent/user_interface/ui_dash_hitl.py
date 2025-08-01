@@ -1,3 +1,4 @@
+import time
 import dash
 from dash import dcc, html, Input, Output, State, dash_table, callback_context
 import dash_bootstrap_components as dbc
@@ -103,9 +104,27 @@ def set_environment_credentials(credentials: dict[str, str]) -> str:
     return kb_auth_token
 
 
+def analysis_plan_simple_test(narrative_id: int, reads_id: str, description: str, credentials: dict[str, str]) -> dict:
+    print("starting analysis planner.")
+    for i in range(10):
+        time.sleep(5)
+        print("still planning...")
+    print("done!")
+    return {
+        "narrative_id": narrative_id,
+        "reads_id": reads_id,
+        "description": description,
+        "workflow_state": {},
+        "workflow_key": "foo",  # Reference to stored instance
+        "error": None,
+        "status": "awaiting_approval"
+    }
+
+
 def run_analysis_planning(narrative_id, reads_id, description, credentials):
     """Run the analysis planning phase only"""
     try:
+        print("setting credentials")
         kb_auth_token = set_environment_credentials(credentials)
 
         # Load the KBase classes
@@ -514,188 +533,188 @@ def display_execution_results(execution_state, current_results):
     return execution_display
 
 
-def create_approval_interface(workflow_state):
-    """Create the approval interface for the analysis plan"""
-    print("inside approval interface", workflow_state.get("steps_to_run"))
-    if not workflow_state:
-        return html.Div("No workflow state available")
+# def create_approval_interface(workflow_state):
+#     """Create the approval interface for the analysis plan"""
+#     print("inside approval interface", workflow_state.get("steps_to_run"))
+#     if not workflow_state:
+#         return html.Div("No workflow state available")
 
-    steps = workflow_state.get("steps_to_run", [])
-    if not steps:
-        return html.Div("No steps found in workflow state")
+#     steps = workflow_state.get("steps_to_run", [])
+#     if not steps:
+#         return html.Div("No steps found in workflow state")
 
-    # Create table data
-    table_data = []
-    for step in steps:
-        table_data.append(
-            {
-                "Step": step.get("Step", "Unknown"),
-                "Name": step.get("Name", "Unnamed Step"),
-                "App": step.get("App", "Unknown App"),
-                "App ID": step.get("app_id", "Unknown ID"),
-                "Description": step.get("Description", "No description"),
-                "Creates Object": "Yes"
-                if step.get("expect_new_object", False)
-                else "No",
-            }
-        )
+#     # Create table data
+#     table_data = []
+#     for step in steps:
+#         table_data.append(
+#             {
+#                 "Step": step.get("Step", "Unknown"),
+#                 "Name": step.get("Name", "Unnamed Step"),
+#                 "App": step.get("App", "Unknown App"),
+#                 "App ID": step.get("app_id", "Unknown ID"),
+#                 "Description": step.get("Description", "No description"),
+#                 "Creates Object": "Yes"
+#                 if step.get("expect_new_object", False)
+#                 else "No",
+#             }
+#         )
 
-    # Create a styled Bootstrap table
-    table_rows = []
-    for row in table_data:
-        table_rows.append(
-            html.Tr(
-                [
-                    html.Td(row["Step"], className="text-center fw-bold"),
-                    html.Td(row["Name"], className="fw-semibold"),
-                    html.Td(row["App"]),
-                    html.Td(html.Code(row["App ID"], className="text-primary")),
-                    html.Td(row["Description"], style={"max-width": "300px"}),
-                    html.Td(
-                        dbc.Badge(
-                            row["Creates Object"],
-                            color="success"
-                            if row["Creates Object"] == "Yes"
-                            else "secondary",
-                            className="me-1",
-                        ),
-                        className="text-center",
-                    ),
-                ]
-            )
-        )
+#     # Create a styled Bootstrap table
+#     table_rows = []
+#     for row in table_data:
+#         table_rows.append(
+#             html.Tr(
+#                 [
+#                     html.Td(row["Step"], className="text-center fw-bold"),
+#                     html.Td(row["Name"], className="fw-semibold"),
+#                     html.Td(row["App"]),
+#                     html.Td(html.Code(row["App ID"], className="text-primary")),
+#                     html.Td(row["Description"], style={"max-width": "300px"}),
+#                     html.Td(
+#                         dbc.Badge(
+#                             row["Creates Object"],
+#                             color="success"
+#                             if row["Creates Object"] == "Yes"
+#                             else "secondary",
+#                             className="me-1",
+#                         ),
+#                         className="text-center",
+#                     ),
+#                 ]
+#             )
+#         )
 
-    analysis_table = html.Table(
-        [
-            html.Thead(
-                [
-                    html.Tr(
-                        [
-                            html.Th("Step", className="text-center"),
-                            html.Th("Name"),
-                            html.Th("KBase App"),
-                            html.Th("App ID"),
-                            html.Th("Description"),
-                            html.Th("Creates Object", className="text-center"),
-                        ],
-                        className="table-dark",
-                    )
-                ]
-            ),
-            html.Tbody(table_rows),
-        ],
-        className="table table-striped table-hover",
-    )
+#     analysis_table = html.Table(
+#         [
+#             html.Thead(
+#                 [
+#                     html.Tr(
+#                         [
+#                             html.Th("Step", className="text-center"),
+#                             html.Th("Name"),
+#                             html.Th("KBase App"),
+#                             html.Th("App ID"),
+#                             html.Th("Description"),
+#                             html.Th("Creates Object", className="text-center"),
+#                         ],
+#                         className="table-dark",
+#                     )
+#                 ]
+#             ),
+#             html.Tbody(table_rows),
+#         ],
+#         className="table table-striped table-hover",
+#     )
 
-    return dbc.Card(
-        [
-            dbc.CardHeader(
-                [
-                    html.H4(
-                        [
-                            html.I(className="bi bi-clipboard-check me-2"),
-                            "Analysis Plan - Awaiting Approval",
-                        ],
-                        className="mb-0",
-                    )
-                ]
-            ),
-            dbc.CardBody(
-                [
-                    dbc.Alert(
-                        [
-                            html.I(className="bi bi-info-circle me-2"),
-                            f"Found {len(steps)} analysis steps ready for execution. Please review and approve the plan below.",
-                        ],
-                        color="info",
-                        className="mb-3",
-                    ),
-                    html.H5("📋 Proposed Analysis Steps:", className="mb-3"),
-                    # Scrollable table container
-                    html.Div(
-                        analysis_table,
-                        className="table-responsive",
-                        style={"max-height": "500px", "overflow-y": "auto"},
-                    ),
-                    html.Hr(),
-                    # Approval buttons
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.ButtonGroup(
-                                        [
-                                            dbc.Button(
-                                                [
-                                                    html.I(
-                                                        className="bi bi-check-circle me-2"
-                                                    ),
-                                                    "Approve Plan",
-                                                ],
-                                                id="approve-btn",
-                                                color="success",
-                                                size="lg",
-                                            ),
-                                            dbc.Button(
-                                                [
-                                                    html.I(
-                                                        className="bi bi-x-circle me-2"
-                                                    ),
-                                                    "Reject Plan",
-                                                ],
-                                                id="reject-btn",
-                                                color="danger",
-                                                size="lg",
-                                            ),
-                                            dbc.Button(
-                                                [
-                                                    html.I(
-                                                        className="bi bi-stop-circle me-2"
-                                                    ),
-                                                    "Cancel",
-                                                ],
-                                                id="cancel-btn",
-                                                color="secondary",
-                                                size="lg",
-                                            ),
-                                        ]
-                                    )
-                                ],
-                                width=12,
-                                className="text-center",
-                            )
-                        ],
-                        className="mb-3",
-                    ),
-                    # Feedback area (initially hidden)
-                    html.Div(
-                        id="feedback-area",
-                        style={"display": "none"},
-                        children=[
-                            html.Hr(),
-                            dbc.Label("💬 Feedback (optional):"),
-                            dbc.Textarea(
-                                id="feedback-text",
-                                placeholder="Provide feedback for plan modifications...",
-                                rows=3,
-                                className="mb-2",
-                            ),
-                            dbc.Button(
-                                [
-                                    html.I(className="bi bi-send me-2"),
-                                    "Submit Feedback",
-                                ],
-                                id="submit-feedback-btn",
-                                color="warning",
-                            ),
-                        ],
-                    ),
-                    html.Div(id="approval-status", className="mt-3"),
-                ]
-            ),
-        ],
-        className="shadow-sm",
-    )
+#     return dbc.Card(
+#         [
+#             dbc.CardHeader(
+#                 [
+#                     html.H4(
+#                         [
+#                             html.I(className="bi bi-clipboard-check me-2"),
+#                             "Analysis Plan - Awaiting Approval",
+#                         ],
+#                         className="mb-0",
+#                     )
+#                 ]
+#             ),
+#             dbc.CardBody(
+#                 [
+#                     dbc.Alert(
+#                         [
+#                             html.I(className="bi bi-info-circle me-2"),
+#                             f"Found {len(steps)} analysis steps ready for execution. Please review and approve the plan below.",
+#                         ],
+#                         color="info",
+#                         className="mb-3",
+#                     ),
+#                     html.H5("📋 Proposed Analysis Steps:", className="mb-3"),
+#                     # Scrollable table container
+#                     html.Div(
+#                         analysis_table,
+#                         className="table-responsive",
+#                         style={"max-height": "500px", "overflow-y": "auto"},
+#                     ),
+#                     html.Hr(),
+#                     # Approval buttons
+#                     dbc.Row(
+#                         [
+#                             dbc.Col(
+#                                 [
+#                                     dbc.ButtonGroup(
+#                                         [
+#                                             dbc.Button(
+#                                                 [
+#                                                     html.I(
+#                                                         className="bi bi-check-circle me-2"
+#                                                     ),
+#                                                     "Approve Plan",
+#                                                 ],
+#                                                 id="approve-btn",
+#                                                 color="success",
+#                                                 size="lg",
+#                                             ),
+#                                             dbc.Button(
+#                                                 [
+#                                                     html.I(
+#                                                         className="bi bi-x-circle me-2"
+#                                                     ),
+#                                                     "Reject Plan",
+#                                                 ],
+#                                                 id="reject-btn",
+#                                                 color="danger",
+#                                                 size="lg",
+#                                             ),
+#                                             dbc.Button(
+#                                                 [
+#                                                     html.I(
+#                                                         className="bi bi-stop-circle me-2"
+#                                                     ),
+#                                                     "Cancel",
+#                                                 ],
+#                                                 id="cancel-btn",
+#                                                 color="secondary",
+#                                                 size="lg",
+#                                             ),
+#                                         ]
+#                                     )
+#                                 ],
+#                                 width=12,
+#                                 className="text-center",
+#                             )
+#                         ],
+#                         className="mb-3",
+#                     ),
+#                     # Feedback area (initially hidden)
+#                     html.Div(
+#                         id="feedback-area",
+#                         style={"display": "none"},
+#                         children=[
+#                             html.Hr(),
+#                             dbc.Label("💬 Feedback (optional):"),
+#                             dbc.Textarea(
+#                                 id="feedback-text",
+#                                 placeholder="Provide feedback for plan modifications...",
+#                                 rows=3,
+#                                 className="mb-2",
+#                             ),
+#                             dbc.Button(
+#                                 [
+#                                     html.I(className="bi bi-send me-2"),
+#                                     "Submit Feedback",
+#                                 ],
+#                                 id="submit-feedback-btn",
+#                                 color="warning",
+#                             ),
+#                         ],
+#                     ),
+#                     html.Div(id="approval-status", className="mt-3"),
+#                 ]
+#             ),
+#         ],
+#         className="shadow-sm",
+#     )
 
 
 # Add this callback to handle approval actions
