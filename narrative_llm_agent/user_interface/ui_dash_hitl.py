@@ -1,3 +1,4 @@
+import time
 import dash
 from dash import dcc, html, Input, Output, State, dash_table, callback_context
 import dash_bootstrap_components as dbc
@@ -36,6 +37,7 @@ workflow_instances = {}
 metadata_agent_executor = None
 
 CREDENTIALS_STORE = "credentials-store"
+WORKFLOW_STORE = "workflow-state-store"
 
 # Initialize metadata agent
 def initialize_metadata_agent():
@@ -146,7 +148,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
         }
 
     except Exception as e:
-        return {
+        result = {
             "narrative_id": narrative_id,
             "reads_id": reads_id,
             "description": description,
@@ -913,7 +915,7 @@ The goal is to have a complete annotated genome and classify the microbe."""
         Input("reject-btn", "n_clicks"),
         Input("cancel-btn", "n_clicks"),
     ],
-    [State("workflow-state-store", "data"), State(CREDENTIALS_STORE, "data")],
+    [State(WORKFLOW_STORE, "data"), State(CREDENTIALS_STORE, "data")],
     prevent_initial_call=True,
 )
 def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state, credentials):
