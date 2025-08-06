@@ -37,7 +37,7 @@ class Workspace(ServiceClient):
         return [ObjectInfo.model_validate(info).model_dump() for info in objects]
 
     def get_object_info(self: "Workspace", obj_ref: str) -> ObjectInfo:
-        obj_info = self.simple_call("get_object_info3", {"objects": [{"ref": obj_ref}]})
+        obj_info = self.simple_call("get_object_info3", {"objects": [{"ref": obj_ref}],"includeMetadata": 1})
         return ObjectInfo.model_validate(obj_info["infos"][0] + [obj_info["paths"][0]])
 
     def get_object_upas(
