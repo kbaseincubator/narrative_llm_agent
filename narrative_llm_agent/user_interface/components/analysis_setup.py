@@ -4,7 +4,7 @@ import io
 import sys
 from typing import Callable
 import dash_bootstrap_components as dbc
-from dash import dcc, html, Input, Output, callback, State
+from dash import callback_context, dcc, html, Input, Output, callback, State
 from threading import Thread
 from ansi2html import Ansi2HTMLConverter
 from dash_extensions import Purify
@@ -35,7 +35,7 @@ converter = Ansi2HTMLConverter(inline=True)
 def create_analysis_input_form(credentials_store: str, workflow_store: str, analysis_fn: Callable):
     layout = dbc.Card(
         [
-            dbc.CardHeader("📝 Analysis Parameters"),
+            dbc.CardHeader("📝 Manual Analysis Parameters (Optional Override)"),
             dbc.CardBody(
                 [
                     dbc.Row(
@@ -44,7 +44,7 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                                 [
                                     dbc.Label("Narrative ID"),
                                     dbc.Input(
-                                        id="narrative-id", value="217789", type="text"
+                                        id="narrative-id", type="text"
                                     ),
                                 ],
                                 width=6,
@@ -53,7 +53,7 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                                 [
                                     dbc.Label("Reads ID"),
                                     dbc.Input(
-                                        id="reads-id", value="217789/2/1", type="text"
+                                        id="reads-id", type="text"
                                     ),
                                 ],
                                 width=6,
@@ -89,7 +89,6 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                                     dbc.Label("Organism"),
                                     dbc.Input(
                                         id="organism",
-                                        value="Bacillus subtilis sp. strain UAMC",
                                         type="text",
                                     ),
                                 ],
@@ -127,7 +126,7 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                                     dbc.Textarea(
                                         id="description",
                                         rows=8,
-                                        placeholder="Enter analysis description..."
+                                        placeholder="Analysis description will be auto-generated from metadata collection..."
                                     ),
                                 ]
                             )
@@ -139,7 +138,7 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                             dbc.Col(
                                 [
                                     dbc.Button(
-                                        "🚀 Generate Analysis Plan",
+                                        "🚀 Generate Analysis Plan (Manual)",
                                         id="run-analysis-btn",
                                         color="success",
                                         size="lg",
@@ -185,17 +184,17 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
     )
 
 
-    # Callback for updating description based on inputs
-    @callback(
-        Output("description", "value"),
-        [
-            Input("sequencing-tech", "value"),
-            Input("organism", "value"),
-            Input("genome-type", "value"),
-        ],
-    )
-    def update_description(sequencing_tech, organism, genome_type):
-        return analysis_prompt(sequencing_tech, organism, genome_type)
+    # # Callback for updating description based on inputs
+    # @callback(
+    #     Output("description", "value"),
+    #     [
+    #         Input("sequencing-tech", "value"),
+    #         Input("organism", "value"),
+    #         Input("genome-type", "value"),
+    #     ],
+    # )
+    # def update_description(sequencing_tech, organism, genome_type):
+    #     return analysis_prompt(sequencing_tech, organism, genome_type)
 
     @callback(
         [
@@ -230,9 +229,13 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
             Output(workflow_store, "data"),
             Output("analysis-results", "children"),
         ],  # Remove the analysis-loading output
-        Input("run-analysis-btn", "n_clicks"),
+        [
+            Input("proceed-to-analysis-btn", "n_clicks"),
+            Input("run-analysis-btn", "n_clicks"),
+        ],
         [
             State(credentials_store, "data"),
+            State("collected-metadata", "data"),
             State("narrative-id", "value"),
             State("reads-id", "value"),
             State("description", "value"),
@@ -240,32 +243,51 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
         prevent_initial_call=True,
     )
     def run_analysis_planning_callback(
-        n_clicks: int, credentials: dict[str, str], narrative_id: str, reads_id: str, description: str
+        proceed_clicks: int, manual_clicks: int, credentials, collected_metadata, narrative_id: str, reads_id: str, manual_description: str
     ):
-        if n_clicks and credentials and credentials.get("kb_auth_token"):
-            # Validate inputs and provide defaults
+        ctx = callback_context
+        if not ctx.triggered:
+            return {}, html.Div()
+
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        if not credentials or not credentials.get("kb_auth_token"):
+            return {}, dbc.Alert("Please configure your credentials first.", color="warning")
+        if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
+            narrative_id = collected_metadata.get("narrative_id")
+            reads_id = collected_metadata.get("reads_id")
+            description = collected_metadata.get("description")
+            source = "Metadata Collection Agent"
+        elif button_id == "run-analysis-btn" and manual_clicks:
             narrative_id = narrative_id or "217789"
             reads_id = reads_id or "217789/2/1"
+            description = manual_description
+            source = "Manual Input"
+        else:
+            return {}, html.Div()
 
-            if not description.strip():
-                # fail here.
-                return {"error": "No analysis prompt found"}, dbc.Alert(
-                    "Error: No analysis prompt found!", color="danger"
-                )
+        if not description or not description.strip():
+            # fail here.
+            return {"error": "No analysis prompt found"}, dbc.Alert(
+                "Error: No analysis prompt found!", color="danger"
+            )
 
-            print('starting analysis runner')
-            def analysis_runner():
-                return analysis_fn(narrative_id, reads_id, description, credentials)
+        if not narrative_id or not reads_id:
+            return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
 
-            # Run the analysis planning
-            with StreamRedirector(log_buffer):
-                print(datetime.now())
-                print(narrative_id)
-                print(reads_id)
-                print(description)
-                runner_thread = Thread(target=analysis_runner, daemon=True)
-                runner_thread.run()
-                # result = analysis_fn(narrative_id, reads_id, description, credentials)
+        print('starting analysis runner')
+        def analysis_runner():
+            return analysis_fn(narrative_id, reads_id, description, credentials)
+
+        # Run the analysis planning
+        with StreamRedirector(log_buffer):
+            print(datetime.now())
+            print(narrative_id)
+            print(reads_id)
+            print(description)
+            runner_thread = Thread(target=analysis_runner, daemon=True)
+            runner_thread.run()
+            # result = analysis_fn(narrative_id, reads_id, description, credentials)
 
             # # Create appropriate display based on result
             # if result.get("status") == "awaiting_approval":

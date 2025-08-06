@@ -1,6 +1,5 @@
-import time
 import dash
-from dash import dcc, html, Input, Output, State, dash_table, callback_context
+from dash import dcc, html, Input, Output, State, callback_context
 import dash_bootstrap_components as dbc
 import json
 import os
@@ -8,6 +7,7 @@ from datetime import datetime
 from dotenv import find_dotenv, load_dotenv
 from langchain.load import dumps, loads
 from langchain_core.messages import AIMessage, HumanMessage
+from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
 from narrative_llm_agent.user_interface.components.credentials import create_credentials_form
 from narrative_llm_agent.util.json_util import make_json_serializable
 from narrative_llm_agent.agents.metadata_lang import (
@@ -209,7 +209,7 @@ def run_analysis_execution(workflow_state, credentials, workflow_key=None):
         final_state_serializable = make_json_serializable(final_state)
         print("=== FINAL STATE ===")
         print(json.dumps(final_state, indent=2, default=str))
-        
+
         # Clean up stored workflow instance if provided
         if workflow_key and workflow_key in workflow_instances:
             del workflow_instances[workflow_key]
@@ -292,14 +292,14 @@ def create_metadata_collection_interface():
             dbc.CardBody(
                 [
                     html.P("Let me help you gather information about your computational biology project."),
-                    html.Div("Assistant: Hello! I'm here to help gather information about your computational biology project. Please provide the narrative ID to start.", 
+                    html.Div("Assistant: Hello! I'm here to help gather information about your computational biology project. Please provide the narrative ID to start.",
                              id="metadata-response-space"),
                     html.Br(),
                     dcc.Input(
-                        id="metadata-input", 
-                        type="text", 
-                        debounce=True, 
-                        placeholder="Type your answer here", 
+                        id="metadata-input",
+                        type="text",
+                        debounce=True,
+                        placeholder="Type your answer here",
                         style={"width": "100%", "height": 40}
                     ),
                     html.Br(),
@@ -312,9 +312,9 @@ def create_metadata_collection_interface():
                     html.Br(),
                     html.Br(),
                     html.Div(id="metadata-chat-history", style={
-                        "height": "300px", 
-                        "overflow-y": "scroll", 
-                        "border": "1px solid #ccc", 
+                        "height": "300px",
+                        "overflow-y": "scroll",
+                        "border": "1px solid #ccc",
                         "padding": "10px",
                         "background-color": "#f8f9fa"
                     }),
@@ -322,18 +322,18 @@ def create_metadata_collection_interface():
                     dbc.Row([
                         dbc.Col([
                             dbc.Button(
-                                "🚀 Proceed to Analysis Planning", 
-                                id="proceed-to-analysis-btn", 
-                                color="warning", 
+                                "🚀 Proceed to Analysis Planning",
+                                id="proceed-to-analysis-btn",
+                                color="warning",
                                 size="lg",
                                 disabled=True
                             ),
                         ], width=6),
                         dbc.Col([
                             dbc.Button(
-                                "✅ Force Enable (I have enough info)", 
-                                id="force-enable-btn", 
-                                color="info", 
+                                "✅ Force Enable (I have enough info)",
+                                id="force-enable-btn",
+                                color="info",
                                 size="sm",
                                 outline=True
                             ),
@@ -346,99 +346,99 @@ def create_metadata_collection_interface():
         ]
     )
 
-def create_input_form():
-    """Create the manual input form (kept as backup/override option)"""
-    return dbc.Card(
-        [
-            dbc.CardHeader("📝 Manual Analysis Parameters (Optional Override)"),
-            dbc.CardBody(
-                [
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label("Narrative ID"),
-                                    dbc.Input(id="narrative-id", type="text"),
-                                ],
-                                width=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label("Reads ID"),
-                                    dbc.Input(id="reads-id", type="text"),
-                                ],
-                                width=6,
-                            ),
-                        ],
-                        className="mb-3",
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label("Sequencing Technology"),
-                                    dcc.Dropdown(
-                                        id="sequencing-tech",
-                                        options=[
-                                            {"label": "Illumina sequencing", "value": "Illumina sequencing"},
-                                            {"label": "PacBio", "value": "PacBio"},
-                                            {"label": "Oxford Nanopore", "value": "Oxford Nanopore"},
-                                        ],
-                                        value="Illumina sequencing",
-                                    ),
-                                ],
-                                width=4,
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label("Organism"),
-                                    dbc.Input(id="organism", type="text"),
-                                ],
-                                width=4,
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Label("Genome Type"),
-                                    dcc.Dropdown(
-                                        id="genome-type",
-                                        options=[
-                                            {"label": "isolate", "value": "isolate"},
-                                            {"label": "metagenome", "value": "metagenome"},
-                                            {"label": "transcriptome", "value": "transcriptome"},
-                                        ],
-                                        value="isolate",
-                                    ),
-                                ],
-                                width=4,
-                            ),
-                        ],
-                        className="mb-3",
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label("Analysis Description"),
-                                    dbc.Textarea(
-                                        id="description",
-                                        rows=8,
-                                        placeholder="Analysis description will be auto-generated from metadata collection...",
-                                    ),
-                                ]
-                            )
-                        ],
-                        className="mb-3",
-                    ),
-                    dbc.Button(
-                        "🚀 Generate Analysis Plan (Manual)",
-                        id="run-analysis-btn",
-                        color="success",
-                        size="lg",
-                    ),
-                ]
-            ),
-        ]
-    )
+# def create_input_form():
+#     """Create the manual input form (kept as backup/override option)"""
+#     return dbc.Card(
+#         [
+#             dbc.CardHeader("📝 Manual Analysis Parameters (Optional Override)"),
+#             dbc.CardBody(
+#                 [
+#                     dbc.Row(
+#                         [
+#                             dbc.Col(
+#                                 [
+#                                     dbc.Label("Narrative ID"),
+#                                     dbc.Input(id="narrative-id", type="text"),
+#                                 ],
+#                                 width=6,
+#                             ),
+#                             dbc.Col(
+#                                 [
+#                                     dbc.Label("Reads ID"),
+#                                     dbc.Input(id="reads-id", type="text"),
+#                                 ],
+#                                 width=6,
+#                             ),
+#                         ],
+#                         className="mb-3",
+#                     ),
+#                     dbc.Row(
+#                         [
+#                             dbc.Col(
+#                                 [
+#                                     dbc.Label("Sequencing Technology"),
+#                                     dcc.Dropdown(
+#                                         id="sequencing-tech",
+#                                         options=[
+#                                             {"label": "Illumina sequencing", "value": "Illumina sequencing"},
+#                                             {"label": "PacBio", "value": "PacBio"},
+#                                             {"label": "Oxford Nanopore", "value": "Oxford Nanopore"},
+#                                         ],
+#                                         value="Illumina sequencing",
+#                                     ),
+#                                 ],
+#                                 width=4,
+#                             ),
+#                             dbc.Col(
+#                                 [
+#                                     dbc.Label("Organism"),
+#                                     dbc.Input(id="organism", type="text"),
+#                                 ],
+#                                 width=4,
+#                             ),
+#                             dbc.Col(
+#                                 [
+#                                     dbc.Label("Genome Type"),
+#                                     dcc.Dropdown(
+#                                         id="genome-type",
+#                                         options=[
+#                                             {"label": "isolate", "value": "isolate"},
+#                                             {"label": "metagenome", "value": "metagenome"},
+#                                             {"label": "transcriptome", "value": "transcriptome"},
+#                                         ],
+#                                         value="isolate",
+#                                     ),
+#                                 ],
+#                                 width=4,
+#                             ),
+#                         ],
+#                         className="mb-3",
+#                     ),
+#                     dbc.Row(
+#                         [
+#                             dbc.Col(
+#                                 [
+#                                     dbc.Label("Analysis Description"),
+#                                     dbc.Textarea(
+#                                         id="description",
+#                                         rows=8,
+#                                         placeholder="Analysis description will be auto-generated from metadata collection...",
+#                                     ),
+#                                 ]
+#                             )
+#                         ],
+#                         className="mb-3",
+#                     ),
+#                     dbc.Button(
+#                         "🚀 Generate Analysis Plan (Manual)",
+#                         id="run-analysis-btn",
+#                         color="success",
+#                         size="lg",
+#                     ),
+#                 ]
+#             ),
+#         ]
+#     )
 
 def create_approval_interface(workflow_state):
     """Create the approval interface for the analysis plan"""
@@ -610,7 +610,7 @@ app.layout = dbc.Container([
     dcc.Store(id="workflow-state-store"),
     dcc.Store(id="execution-state-store"),
     dcc.Store(id="analysis-history-store", data=[]),
-    
+
     # Header
     dbc.Row([
         dbc.Col([
@@ -618,26 +618,26 @@ app.layout = dbc.Container([
             html.P("Automated genome analysis workflows with intelligent metadata collection", className="lead"),
         ])
     ], className="mb-4"),
-    
+
     # Main content
     html.Div(id="main-content", children=[
         create_credentials_form(CREDENTIALS_STORE),
         html.Br(),
-        
+
         # Metadata Collection Interface
         create_metadata_collection_interface(),
         html.Br(),
-        
+
         # Manual Input Form (backup/override)
         dbc.Collapse(
-            create_input_form(),
+            create_analysis_input_form(CREDENTIALS_STORE, "workflow-state-store", run_analysis_planning),
             id="manual-form-collapse",
             is_open=False,
         ),
         dbc.Button("Show Manual Input Form", id="toggle-manual-form", color="link", size="sm"),
         html.Br(),
         html.Br(),
-        
+
         # Analysis Results
         html.Div(id="analysis-results"),
     ]),
@@ -681,15 +681,15 @@ def force_enable_proceed_button(n_clicks):
 )
 def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user_input, chat_history, credentials):
     from dash import ctx
-    
+
     try:
         # Initialize metadata agent
         agent_executor = initialize_metadata_agent()
-        
+
         # Handle clear chat
         if ctx.triggered_id == "metadata-clear-btn":
             return "Assistant: Chat cleared. Ready to start over!", [], "", [], True, {}
-        
+
         # Handle start over - let agent initiate conversation
         if ctx.triggered_id == "metadata-start-btn":
             try:
@@ -700,8 +700,8 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                         html.Strong("Assistant: "),
                         html.Span(response)
                     ], style={
-                        "margin": "5px 0", 
-                        "padding": "10px", 
+                        "margin": "5px 0",
+                        "padding": "10px",
                         "background-color": "#e8f4fd",
                         "border-radius": "5px"
                     })
@@ -710,7 +710,7 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                 return f"Assistant: {response}", history, "", visual_history, True, {}
             except Exception as e:
                 return f"Error starting conversation: {str(e)}", [], "", [], True, {}
-        
+
         # Handle submit
         if not user_input or not user_input.strip():
             current_history = []
@@ -721,13 +721,13 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                         current_history = [html.Div([
                             html.Strong(f"{'User' if isinstance(msg, HumanMessage) else 'Assistant'}: "),
                             html.Span(msg.content)
-                        ], style={"margin": "5px 0", "padding": "5px", "background-color": "#f0f0f0" if isinstance(msg, HumanMessage) else "#e8f4fd"}) 
+                        ], style={"margin": "5px 0", "padding": "5px", "background-color": "#f0f0f0" if isinstance(msg, HumanMessage) else "#e8f4fd"})
                         for msg in chat_history_obj]
                 except Exception:
                     current_history = []
-            
+
             return "Please enter your response before submitting.", chat_history if chat_history else [], "", current_history, True, {}
-        
+
         # Process the user input using imported functions
         try:
             if chat_history:
@@ -739,13 +739,13 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                     chat_history_obj = []
             else:
                 chat_history_obj = []
-            
+
             response = process_metadata_chat(agent_executor, user_input, chat_history_obj)
-            
+
             # Update chat history
             chat_history_obj.append(HumanMessage(content=user_input))
             chat_history_obj.append(AIMessage(content=response))
-            
+
             # Create visual chat history
             visual_history = []
             for msg in chat_history_obj:
@@ -755,26 +755,26 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                         html.Strong(f"{'User' if is_user else 'Assistant'}: "),
                         html.Span(msg.content)
                     ], style={
-                        "margin": "5px 0", 
-                        "padding": "10px", 
+                        "margin": "5px 0",
+                        "padding": "10px",
                         "background-color": "#f0f0f0" if is_user else "#e8f4fd",
                         "border-radius": "5px"
                     })
                 )
-            
+
             # Check completion and extract metadata using imported functions
             metadata_complete, collected_data = check_metadata_completion(chat_history_obj)
-            
+
             # Generate description if we have metadata
             if collected_data and not collected_data.get("description"):
                 collected_data["description"] = generate_description_from_metadata(collected_data)
-            
+
             history = dumps(chat_history_obj)
             return f"Assistant: {response}", history, "", visual_history, not metadata_complete, collected_data
-            
+
         except Exception as e:
             return f"Error processing request: {str(e)}", chat_history if chat_history else [], user_input, [], True, {}
-    
+
     except Exception as e:
         # Fallback error handling
         return f"Callback error: {str(e)}", [], "", [], True, {}
@@ -807,7 +807,7 @@ def toggle_manual_form(n_clicks, is_open):
 def populate_form_from_metadata(collected_data):
     if not collected_data:
         return "", "", "Illumina sequencing", "", "isolate", ""
-    
+
     return (
         collected_data.get("narrative_id", ""),
         collected_data.get("reads_id", ""),
@@ -818,92 +818,92 @@ def populate_form_from_metadata(collected_data):
     )
 
 # Proceed to analysis planning from metadata collection
-@app.callback(
-    [
-        Output("workflow-state-store", "data"),
-        Output("analysis-results", "children"),
-    ],
-    [
-        Input("proceed-to-analysis-btn", "n_clicks"),
-        Input("run-analysis-btn", "n_clicks"),
-    ],
-    [
-        State(CREDENTIALS_STORE, "data"),
-        State("collected-metadata", "data"),
-        State("narrative-id", "value"),
-        State("reads-id", "value"),
-        State("description", "value"),
-    ],
-    prevent_initial_call=True,
-)
-def run_analysis_planning_callback(proceed_clicks, manual_clicks, credentials, collected_metadata, manual_narrative_id, manual_reads_id, manual_description):
-    ctx = callback_context
-    if not ctx.triggered:
-        return {}, html.Div()
-    
-    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    
-    if not credentials or not credentials.get("kb_auth_token"):
-        return {}, dbc.Alert("Please configure your credentials first.", color="warning")
-    
-    # Determine source of data (metadata collection vs manual input)
-    if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
-        narrative_id = collected_metadata.get("narrative_id")
-        reads_id = collected_metadata.get("reads_id")
-        description = collected_metadata.get("description")
-        source = "Metadata Collection Agent"
-    elif button_id == "run-analysis-btn" and manual_clicks:
-        narrative_id = manual_narrative_id or "217789"
-        reads_id = manual_reads_id or "217789/2/1"
-        description = manual_description
-        source = "Manual Input"
-        
-        # Ensure description is valid
-        if not description or description.strip() == "":
-            description = """The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
-sequencing_technology: Illumina sequencing
-organism: Bacillus subtilis sp. strain UAMC
-genome type: isolate
+# @app.callback(
+#     [
+#         Output("workflow-state-store", "data"),
+#         Output("analysis-results", "children"),
+#     ],
+#     [
+#         Input("proceed-to-analysis-btn", "n_clicks"),
+#         Input("run-analysis-btn", "n_clicks"),
+#     ],
+#     [
+#         State(CREDENTIALS_STORE, "data"),
+#         State("collected-metadata", "data"),
+#         State("narrative-id", "value"),
+#         State("reads-id", "value"),
+#         State("description", "value"),
+#     ],
+#     prevent_initial_call=True,
+# )
+# def run_analysis_planning_callback(proceed_clicks, manual_clicks, credentials, collected_metadata, manual_narrative_id, manual_reads_id, manual_description):
+#     ctx = callback_context
+#     if not ctx.triggered:
+#         return {}, html.Div()
 
-I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
-The goal is to have a complete annotated genome and classify the microbe."""
-    else:
-        return {}, html.Div()
-    
-    if not narrative_id or not reads_id:
-        return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
-    
-    # Run the analysis planning
-    result = run_analysis_planning(narrative_id, reads_id, description, credentials)
-    
-    # Update analysis history
-    global analysis_history
-    analysis_history.append({
-        "timestamp": datetime.now().isoformat(),
-        "narrative_id": narrative_id,
-        "reads_id": reads_id,
-        "status": result.get("status", "unknown"),
-        "error": result.get("error"),
-        "source": source,
-    })
-    
-    # Create appropriate display based on result
-    if result.get("status") == "awaiting_approval":
-        display_component = dbc.Card([
-            dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
-            dbc.CardBody([
-                dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
-                create_approval_interface(result["workflow_state"])
-            ])
-        ])
-        return result, display_component
-    
-    elif result.get("status") == "error":
-        error_component = dbc.Alert(f"❌ Error: {result.get('error', 'Unknown error')}", color="danger")
-        return result, error_component
-    else:
-        unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
-        return result, unknown_component
+#     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+#     if not credentials or not credentials.get("kb_auth_token"):
+#         return {}, dbc.Alert("Please configure your credentials first.", color="warning")
+
+#     # Determine source of data (metadata collection vs manual input)
+#     if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
+#         narrative_id = collected_metadata.get("narrative_id")
+#         reads_id = collected_metadata.get("reads_id")
+#         description = collected_metadata.get("description")
+#         source = "Metadata Collection Agent"
+#     elif button_id == "run-analysis-btn" and manual_clicks:
+#         narrative_id = manual_narrative_id or "217789"
+#         reads_id = manual_reads_id or "217789/2/1"
+#         description = manual_description
+#         source = "Manual Input"
+
+#         # Ensure description is valid
+#         if not description or description.strip() == "":
+#             description = """The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
+# sequencing_technology: Illumina sequencing
+# organism: Bacillus subtilis sp. strain UAMC
+# genome type: isolate
+
+# I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
+# The goal is to have a complete annotated genome and classify the microbe."""
+#     else:
+#         return {}, html.Div()
+
+#     if not narrative_id or not reads_id:
+#         return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
+
+#     # Run the analysis planning
+#     result = run_analysis_planning(narrative_id, reads_id, description, credentials)
+
+#     # Update analysis history
+#     global analysis_history
+#     analysis_history.append({
+#         "timestamp": datetime.now().isoformat(),
+#         "narrative_id": narrative_id,
+#         "reads_id": reads_id,
+#         "status": result.get("status", "unknown"),
+#         "error": result.get("error"),
+#         "source": source,
+#     })
+
+#     # Create appropriate display based on result
+#     if result.get("status") == "awaiting_approval":
+#         display_component = dbc.Card([
+#             dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
+#             dbc.CardBody([
+#                 dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
+#                 create_approval_interface(result["workflow_state"])
+#             ])
+#         ])
+#         return result, display_component
+
+#     elif result.get("status") == "error":
+#         error_component = dbc.Alert(f"❌ Error: {result.get('error', 'Unknown error')}", color="danger")
+#         return result, error_component
+#     else:
+#         unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
+#         return result, unknown_component
 
 # Handle approval actions
 @app.callback(
@@ -1019,7 +1019,7 @@ def handle_feedback_submission(n_clicks, feedback_text):
 def generate_mra(n_clicks, credentials, manual_narrative_id, collected_metadata):
     if not n_clicks or n_clicks == 0:
         return html.Div()
-    
+
     if n_clicks and credentials and credentials.get("kb_auth_token"):
         # Get narrative ID from collected metadata or manual input
         narrative_id = None
@@ -1027,7 +1027,7 @@ def generate_mra(n_clicks, credentials, manual_narrative_id, collected_metadata)
             narrative_id = collected_metadata["narrative_id"]
         elif manual_narrative_id:
             narrative_id = manual_narrative_id
-        
+
         if not narrative_id:
             return dbc.Alert("❌ No narrative ID available for MRA generation", color="danger")
 
@@ -1050,8 +1050,8 @@ def generate_mra(n_clicks, credentials, manual_narrative_id, collected_metadata)
 
     return html.Div()
 
+
 # ----------------------------
 # Launch App
-
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=8050)
