@@ -276,8 +276,9 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
             return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
 
         print('starting analysis runner')
-        def analysis_runner():
-            return analysis_fn(narrative_id, reads_id, description, credentials)
+        result_dict = {"result": None}
+        def analysis_runner(result_dict):
+            result_dict["result"] = analysis_fn(narrative_id, reads_id, description, credentials)
 
         # Run the analysis planning
         with StreamRedirector(log_buffer):
@@ -285,27 +286,30 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
             print(narrative_id)
             print(reads_id)
             print(description)
-            runner_thread = Thread(target=analysis_runner, daemon=True)
-            runner_thread.run()
+            # TODO: convert to asyncio
+            runner_thread = Thread(target=analysis_runner, args=(result_dict), daemon=True)
+            runner_thread.start()
+            runner_thread.join()
             # result = analysis_fn(narrative_id, reads_id, description, credentials)
 
-            # # Create appropriate display based on result
-            # if result.get("status") == "awaiting_approval":
-            #     display_component = dbc.Alert("Done!")
-            #     # display_component = create_approval_interface(result["workflow_state"])
-            #     return result, display_component
+        # Create appropriate display based on result
+        result = result_dict["result"]
+        if result.get("status") == "awaiting_approval":
+            display_component = dbc.Card([
+                dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
+                dbc.CardBody([
+                    dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
+                    # TODO
+                    # create_approval_interface(result["workflow_state"])
+                ])
+            ])
+            return result, display_component
 
-            # elif result.get("status") == "error":
-            #     error_component = dbc.Alert(
-            #         f"❌ Error: {result.get('error', 'Unknown error')}", color="danger"
-            #     )
-            #     return result, error_component
-            # else:
-            #     unknown_component = dbc.Alert(
-            #         f"⚠️ Unexpected status: {result.get('status')}", color="warning"
-            #     )
-            #     return result, unknown_component
-
-        return {}, html.Div()
+        elif result.get("status") == "error":
+            error_component = dbc.Alert(f"❌ Error: {result.get('error', 'Unknown error')}", color="danger")
+            return result, error_component
+        else:
+            unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
+            return result, unknown_component
 
     return layout
