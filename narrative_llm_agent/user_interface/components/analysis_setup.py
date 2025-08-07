@@ -1,13 +1,14 @@
-from contextlib import redirect_stdout
 from datetime import datetime
 import io
 import sys
 from typing import Callable
 import dash_bootstrap_components as dbc
 from dash import callback_context, dcc, html, Input, Output, callback, State
-from threading import Thread
 from ansi2html import Ansi2HTMLConverter
 from dash_extensions import Purify
+
+from narrative_llm_agent.user_interface.components.analysis_approval import create_approval_interface
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_STORE
 
 def analysis_prompt(seq_tech: str, org_name: str, genome_type: str):
     return f"""The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
@@ -32,7 +33,7 @@ class StreamRedirector:
 log_buffer = io.StringIO()
 converter = Ansi2HTMLConverter(inline=True)
 
-def create_analysis_input_form(credentials_store: str, workflow_store: str, analysis_fn: Callable):
+def create_analysis_input_form(analysis_fn: Callable):
     layout = dbc.Card(
         [
             dbc.CardHeader("📝 Manual Analysis Parameters (Optional Override)"),
@@ -165,8 +166,8 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
                                                 "fontFamily": "monospace",
                                                 "border": "1px solid #dee2e6",
                                                 "padding": "0.375rem 0.75rem",
-                                                "font-size": "1rem",
-                                                "border-radius": "0.375rem",
+                                                "fontSize": "1rem",
+                                                "borderRadius": "0.375rem",
 
                                             },
                                         ),
@@ -183,18 +184,6 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
         ]
     )
 
-
-    # # Callback for updating description based on inputs
-    # @callback(
-    #     Output("description", "value"),
-    #     [
-    #         Input("sequencing-tech", "value"),
-    #         Input("organism", "value"),
-    #         Input("genome-type", "value"),
-    #     ],
-    # )
-    # def update_description(sequencing_tech, organism, genome_type):
-    #     return analysis_prompt(sequencing_tech, organism, genome_type)
 
     @callback(
         [
@@ -221,12 +210,12 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
     def update_log(_):
         log_value = log_buffer.getvalue()
         html_value = converter.convert(log_value, full=False)
-        return Purify(html=html_value), {"scroll": True}
+        return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
 
     # Callback for running analysis planning
     @callback(
         [
-            Output(workflow_store, "data"),
+            Output(WORKFLOW_STORE, "data"),
             Output("analysis-results", "children"),
         ],  # Remove the analysis-loading output
         [
@@ -234,7 +223,7 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
             Input("run-analysis-btn", "n_clicks"),
         ],
         [
-            State(credentials_store, "data"),
+            State(CREDENTIALS_STORE, "data"),
             State("collected-metadata", "data"),
             State("narrative-id", "value"),
             State("reads-id", "value"),
@@ -276,9 +265,8 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
             return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
 
         print('starting analysis runner')
-        result_dict = {"result": None}
-        def analysis_runner(result_dict):
-            result_dict["result"] = analysis_fn(narrative_id, reads_id, description, credentials)
+        def analysis_runner():
+            return analysis_fn(narrative_id, reads_id, description, credentials)
 
         # Run the analysis planning
         with StreamRedirector(log_buffer):
@@ -286,21 +274,16 @@ def create_analysis_input_form(credentials_store: str, workflow_store: str, anal
             print(narrative_id)
             print(reads_id)
             print(description)
-            # TODO: convert to asyncio
-            runner_thread = Thread(target=analysis_runner, args=(result_dict), daemon=True)
-            runner_thread.start()
-            runner_thread.join()
-            # result = analysis_fn(narrative_id, reads_id, description, credentials)
+            # TODO: convert to thread
+            result = analysis_runner()
 
         # Create appropriate display based on result
-        result = result_dict["result"]
         if result.get("status") == "awaiting_approval":
             display_component = dbc.Card([
                 dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
                 dbc.CardBody([
                     dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
-                    # TODO
-                    # create_approval_interface(result["workflow_state"])
+                    create_approval_interface(result["workflow_state"])
                 ])
             ])
             return result, display_component

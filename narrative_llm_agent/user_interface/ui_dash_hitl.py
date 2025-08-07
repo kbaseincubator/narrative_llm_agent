@@ -1,19 +1,17 @@
 import dash
-from dash import dcc, html, Input, Output, State, callback_context
+from dash import dcc, html, Input, Output, State
 import dash_bootstrap_components as dbc
-import json
 import os
-from datetime import datetime
 from dotenv import find_dotenv, load_dotenv
 from langchain.load import dumps, loads
 from langchain_core.messages import AIMessage, HumanMessage
 from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
 from narrative_llm_agent.user_interface.components.credentials import create_credentials_form
-from narrative_llm_agent.util.json_util import make_json_serializable
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_INSTANCES
+from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
 from narrative_llm_agent.agents.metadata_lang import (
     create_metadata_agent,
     process_metadata_chat,
-    extract_metadata_from_conversation,
     check_metadata_completion,
     generate_description_from_metadata
 )
@@ -33,11 +31,7 @@ app.title = "KBase Research Agent"
 
 # Global variables
 analysis_history = []
-workflow_instances = {}
 metadata_agent_executor = None
-
-CREDENTIALS_STORE = "credentials-store"
-WORKFLOW_STORE = "workflow-state-store"
 
 # Initialize metadata agent
 def initialize_metadata_agent():
@@ -46,32 +40,6 @@ def initialize_metadata_agent():
     if not metadata_agent_executor:
         metadata_agent_executor = create_metadata_agent()
     return metadata_agent_executor
-
-
-def load_kbase_classes():
-    """Load and cache KBase classes"""
-    try:
-        from narrative_llm_agent.workflow_graph.graph_hitl import (
-            AnalysisWorkflow,
-            ExecutionWorkflow,
-        )
-        from narrative_llm_agent.writer_graph.mra_graph import MraWriterGraph
-        from narrative_llm_agent.writer_graph.summary_graph import SummaryWriterGraph
-        from narrative_llm_agent.kbase.clients.workspace import Workspace
-        from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
-
-        return True, {
-            "AnalysisWorkflow": AnalysisWorkflow,
-            "ExecutionWorkflow": ExecutionWorkflow,
-            "MraWriterGraph": MraWriterGraph,
-            "SummaryWriterGraph": SummaryWriterGraph,
-            "Workspace": Workspace,
-            "ExecutionEngine": ExecutionEngine,
-        }
-    except ImportError as e:
-        return False, f"ImportError: {str(e)}"
-    except Exception as e:
-        return False, f"Error loading KBase classes: {str(e)}"
 
 def run_analysis_planning(narrative_id, reads_id, description, credentials):
     """Run the analysis planning phase only"""
@@ -133,7 +101,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
 
         # Store workflow instance globally
         workflow_key = f"{narrative_id}_{reads_id}"
-        workflow_instances[workflow_key] = workflow
+        WORKFLOW_INSTANCES[workflow_key] = workflow
 
         return {
             "narrative_id": narrative_id,
@@ -154,74 +122,6 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
             "error": str(e),
             "status": "error",
         }
-
-def run_analysis_execution(workflow_state, credentials, workflow_key=None):
-    """Run the analysis execution phase after approval"""
-    try:
-        # Get credentials and set environment variables
-        kb_auth_token = credentials.get("kb_auth_token", "")
-        provider = credentials.get("provider", "openai")
-
-        if provider == "cborg":
-            api_key = credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
-        else:
-            api_key = credentials.get("openai_api_key", os.environ.get("OPENAI_API_KEY", ""))
-
-        # Set environment variables
-        os.environ["KB_AUTH_TOKEN"] = kb_auth_token
-        if provider == "cborg":
-            os.environ["CBORG_API_KEY"] = api_key
-        else:
-            os.environ["OPENAI_API_KEY"] = api_key
-
-        # Set Neo4j environment variables if they exist
-        neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
-        neo4j_username = credentials.get("neo4j_username", os.environ.get("NEO4J_USERNAME", ""))
-        neo4j_password = credentials.get("neo4j_password", os.environ.get("NEO4J_PASSWORD", ""))
-
-        if neo4j_uri:
-            os.environ["NEO4J_URI"] = neo4j_uri
-        if neo4j_username:
-            os.environ["NEO4J_USERNAME"] = neo4j_username
-        if neo4j_password:
-            os.environ["NEO4J_PASSWORD"] = neo4j_password
-
-        # Load the KBase classes
-        success, result = load_kbase_classes()
-        if not success:
-            return {"error": result, "status": "error"}
-
-        ExecutionWorkflow = result["ExecutionWorkflow"]
-
-        # Create execution workflow instance
-        execution_workflow = ExecutionWorkflow(
-            analyst_llm="gpt-4.1-cborg",
-            validator_llm="gpt-4.1-cborg",
-            app_flow_llm="gpt-4.1-cborg",
-            writer_llm="gpt-4.1-cborg",
-            token=kb_auth_token,
-        )
-
-        # Run the execution phase
-        final_state = execution_workflow.run(workflow_state)
-
-        # Make the final_state JSON serializable
-        final_state_serializable = make_json_serializable(final_state)
-        print("=== FINAL STATE ===")
-        print(json.dumps(final_state, indent=2, default=str))
-
-        # Clean up stored workflow instance if provided
-        if workflow_key and workflow_key in workflow_instances:
-            del workflow_instances[workflow_key]
-
-        return {
-            "final_state": final_state_serializable,
-            "error": final_state_serializable.get("error"),
-            "status": "completed" if final_state_serializable.get("results") else "error",
-        }
-
-    except Exception as e:
-        return {"error": str(e), "status": "error"}
 
 def generate_mra_draft(narrative_id, credentials):
     """Generate MRA draft using the MraWriterGraph"""
@@ -313,10 +213,10 @@ def create_metadata_collection_interface():
                     html.Br(),
                     html.Div(id="metadata-chat-history", style={
                         "height": "300px",
-                        "overflow-y": "scroll",
+                        "overflowY": "scroll",
                         "border": "1px solid #ccc",
                         "padding": "10px",
-                        "background-color": "#f8f9fa"
+                        "backgroundColor": "#f8f9fa"
                     }),
                     html.Hr(),
                     dbc.Row([
@@ -346,216 +246,6 @@ def create_metadata_collection_interface():
         ]
     )
 
-# def create_input_form():
-#     """Create the manual input form (kept as backup/override option)"""
-#     return dbc.Card(
-#         [
-#             dbc.CardHeader("📝 Manual Analysis Parameters (Optional Override)"),
-#             dbc.CardBody(
-#                 [
-#                     dbc.Row(
-#                         [
-#                             dbc.Col(
-#                                 [
-#                                     dbc.Label("Narrative ID"),
-#                                     dbc.Input(id="narrative-id", type="text"),
-#                                 ],
-#                                 width=6,
-#                             ),
-#                             dbc.Col(
-#                                 [
-#                                     dbc.Label("Reads ID"),
-#                                     dbc.Input(id="reads-id", type="text"),
-#                                 ],
-#                                 width=6,
-#                             ),
-#                         ],
-#                         className="mb-3",
-#                     ),
-#                     dbc.Row(
-#                         [
-#                             dbc.Col(
-#                                 [
-#                                     dbc.Label("Sequencing Technology"),
-#                                     dcc.Dropdown(
-#                                         id="sequencing-tech",
-#                                         options=[
-#                                             {"label": "Illumina sequencing", "value": "Illumina sequencing"},
-#                                             {"label": "PacBio", "value": "PacBio"},
-#                                             {"label": "Oxford Nanopore", "value": "Oxford Nanopore"},
-#                                         ],
-#                                         value="Illumina sequencing",
-#                                     ),
-#                                 ],
-#                                 width=4,
-#                             ),
-#                             dbc.Col(
-#                                 [
-#                                     dbc.Label("Organism"),
-#                                     dbc.Input(id="organism", type="text"),
-#                                 ],
-#                                 width=4,
-#                             ),
-#                             dbc.Col(
-#                                 [
-#                                     dbc.Label("Genome Type"),
-#                                     dcc.Dropdown(
-#                                         id="genome-type",
-#                                         options=[
-#                                             {"label": "isolate", "value": "isolate"},
-#                                             {"label": "metagenome", "value": "metagenome"},
-#                                             {"label": "transcriptome", "value": "transcriptome"},
-#                                         ],
-#                                         value="isolate",
-#                                     ),
-#                                 ],
-#                                 width=4,
-#                             ),
-#                         ],
-#                         className="mb-3",
-#                     ),
-#                     dbc.Row(
-#                         [
-#                             dbc.Col(
-#                                 [
-#                                     dbc.Label("Analysis Description"),
-#                                     dbc.Textarea(
-#                                         id="description",
-#                                         rows=8,
-#                                         placeholder="Analysis description will be auto-generated from metadata collection...",
-#                                     ),
-#                                 ]
-#                             )
-#                         ],
-#                         className="mb-3",
-#                     ),
-#                     dbc.Button(
-#                         "🚀 Generate Analysis Plan (Manual)",
-#                         id="run-analysis-btn",
-#                         color="success",
-#                         size="lg",
-#                     ),
-#                 ]
-#             ),
-#         ]
-#     )
-
-def create_approval_interface(workflow_state):
-    """Create the approval interface for the analysis plan"""
-    if not workflow_state:
-        return html.Div("No workflow state available")
-
-    steps = workflow_state.get("steps_to_run", [])
-    if not steps:
-        return html.Div("No steps found in workflow state")
-
-    # Create table data
-    table_data = []
-    for step in steps:
-        table_data.append({
-            "Step": step.get("Step", "Unknown"),
-            "Name": step.get("Name", "Unnamed Step"),
-            "App": step.get("App", "Unknown App"),
-            "App ID": step.get("app_id", "Unknown ID"),
-            "Description": step.get("Description", "No description"),
-            "Creates Object": "Yes" if step.get("expect_new_object", False) else "No",
-        })
-
-    # Create table rows
-    table_rows = []
-    for row in table_data:
-        table_rows.append(
-            html.Tr([
-                html.Td(row["Step"], className="text-center fw-bold"),
-                html.Td(row["Name"], className="fw-semibold"),
-                html.Td(row["App"]),
-                html.Td(html.Code(row["App ID"], className="text-primary")),
-                html.Td(row["Description"], style={"max-width": "300px"}),
-                html.Td(
-                    dbc.Badge(
-                        row["Creates Object"],
-                        color="success" if row["Creates Object"] == "Yes" else "secondary",
-                        className="me-1",
-                    ),
-                    className="text-center",
-                ),
-            ])
-        )
-
-    analysis_table = html.Table(
-        [
-            html.Thead([
-                html.Tr([
-                    html.Th("Step", className="text-center"),
-                    html.Th("Name"),
-                    html.Th("KBase App"),
-                    html.Th("App ID"),
-                    html.Th("Description"),
-                    html.Th("Creates Object", className="text-center"),
-                ], className="table-dark")
-            ]),
-            html.Tbody(table_rows),
-        ],
-        className="table table-striped table-hover",
-    )
-
-    return dbc.Card(
-        [
-            dbc.CardHeader([
-                html.H4([
-                    html.I(className="bi bi-clipboard-check me-2"),
-                    "Analysis Plan - Awaiting Approval",
-                ], className="mb-0")
-            ]),
-            dbc.CardBody([
-                dbc.Alert([
-                    html.I(className="bi bi-info-circle me-2"),
-                    f"Found {len(steps)} analysis steps ready for execution. Please review and approve the plan below.",
-                ], color="info", className="mb-3"),
-                html.H5("📋 Proposed Analysis Steps:", className="mb-3"),
-                html.Div(analysis_table, className="table-responsive", style={"max-height": "500px", "overflow-y": "auto"}),
-                html.Hr(),
-                dbc.Row([
-                    dbc.Col([
-                        dbc.ButtonGroup([
-                            dbc.Button([
-                                html.I(className="bi bi-check-circle me-2"),
-                                "Approve Plan",
-                            ], id="approve-btn", color="success", size="lg"),
-                            dbc.Button([
-                                html.I(className="bi bi-x-circle me-2"),
-                                "Reject Plan",
-                            ], id="reject-btn", color="danger", size="lg"),
-                            dbc.Button([
-                                html.I(className="bi bi-stop-circle me-2"),
-                                "Cancel",
-                            ], id="cancel-btn", color="secondary", size="lg"),
-                        ])
-                    ], width=12, className="text-center")
-                ], className="mb-3"),
-                html.Div(
-                    id="feedback-area",
-                    style={"display": "none"},
-                    children=[
-                        html.Hr(),
-                        dbc.Label("💬 Feedback (optional):"),
-                        dbc.Textarea(
-                            id="feedback-text",
-                            placeholder="Provide feedback for plan modifications...",
-                            rows=3,
-                            className="mb-2",
-                        ),
-                        dbc.Button([
-                            html.I(className="bi bi-send me-2"),
-                            "Submit Feedback",
-                        ], id="submit-feedback-btn", color="warning"),
-                    ],
-                ),
-                html.Div(id="approval-status", className="mt-3"),
-            ]),
-        ],
-        className="shadow-sm",
-    )
 
 def create_execution_display(execution_result):
     """Create display for execution results"""
@@ -630,7 +320,7 @@ app.layout = dbc.Container([
 
         # Manual Input Form (backup/override)
         dbc.Collapse(
-            create_analysis_input_form(CREDENTIALS_STORE, "workflow-state-store", run_analysis_planning),
+            create_analysis_input_form(run_analysis_planning),
             id="manual-form-collapse",
             is_open=False,
         ),
@@ -702,8 +392,8 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                     ], style={
                         "margin": "5px 0",
                         "padding": "10px",
-                        "background-color": "#e8f4fd",
-                        "border-radius": "5px"
+                        "backgroundColor": "#e8f4fd",
+                        "borderRadius": "5px"
                     })
                 ]
                 history = dumps(chat_history_obj)
@@ -721,7 +411,7 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                         current_history = [html.Div([
                             html.Strong(f"{'User' if isinstance(msg, HumanMessage) else 'Assistant'}: "),
                             html.Span(msg.content)
-                        ], style={"margin": "5px 0", "padding": "5px", "background-color": "#f0f0f0" if isinstance(msg, HumanMessage) else "#e8f4fd"})
+                        ], style={"margin": "5px 0", "padding": "5px", "backgroundColor": "#f0f0f0" if isinstance(msg, HumanMessage) else "#e8f4fd"})
                         for msg in chat_history_obj]
                 except Exception:
                     current_history = []
@@ -757,8 +447,8 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                     ], style={
                         "margin": "5px 0",
                         "padding": "10px",
-                        "background-color": "#f0f0f0" if is_user else "#e8f4fd",
-                        "border-radius": "5px"
+                        "backgroundColor": "#f0f0f0" if is_user else "#e8f4fd",
+                        "borderRadius": "5px"
                     })
                 )
 
@@ -817,163 +507,6 @@ def populate_form_from_metadata(collected_data):
         collected_data.get("description", ""),
     )
 
-# Proceed to analysis planning from metadata collection
-# @app.callback(
-#     [
-#         Output("workflow-state-store", "data"),
-#         Output("analysis-results", "children"),
-#     ],
-#     [
-#         Input("proceed-to-analysis-btn", "n_clicks"),
-#         Input("run-analysis-btn", "n_clicks"),
-#     ],
-#     [
-#         State(CREDENTIALS_STORE, "data"),
-#         State("collected-metadata", "data"),
-#         State("narrative-id", "value"),
-#         State("reads-id", "value"),
-#         State("description", "value"),
-#     ],
-#     prevent_initial_call=True,
-# )
-# def run_analysis_planning_callback(proceed_clicks, manual_clicks, credentials, collected_metadata, manual_narrative_id, manual_reads_id, manual_description):
-#     ctx = callback_context
-#     if not ctx.triggered:
-#         return {}, html.Div()
-
-#     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-#     if not credentials or not credentials.get("kb_auth_token"):
-#         return {}, dbc.Alert("Please configure your credentials first.", color="warning")
-
-#     # Determine source of data (metadata collection vs manual input)
-#     if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
-#         narrative_id = collected_metadata.get("narrative_id")
-#         reads_id = collected_metadata.get("reads_id")
-#         description = collected_metadata.get("description")
-#         source = "Metadata Collection Agent"
-#     elif button_id == "run-analysis-btn" and manual_clicks:
-#         narrative_id = manual_narrative_id or "217789"
-#         reads_id = manual_reads_id or "217789/2/1"
-#         description = manual_description
-#         source = "Manual Input"
-
-#         # Ensure description is valid
-#         if not description or description.strip() == "":
-#             description = """The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
-# sequencing_technology: Illumina sequencing
-# organism: Bacillus subtilis sp. strain UAMC
-# genome type: isolate
-
-# I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
-# The goal is to have a complete annotated genome and classify the microbe."""
-#     else:
-#         return {}, html.Div()
-
-#     if not narrative_id or not reads_id:
-#         return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
-
-#     # Run the analysis planning
-#     result = run_analysis_planning(narrative_id, reads_id, description, credentials)
-
-#     # Update analysis history
-#     global analysis_history
-#     analysis_history.append({
-#         "timestamp": datetime.now().isoformat(),
-#         "narrative_id": narrative_id,
-#         "reads_id": reads_id,
-#         "status": result.get("status", "unknown"),
-#         "error": result.get("error"),
-#         "source": source,
-#     })
-
-#     # Create appropriate display based on result
-#     if result.get("status") == "awaiting_approval":
-#         display_component = dbc.Card([
-#             dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
-#             dbc.CardBody([
-#                 dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
-#                 create_approval_interface(result["workflow_state"])
-#             ])
-#         ])
-#         return result, display_component
-
-#     elif result.get("status") == "error":
-#         error_component = dbc.Alert(f"❌ Error: {result.get('error', 'Unknown error')}", color="danger")
-#         return result, error_component
-#     else:
-#         unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
-#         return result, unknown_component
-
-# Handle approval actions
-@app.callback(
-    [Output("execution-state-store", "data"), Output("approval-status", "children")],
-    [
-        Input("approve-btn", "n_clicks"),
-        Input("reject-btn", "n_clicks"),
-        Input("cancel-btn", "n_clicks"),
-    ],
-    [State(WORKFLOW_STORE, "data"), State(CREDENTIALS_STORE, "data")],
-    prevent_initial_call=True,
-)
-def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state, credentials):
-    ctx = callback_context
-    if not ctx.triggered:
-        return {}, html.Div()
-
-    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if button_id == "approve-btn" and approve_clicks:
-        loading_status = dbc.Alert("🔄 Executing approved workflow... Please wait.", color="info")
-
-        try:
-            # Get the nested workflow state and update it properly
-            inner_workflow_state = workflow_state.get("workflow_state", {})
-            inner_workflow_state["human_approval_status"] = "approved"
-            inner_workflow_state["awaiting_approval"] = False
-            inner_workflow_state["input_object_upa"] = workflow_state.get("reads_id")
-
-            # Execute the workflow
-            execution_result = run_analysis_execution(
-                workflow_state.get("workflow_state", {}),
-                credentials,
-                workflow_state.get("workflow_key"),
-            )
-
-            # Update execution state
-            execution_state = {
-                "status": execution_result.get("status", "unknown"),
-                "final_state": execution_result.get("final_state", {}),
-                "error": execution_result.get("error"),
-            }
-
-            if execution_result.get("status") == "completed":
-                success_status = dbc.Alert("✅ Workflow approved and executed successfully!", color="success")
-                return execution_state, success_status
-            else:
-                error_status = dbc.Alert(
-                    f"❌ Execution failed: {execution_result.get('error', 'Unknown error')}",
-                    color="danger",
-                )
-                return execution_state, error_status
-
-        except Exception as e:
-            error_state = {"status": "error", "error": str(e)}
-            error_status = dbc.Alert(f"❌ Error during execution: {str(e)}", color="danger")
-            return error_state, error_status
-
-    elif button_id == "reject-btn" and reject_clicks:
-        feedback_status = html.Div([
-            dbc.Alert("❌ Plan rejected. Please provide feedback below.", color="warning"),
-            html.Script("document.getElementById('feedback-area').style.display = 'block';"),
-        ])
-        return {"status": "rejected"}, feedback_status
-
-    elif button_id == "cancel-btn" and cancel_clicks:
-        cancel_status = dbc.Alert("🚫 Workflow cancelled.", color="secondary")
-        return {"status": "cancelled"}, cancel_status
-
-    return {}, html.Div()
 
 # Display execution results
 @app.callback(
