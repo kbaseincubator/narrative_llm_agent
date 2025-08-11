@@ -244,7 +244,8 @@ class WorkflowNodes:
         try:
             jc = JobCrew(
                 get_llm(self._app_flow_llm, api_key=self._app_flow_token, return_crewai=True),
-                get_llm(self._writer_llm, api_key=self._writer_token, return_crewai=True)
+                get_llm(self._writer_llm, api_key=self._writer_token, return_crewai=True),
+                token=self.token
             )
             result = jc.start_job(app_id, input_object_upa, state.narrative_id, app_id=app_id)
             job_result: CompletedJob = result.pydantic
@@ -400,25 +401,3 @@ class WorkflowNodes:
 
     def workflow_end(self, state: WorkflowState):
         return state.model_copy(update={"results": "✅ Workflow complete."})
-
-# functional-style access to the node methods
-def create_workflow_nodes(analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token: str = None):
-    """
-    Create workflow nodes instance and return node functions.
-    For langgraph add node which expects a function to be passed.
-
-    Args:
-        token (str, optional): Authentication token for the KBase API.
-
-    Returns:
-        dict: Dictionary containing all node functions.
-    """
-    nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=token)
-    return {
-        "analyst_node": nodes.analyst_node,
-        "human_approval_node": nodes.human_approval_node,
-        "app_runner_node": nodes.app_runner_node,
-        "workflow_validator_node": nodes.workflow_validator_node,
-        "handle_error": nodes.handle_error,
-        "workflow_end": nodes.workflow_end
-    }
