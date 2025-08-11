@@ -7,15 +7,15 @@ from langchain.load import dumps, loads
 from langchain_core.messages import AIMessage, HumanMessage
 from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
 from narrative_llm_agent.user_interface.components.credentials import create_credentials_form
+from narrative_llm_agent.util.json_util import make_json_serializable
+from narrative_llm_agent.agents.metadata_lang import MetadataAgent
+from narrative_llm_agent.config import get_llm
+from narrative_llm_agent.util.metadata_util import (extract_metadata_from_conversation, 
+                                                   check_metadata_completion, 
+                                                   generate_description_from_metadata,
+                                                   process_metadata_chat)
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_INSTANCES
 from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
-from narrative_llm_agent.agents.metadata_lang import (
-    create_metadata_agent,
-    process_metadata_chat,
-    check_metadata_completion,
-    generate_description_from_metadata
-)
-
 # ----------------------------
 # Setup API keys
 dotenv_path = find_dotenv()
@@ -36,9 +36,12 @@ metadata_agent_executor = None
 # Initialize metadata agent
 def initialize_metadata_agent():
     """Initialize the metadata collection agent"""
+    llm = get_llm("gpt-4.1-cborg")
+
+    metadata_agent = MetadataAgent(llm=llm)
     global metadata_agent_executor
     if not metadata_agent_executor:
-        metadata_agent_executor = create_metadata_agent()
+        metadata_agent_executor = metadata_agent.agent_executor
     return metadata_agent_executor
 
 def run_analysis_planning(narrative_id, reads_id, description, credentials):
