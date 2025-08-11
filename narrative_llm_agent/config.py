@@ -14,6 +14,7 @@ import os
 from typing import Any, Dict, Optional
 from langchain_openai import ChatOpenAI
 from crewai import LLM
+
 DEFAULT_CONFIG_FILE = "config.cfg"
 ENV_CONFIG_FILE = "NARRATIVE_LLM_AGENT_CONFIG"
 
@@ -33,7 +34,7 @@ class AgentConfig:
         config.read(config_path)
         kb_cfg = dict(config.items("kbase"))
 
-        # TODO (YAGNI): add errors when endpoints are missing.
+        # TODO: add errors when endpoints are missing.
         self.service_endpoint = kb_cfg.get("service_endpoint")
         self.ws_endpoint = None
         self.ee_endpoint = None
@@ -84,7 +85,40 @@ class AgentConfig:
                 )
 
             self.provider_config[provider_id] = provider_dict
-    def get_llm(self, model_id: str | None = None, return_crewai: bool = False) -> Any:
+
+    def _get_api_key_from_env(self, provider: str) -> str | None:
+        """
+        Gets the LLM API key from an environment variable.
+        Providers are configured in the config file under sections "provider.*"
+        (i.e. provider.openai).
+        A ValueError is raised if:
+            1. The provider is unknown
+            2. There is no API key environment variable configured for the provider.
+            3. There is no API key set for that environment variable.
+        TODO: Revisit how this works - config should fail on startup if the environment
+        variable doesn't exist. None should probably be allowable for the env var,
+        and the calling function should deal with that.
+        """
+        if provider not in self.provider_config:
+            raise ValueError(f"Unknown LLM provider {provider}")
+        api_key_env = self.provider_config[provider].get("api_key_env")
+        if api_key_env is None:
+            raise ValueError(
+                f"Unknown API key environment variable name for {provider}"
+            )
+        api_key = os.environ.get(api_key_env)
+        if api_key is None:
+            raise ValueError(
+                f"Missing API key for provider {provider}. Set environment variable {api_key_env}"
+            )
+        return api_key
+
+    def get_llm(
+        self,
+        model_id: str | None = None,
+        return_crewai: bool = False,
+        api_key: str = None,
+    ) -> Any:
         """Get an LLM instance based on the model ID from config"""
         model_id = model_id or self.llm_config["default"]
 
@@ -101,36 +135,35 @@ class AgentConfig:
 
         provider_config = self.provider_config[provider]
 
-        # Get API key from environment
-        api_key_env = provider_config.get("api_key_env")
-        api_key = os.environ.get(api_key_env)
         if api_key is None:
-            raise ValueError(f"Missing API key for provider {provider}. Set environment variable {api_key_env}")
-        model_name = model_config['model_name']
+            api_key = self._get_api_key_from_env(provider_config)
+        model_name = model_config["model_name"]
         # Create appropriate LLM based on provider]
         if return_crewai:
             # If return_crewai is True, return the crewai instance
-            if provider == 'cborg' and provider_config.get('use_openai_format'):
+            if provider == "cborg" and provider_config.get("use_openai_format"):
                 # For crewai, we need to use the crewai LLM class
                 return LLM(
                     model=f"openai/{model_name}",
                     api_key=api_key,
-                    base_url=provider_config.get('api_base')
+                    base_url=provider_config.get("api_base"),
                 )
             else:
                 # For other providers, we can use the crewai LLM class directly
                 return LLM(
                     model=model_name,
                     api_key=api_key,
-                    base_url=provider_config.get('api_base')
+                    base_url=provider_config.get("api_base"),
                 )
         # Create appropriate LLM based on provider
         else:
-            if provider == 'openai' or (provider == 'cborg' and provider_config.get('use_openai_format')):
+            if provider == "openai" or (
+                provider == "cborg" and provider_config.get("use_openai_format")
+            ):
                 return ChatOpenAI(
-                    model=model_config['model_name'],
+                    model=model_config["model_name"],
                     api_key=api_key,
-                    base_url=provider_config.get('api_base')
+                    base_url=provider_config.get("api_base"),
                 )
             else:
                 raise ValueError(f"Unsupported provider: {provider}")
@@ -165,10 +198,14 @@ def get_kbase_auth_token() -> str:
         raise ValueError("No auth token environment variable set.")
     return os.environ.get(env_var)
 
-# LLM-related convenience functions 
-def get_llm(model_id=None,return_crewai=None) -> Any:
-    """Get an LLM instance based on the model ID from config"""
-    return get_config().get_llm(model_id,return_crewai)
+
+# LLM-related convenience functions
+def get_llm(
+    model_id: str | None = None, return_crewai: bool = False, api_key: str | None = None
+) -> Any:
+    """Get an LLM instance based on the model ID from config. If no api_key is given,
+    this will try to use a key from an environment variable."""
+    return get_config().get_llm(model_id, return_crewai, api_key=api_key)
 
 
 def list_available_models() -> Dict[str, Dict[str, Any]]:

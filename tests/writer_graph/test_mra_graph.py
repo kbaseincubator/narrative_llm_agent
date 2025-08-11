@@ -121,7 +121,7 @@ def test_writer_graph_initialization(mock_workspace, mock_execution_engine):
     """Test WriterGraph initialization."""
     graph = MraWriterGraph(mock_workspace, mock_execution_engine)
     assert graph._workflow is not None
-    assert graph._token is None
+    assert graph._kbase_token is None
 
 
 def test_writer_graph_run_workflow(

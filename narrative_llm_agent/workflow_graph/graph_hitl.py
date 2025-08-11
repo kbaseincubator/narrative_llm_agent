@@ -7,7 +7,7 @@ class AnalysisWorkflow:
     Class to handle analysis workflows using LangGraph with human approval.
     """
 
-    def __init__(self, token:str=None, analyst_llm:str=None, validator_llm:str=None, app_flow_llm:str=None, writer_llm:str=None, embedding_provider:str=None):
+    def __init__(self, kbase_token:str=None, analyst_llm:str=None, analyst_token:str=None, validator_llm:str=None, validator_token:str=None, app_flow_llm:str=None, app_flow_token:str=None, writer_llm:str=None, writer_token:str=None, embedding_provider:str=None, embedding_provider_token:str=None):
         """Initialize the workflow graph.
         See config.cfg for allowed llm names.
         defaults:
@@ -27,7 +27,7 @@ class AnalysisWorkflow:
             writer_llm = "gpt-4.1-mini-cborg"
         if embedding_provider is None:
             embedding_provider = "cborg"
-        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=token)
+        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=kbase_token, analyst_token=analyst_token, validator_token=validator_token, app_flow_token=app_flow_token, writer_token=writer_token, embedding_provider_token=embedding_provider_token)
         self.graph = self._build_graph()
 
     def _build_graph(self):
@@ -48,7 +48,7 @@ class AnalysisWorkflow:
                 "handle_error": "handle_error"
             }
         )
-        
+
         planning_graph.add_edge("handle_error", END)
         # Set the entry point
         planning_graph.set_entry_point("analyst")
@@ -86,50 +86,50 @@ class AnalysisWorkflow:
         # Execute the graph and get the final state
         final_state = self.graph.invoke(initial_state)
         return final_state
-    
+
     def approve_plan(self, current_state, approved_steps=None):
         """
         Approve the analysis plan and continue workflow.
-        
+
         Args:
             current_state: The current workflow state
             approved_steps: Optional modified steps, if None uses original plan
-        
+
         Returns:
             Updated state with approval
         """
         if approved_steps is not None:
             current_state["steps_to_run"] = approved_steps
-        
+
         current_state["human_approved"] = True
         current_state["awaiting_approval"] = False
-        
+
         # Continue from human_approval node
         return self.graph.invoke(current_state)
-    
+
     def reject_plan(self, current_state, feedback=""):
         """
         Reject the analysis plan and provide feedback.
-        
+
         Args:
             current_state: The current workflow state
             feedback: Feedback for plan modification
-        
+
         Returns:
             Updated state with rejection
         """
         current_state["human_approved"] = False
         current_state["awaiting_approval"] = False
         current_state["error"] = f"Plan rejected by user. Feedback: {feedback}"
-        
+
         return current_state
-    
+
 class ExecutionWorkflow:
     """
     Class to handle execution of the analysis workflows after human approval.
     """
 
-    def __init__(self, token:str=None, analyst_llm:str=None, validator_llm:str=None, app_flow_llm:str=None, writer_llm:str=None, embedding_provider:str=None):
+    def __init__(self, kbase_token:str=None, analyst_llm:str=None, analyst_token:str=None, validator_llm:str=None, validator_token:str=None, app_flow_llm:str=None, app_flow_token:str=None, writer_llm:str=None, writer_token:str=None, embedding_provider:str=None, embedding_provider_token:str=None):
         """Initialize the workflow graph.
         See config.cfg for allowed llm names.
         defaults:
@@ -149,7 +149,7 @@ class ExecutionWorkflow:
             writer_llm = "gpt-4.1-mini-cborg"
         if embedding_provider is None:
             embedding_provider = "cborg"
-        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=token)
+        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=kbase_token, analyst_token=analyst_token, validator_token=validator_token, app_flow_token=app_flow_token, writer_token=writer_token, embedding_provider_token=embedding_provider_token)
         self.graph = self._build_graph()
 
     def _build_graph(self):
@@ -163,7 +163,7 @@ class ExecutionWorkflow:
         genome_graph.add_node("handle_error", self.nodes.handle_error)
         genome_graph.add_node("workflow_end", self.nodes.workflow_end)
 
-        
+
         # After validation, decide whether to run next step or end
         genome_graph.add_conditional_edges(
             "validate_step",
@@ -174,7 +174,7 @@ class ExecutionWorkflow:
                 "handle_error": "handle_error"
             }
         )
-        
+
         # After running a workflow step, always go to validator
         genome_graph.add_conditional_edges(
             "run_workflow_step",
@@ -209,5 +209,4 @@ class ExecutionWorkflow:
         # Execute the graph and get the final state
         final_state = self.graph.invoke(state)
         return final_state
-    
-    
+

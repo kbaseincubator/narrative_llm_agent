@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from narrative_llm_agent.config import get_llm
 import json
-import os
 
 # Define a model for each analysis step
 class AnalysisStep(BaseModel):
@@ -23,6 +22,7 @@ class AnalysisStep(BaseModel):
 
 class AnalysisPipeline(BaseModel):
     steps_to_run: List[AnalysisStep]
+
 class WorkflowRunOutput(BaseModel):
     created_object: Optional[str]
     created_object_upa: Optional[str]
@@ -56,7 +56,7 @@ class WorkflowNodes:
     This class handles creating and managing agents for different steps in the workflow.
     """
 
-    def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token=None):
+    def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token=None, analyst_token: str | None = None, validator_token: str | None = None, app_flow_token: str | None = None, writer_token: str | None = None, embedding_token: str | None = None):
         """
         Initialize the WorkflowNodes class.
 
@@ -67,18 +67,20 @@ class WorkflowNodes:
             writer_llm (str): config name for the LLM for the summary and report writer
             embedding_provider (str): (one of "cborg" or "nomic"), used for embedding queries to the knowledge graph
             token (str, optional): Authentication token for the KBase API.
-                If not provided, will be read from KB_AUTH_TOKEN environment variable.
-
         """
         self._analyst_llm = analyst_llm.lower()
         self._validator_llm = validator_llm.lower()
         self._app_flow_llm = app_flow_llm.lower()
         self._writer_llm = writer_llm.lower()
         self._embedding_provider = embedding_provider.lower()
-        self.token = token or os.environ.get("KB_AUTH_TOKEN")
+        self._analyst_token = analyst_token
+        self._validator_token = validator_token
+        self._app_flow_token = app_flow_token
+        self._writer_token = writer_token
+        self._embedding_token = embedding_token
+        self.token = token
         if not self.token:
-            raise ValueError("KB_AUTH_TOKEN must be provided either as parameter or environment variable")
-        self.llm_factory = get_llm
+            raise ValueError("KBase auth token must be provided")
 
     def analyst_node(self, state: WorkflowState):
         """
@@ -95,7 +97,7 @@ class WorkflowNodes:
             description = state.description
 
             # Initialize the analyst agent
-            llm = self.llm_factory(self._analyst_llm)
+            llm = get_llm(self._analyst_llm, api_key=self._analyst_token)
 
             analyst_expert = AnalystAgent(
                 llm,
@@ -104,7 +106,7 @@ class WorkflowNodes:
             )
 
             #Create combined description for the agent
-            description_complete = description + f"""/nThis analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
+            description_complete = description + """/nThis analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
                     - The analysis steps should begin with read quality assessment.
                     - Make sure you select appropriate KBase apps based on genome type.
                     - Relevant statistics for the assembly (e.g., number of contigs and N50 values).
@@ -151,8 +153,8 @@ class WorkflowNodes:
         input_object_upa = state.input_object_upa
         try:
             jc = JobCrew(
-                self.llm_factory(self._app_flow_llm, return_crewai=True),
-                self.llm_factory(self._writer_llm, return_crewai=True)
+                get_llm(self._app_flow_llm, api_key=self._app_flow_token, return_crewai=True),
+                get_llm(self._writer_llm, api_key=self._writer_token, return_crewai=True)
             )
             result = jc.start_job(app_id, input_object_upa, state.narrative_id, app_id=app_id)
             job_result: CompletedJob = result.pydantic
@@ -200,7 +202,7 @@ class WorkflowNodes:
                 })
 
             # Initialize the validator agent
-            llm = self.llm_factory(self._validator_llm)
+            llm = get_llm(self._validator_llm, api_key=self._validator_token)
             validator = WorkflowValidatorAgent(llm, token=self.token)
 
             # Create the validation task

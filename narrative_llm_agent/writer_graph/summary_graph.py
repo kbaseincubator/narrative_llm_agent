@@ -55,9 +55,11 @@ class SummaryWriterGraph:
     # TODO: add a reference check that'll automatically grab refs from apps, where applicable
     """
 
-    def __init__(self, ws_client: Workspace, token: str = None):
+    def __init__(self, ws_client: Workspace, writer_llm: str, writer_token: str = None, token: str = None):
         self._token = token
         self._ws_client = ws_client
+        self._writer_llm = writer_llm
+        self._writer_token = writer_token
         self._workflow = self._build_graph()
 
     def run_workflow(self, narrative_id: int, app_list: list[str]):
@@ -72,7 +74,7 @@ class SummaryWriterGraph:
         summary_prompt_template = ChatPromptTemplate(
             [("system", writing_system_prompt), ("user", summary_writing_prompt)]
         )
-        llm = get_llm("gpt-o1-cborg")
+        llm = get_llm(self._writer_llm, api_key=self._writer_token)
         msg = llm.invoke(
             summary_prompt_template.invoke(
                 {"narrative_text": state.narrative_markdown, "app_list": state.app_list}
