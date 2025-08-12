@@ -1,9 +1,10 @@
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, dcc, callback
 import os
+from narrative_llm_agent.kbase.clients.auth import KBaseAuth
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE
 
-# Component Creation Functions
-def create_credentials_form(credentials_store: str) -> dbc.Accordion:
+def create_credentials_form() -> dbc.Accordion:
     """
     This should only be invoked once. Duplicates will make bad things happen.
     To make a duplicate, this should be modified to make unique ids
@@ -83,7 +84,7 @@ def create_credentials_form(credentials_store: str) -> dbc.Accordion:
                                     "",
                                     id=message_id,
                                     is_open=False,
-                                    duration=500000,
+                                    duration=5000,
                                     dismissable=True,
                                     className="mt-3 mb-0"
                                 ),
@@ -99,7 +100,7 @@ def create_credentials_form(credentials_store: str) -> dbc.Accordion:
 
     # Callback for saving credentials
     @callback(
-        Output(credentials_store, "data"),
+        Output(CREDENTIALS_STORE, "data"),
         Output(message_id, "is_open"),
         Output(message_id, "children"),
         Input(btn_id, "n_clicks"),
