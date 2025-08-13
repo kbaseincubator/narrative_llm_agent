@@ -41,7 +41,8 @@ class KBaseAuth:
         if endpoint is None:
             endpoint = get_config().auth_endpoint
         self._endpoint = endpoint
-        self._token_url = self._endpoint + "api/V2/token"
+        self._token_url = self._endpoint + "/api/V2/token"
+        self._user_url = self._endpoint + "/api/V2/users?list="
         self._cache_timer = time.time  # TODO TEST figure out how to replace the timer to test
         # cache is intended to map tokens -> usernames
         self._cache = LRUCache(
@@ -49,12 +50,36 @@ class KBaseAuth:
         )
 
     def get_user(self, token: str) -> str:
+        """
+        Returns the user id associated with the given auth token.
+        Raises errors otherwise.
+        """
+        print(f"get_user: {self._token_url}")
         if token in self._cache:
             return self._cache.get(token)
         result = _get(self._token_url, {"Authorization": token})
         self._cache.set(token, result["user"])
         return result["user"]
 
+    def get_user_display_name(self, token: str) -> dict[str, str]:
+        """
+        Returns the user name and display name associated with the token as a small dictionary.
+        {
+            user_name: username (wjriehl),
+            display_name: full username (William Riehl)
+        }
+        """
+        if token in self._cache:
+            username = self._cache.get(token)
+        else:
+            username = self.get_user(token)
+
+        print(f"get_user_display_name: {self._user_url}")
+        result = _get(self._user_url + username, {"Authorization": token})
+        return {
+            "user_name": username,
+            "display_name": result.get(username, "Unknown")
+        }
 
 
 class AuthenticationError(Exception):
