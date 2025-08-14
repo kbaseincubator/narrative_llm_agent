@@ -8,6 +8,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 from narrative_llm_agent.kbase.clients.auth import KBaseAuth
 from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
 from narrative_llm_agent.user_interface.components.credentials import create_credentials_form
+from narrative_llm_agent.user_interface.components.metadata_agent_format import format_agent_response, format_list_item_content
+
 from narrative_llm_agent.util.json_util import make_json_serializable
 from narrative_llm_agent.agents.metadata_lang import MetadataAgent
 from narrative_llm_agent.config import get_llm
@@ -17,6 +19,7 @@ from narrative_llm_agent.config import get_llm
 #                                                    process_metadata_chat)
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_INSTANCES
 from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
+
 # ----------------------------
 # Setup API keys
 dotenv_path = find_dotenv()
@@ -361,13 +364,15 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
 
         # Handle clear chat
         if ctx.triggered_id == "metadata-clear-btn":
-            return "Assistant: Chat cleared. Ready to start over!", [], "", [], True, {}
+            return format_agent_response("Assistant: Chat cleared. Ready to start over!"), [], "", [], True, {}
 
-        # Handle start over - let agent initiate conversation
+        # Handle start over 
         if ctx.triggered_id == "metadata-start-btn":
             try:
                 response = process_metadata_chat(agent_executor, None, [])
                 chat_history_obj = [AIMessage(content=response)]
+                #Format the response for visual display
+                formatted_response = format_agent_response(response)
                 visual_history = [
                     html.Div([
                         html.Strong("Assistant: "),
@@ -380,7 +385,7 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
                     })
                 ]
                 history = dumps(chat_history_obj)
-                return f"Assistant: {response}", history, "", visual_history, True, {}
+                return formatted_response, history, "", visual_history, True, {}
             except Exception as e:
                 return f"Error starting conversation: {str(e)}", [], "", [], True, {}
 
@@ -401,7 +406,7 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
 
             return "Please enter your response before submitting.", chat_history if chat_history else [], "", current_history, True, {}
 
-        # Process the user input using imported functions
+        # Process the user input 
         try:
             if chat_history:
                 if isinstance(chat_history, str):
@@ -423,15 +428,19 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
             visual_history = []
             for msg in chat_history_obj:
                 is_user = isinstance(msg, HumanMessage)
+                content = msg.content if is_user else format_agent_response(msg.content)
+                
                 visual_history.append(
                     html.Div([
-                        html.Strong(f"{'User' if is_user else 'Assistant'}: "),
-                        html.Span(msg.content)
+                        html.Strong(f"{'User' if is_user else 'Assistant'}: ", 
+                                  className="text-primary" if is_user else "text-info"),
+                        html.Span(content) if is_user else content
                     ], style={
                         "margin": "5px 0",
-                        "padding": "10px",
-                        "backgroundColor": "#f0f0f0" if is_user else "#e8f4fd",
-                        "borderRadius": "5px"
+                        "padding": "15px",
+                        "backgroundColor": "#f8f9fa" if is_user else "#e8f4fd",
+                        "borderRadius": "8px",
+                        "border": f"1px solid {'#dee2e6' if is_user else '#bee5eb'}"
                     })
                 )
 
@@ -441,9 +450,9 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
             # Generate description if we have metadata
             if collected_data and not collected_data.get("description"):
                 collected_data["description"] = generate_description_from_metadata(collected_data)
-
+            formatted_response = format_agent_response(response)
             history = dumps(chat_history_obj)
-            return f"Assistant: {response}", history, "", visual_history, not metadata_complete, collected_data
+            return formatted_response, history, "", visual_history, not metadata_complete, collected_data
 
         except Exception as e:
             return f"Error processing request: {str(e)}", chat_history if chat_history else [], user_input, [], True, {}
