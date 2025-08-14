@@ -20,7 +20,7 @@ class WorkflowRunner(KBaseAgent):
         Deprecated in favor of using the workflow graph. See narrative_llm_agent.workflow_graph.graph.AnalysisWorkflow
         Note this uses the same llm for both the app runner and writers.
         """
-        self.job_crew = JobCrew(llm, llm)
+        self.job_crew = JobCrew(llm, llm, token=token)
         self._llm = llm
         self._token = token
 

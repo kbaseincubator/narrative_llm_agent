@@ -90,7 +90,7 @@ class AnalystAgent(KBaseAgent):
         if provider == "cborg":
             env_var = get_config().cborg_key_env
         else:
-            env_var = "OPENAI_API_KEY"
+            env_var = get_config().openai_key_env
         if os.environ.get(env_var):
             return os.environ[env_var]
         raise KeyError(f"Missing environment variable {provider} API KEY")

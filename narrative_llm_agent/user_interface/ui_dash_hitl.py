@@ -52,18 +52,14 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
         provider = credentials.get("provider", "openai")
 
         if provider == "cborg":
-            api_key = credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
+            api_key = credentials.get("cborg_api_key")
+            used_llm = "gpt-4.1-cborg"
         else:
-            api_key = credentials.get("openai_api_key", os.environ.get("OPENAI_API_KEY", ""))
-
-        # Set environment variables
-        os.environ["KB_AUTH_TOKEN"] = kb_auth_token
-        if provider == "cborg":
-            os.environ["CBORG_API_KEY"] = api_key
-        else:
-            os.environ["OPENAI_API_KEY"] = api_key
+            api_key = credentials.get("openai_api_key")
+            used_llm = "gpt-4o-openai"
 
         # Set Neo4j environment variables if they exist
+        # TODO: should probably be globally set at startup.
         neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
         neo4j_username = credentials.get("neo4j_username", os.environ.get("NEO4J_USERNAME", ""))
         neo4j_password = credentials.get("neo4j_password", os.environ.get("NEO4J_PASSWORD", ""))
@@ -92,8 +88,10 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
 
         # Create workflow instance
         workflow = AnalysisWorkflow(
-            analyst_llm="gpt-4.1-cborg",
-            app_flow_llm="gpt-4.1-cborg",
+            analyst_llm=used_llm,
+            analyst_token=api_key,
+            app_flow_llm=used_llm,
+            app_flow_token=api_key,
             token=kb_auth_token,
         )
 
@@ -126,37 +124,18 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
             "status": "error",
         }
 
-def generate_mra_draft(narrative_id, credentials):
+def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
     """Generate MRA draft using the MraWriterGraph"""
+    kbase_token = credentials.get("kb_auth_token")
+    provider = credentials.get("provider")
+    if provider == "cborg":
+        api_key = credentials.get("cborg_api_key")
+        writer_llm = "gpt-o1-cborg"
+    else:
+        api_key = credentials.get("openai_api_key")
+        writer_llm = "gpt-o1-openai"
+
     try:
-        # Set environment variables
-        kb_auth_token = credentials.get("kb_auth_token", "")
-        provider = credentials.get("provider", "openai")
-
-        if provider == "cborg":
-            api_key = credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
-        else:
-            api_key = credentials.get("openai_api_key", os.environ.get("OPENAI_API_KEY", ""))
-
-        # Set environment variables
-        os.environ["KB_AUTH_TOKEN"] = kb_auth_token
-        if provider == "cborg":
-            os.environ["CBORG_API_KEY"] = api_key
-        else:
-            os.environ["OPENAI_API_KEY"] = api_key
-
-        # Set Neo4j environment variables if they exist
-        neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
-        neo4j_username = credentials.get("neo4j_username", os.environ.get("NEO4J_USERNAME", ""))
-        neo4j_password = credentials.get("neo4j_password", os.environ.get("NEO4J_PASSWORD", ""))
-
-        if neo4j_uri:
-            os.environ["NEO4J_URI"] = neo4j_uri
-        if neo4j_username:
-            os.environ["NEO4J_USERNAME"] = neo4j_username
-        if neo4j_password:
-            os.environ["NEO4J_PASSWORD"] = neo4j_password
-
         # Load the KBase classes
         success, result = load_kbase_classes()
         if not success:
@@ -171,7 +150,7 @@ def generate_mra_draft(narrative_id, credentials):
         ee_client = ExecutionEngine()
 
         # Create MRA writer
-        mra_writer = MraWriterGraph(ws_client, ee_client)
+        mra_writer = MraWriterGraph(ws_client, ee_client, writer_llm, writer_token=api_key, token=kbase_token)
 
         # Run the MRA workflow
         mra_writer.run_workflow(narrative_id)

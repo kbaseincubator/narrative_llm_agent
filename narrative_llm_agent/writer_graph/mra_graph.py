@@ -183,11 +183,13 @@ class MraWriterGraph:
     """
 
     def __init__(
-        self, ws_client: Workspace, ee_client: ExecutionEngine, token: str = None
+        self, ws_client: Workspace, ee_client: ExecutionEngine, writer_llm: str, writer_token: str = None, kbase_token: str = None
     ):
-        self._token = token
+        self._kbase_token = kbase_token
         self._ws_client = ws_client
         self._ee_client = ee_client
+        self._writer_llm = writer_llm
+        self._writer_token = writer_token
         self._workflow = self._build_graph()
 
     def run_workflow(self, narrative_id: int):
@@ -262,7 +264,7 @@ class MraWriterGraph:
             [("system", WRITING_SYSTEM_PROMPT), ("user", MRA_WRITING_PROMPT)]
         )
 
-        llm = get_llm("gpt-o1-cborg")
+        llm = get_llm(self._writer_llm, api_key=self._writer_token)
         msg = llm.invoke(
             mra_writing_prompt_template.invoke({"narrative": state.narrative_data})
         )

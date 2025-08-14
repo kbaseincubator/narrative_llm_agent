@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from narrative_llm_agent.config import get_llm
 import json
-import os
 
 # Define a model for each analysis step
 class AnalysisStep(BaseModel):
@@ -62,7 +61,7 @@ class WorkflowNodes:
     This class handles creating and managing agents for different steps in the workflow.
     """
 
-    def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token=None):
+    def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token=None, analyst_token: str | None = None, validator_token: str | None = None, app_flow_token: str | None = None, writer_token: str | None = None, embedding_token: str | None = None):
         """
         Initialize the WorkflowNodes class.
 
@@ -73,17 +72,20 @@ class WorkflowNodes:
             writer_llm (str): config name for the LLM for the summary and report writer
             embedding_provider (str): (one of "cborg" or "nomic"), used for embedding queries to the knowledge graph
             token (str, optional): Authentication token for the KBase API.
-                If not provided, will be read from KB_AUTH_TOKEN environment variable.
         """
         self._analyst_llm = analyst_llm.lower()
         self._validator_llm = validator_llm.lower()
         self._app_flow_llm = app_flow_llm.lower()
         self._writer_llm = writer_llm.lower()
         self._embedding_provider = embedding_provider.lower()
-        self.token = token or os.environ.get("KB_AUTH_TOKEN")
+        self._analyst_token = analyst_token
+        self._validator_token = validator_token
+        self._app_flow_token = app_flow_token
+        self._writer_token = writer_token
+        self._embedding_token = embedding_token
+        self.token = token
         if not self.token:
-            raise ValueError("KB_AUTH_TOKEN must be provided either as parameter or environment variable")
-        self.llm_factory = get_llm
+            raise ValueError("KBase auth token must be provided")
 
     def analyst_node(self, state: WorkflowState):
         """
@@ -100,7 +102,7 @@ class WorkflowNodes:
             description = state.description
 
             # Initialize the analyst agent
-            llm = self.llm_factory(self._analyst_llm)
+            llm = get_llm(self._analyst_llm, api_key=self._analyst_token)
 
             analyst_expert = AnalystAgent(
                 llm,
@@ -109,7 +111,7 @@ class WorkflowNodes:
             )
 
             # Create combined description for the agent
-            description_complete = description + f"""/nThis analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
+            description_complete = description + """/nThis analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
                     - The analysis steps should begin with read quality assessment.
                     - Make sure you select appropriate KBase apps based on genome type.
                     - Relevant statistics for the assembly (e.g., number of contigs and N50 values).
@@ -140,77 +142,13 @@ class WorkflowNodes:
             # analysis_plan = workflow_data.get("steps", [])[:1]
             # Return updated state with analysis plan and awaiting approval flag
             return state.model_copy(update={
-                "steps_to_run": analysis_plan, 
+                "steps_to_run": analysis_plan,
                 "error": None,
                 "awaiting_approval": True
             })
         except Exception as e:
             return state.model_copy(update={"steps_to_run": None, "error": str(e)})
 
-    # def human_approval_node(self, state: WorkflowState):
-    #     """
-    #     Node function for human approval of the analysis plan.
-    #     This node pauses execution and waits for human input.
-
-    #     Args:
-    #         state (WorkflowState): The current workflow state.
-
-    #     Returns:
-    #         WorkflowState: Updated workflow state after human approval.
-    #     """
-    #     # This node just sets the awaiting_approval flag
-    #     # The actual approval logic is handled by the Dash app
-
-    #     # Format the analysis plan for human review
-    #     plan_summary = self._format_analysis_plan(state.steps_to_run)
-        
-    #     print("\n" + "="*80)
-    #     print("🔍 ANALYSIS PLAN REVIEW")
-    #     print("="*80)
-    #     print(f"Narrative ID: {state.narrative_id}")
-    #     print(f"Reads ID: {state.reads_id}")
-    #     print(f"Description: {state.description}")
-    #     print("\n📋 PROPOSED ANALYSIS STEPS:")
-    #     print("-"*50)
-    #     print(plan_summary)
-    #     print("\n" + "="*80)
-        
-    #     # Get human input
-    #     while True:
-    #         user_input = input("\nDo you approve this analysis plan?\n"
-    #                          "Enter 'approve' (or 'a') to proceed\n"
-    #                          "Enter 'reject' (or 'r') to request revisions\n"
-    #                          "Enter 'cancel' (or 'c') to cancel the workflow\n"
-    #                          "Your choice: ").strip().lower()
-            
-    #         if user_input in ['approve', 'a']:
-    #             return state.model_copy(update={
-    #                 "human_approval_status": "approved",
-    #                 "awaiting_approval": False,
-    #                 "human_feedback": None,
-    #                 "error": None
-    #             })
-            
-    #         elif user_input in ['reject', 'r']:
-    #             feedback = input("\nPlease provide feedback for revisions: ").strip()
-    #             return state.model_copy(update={
-    #                 "human_approval_status": "rejected",
-    #                 "awaiting_approval": False,
-    #                 "human_feedback": feedback if feedback else "Please revise the analysis plan.",
-    #                 "error": None
-    #             })
-            
-    #         elif user_input in ['cancel', 'c']:
-    #             return state.model_copy(update={
-    #                 "human_approval_status": "cancelled",
-    #                 "awaiting_approval": False,
-    #                 "human_feedback": None,
-    #                 "error": None,
-    #                 "results": "Workflow cancelled by user."
-    #             })
-            
-    #         else:
-    #             print("❌ Invalid input. Please enter 'approve', 'reject', or 'cancel' (or use 'a', 'r', 'c')")
     def human_approval_node(self, state: WorkflowState):
         """
         Node function for human approval of the analysis plan.
@@ -231,7 +169,7 @@ class WorkflowNodes:
                 "awaiting_approval": True,
                 "error": None
             })
-        
+
         # Handle the different approval statuses
         if state.human_approval_status == "approved":
             print(f"✅ Analysis plan approved for Narrative ID: {state.narrative_id}")
@@ -240,7 +178,7 @@ class WorkflowNodes:
                 "human_feedback": None,
                 "error": None
             })
-        
+
         elif state.human_approval_status == "rejected":
             print(f"❌ Analysis plan rejected for Narrative ID: {state.narrative_id}")
             print(f"Feedback: {state.human_feedback or 'No feedback provided'}")
@@ -249,7 +187,7 @@ class WorkflowNodes:
                 "error": f"Analysis plan rejected. Feedback: {state.human_feedback or 'No feedback provided'}",
                 "results": "Analysis plan rejected by user. Please modify parameters and regenerate."
             })
-        
+
         elif state.human_approval_status == "cancelled":
             print(f"🚫 Analysis workflow cancelled for Narrative ID: {state.narrative_id}")
             return state.model_copy(update={
@@ -257,26 +195,26 @@ class WorkflowNodes:
                 "error": None,
                 "results": "Workflow cancelled by user."
             })
-        
+
         else:
             # Unknown approval status - treat as still awaiting
             return state.model_copy(update={
                 "awaiting_approval": True,
                 "error": None
-            })    
+            })
     def _format_analysis_plan(self, steps: List[Dict[str, Any]]) -> str:
         """
         Format the analysis plan for human-readable display.
-        
+
         Args:
             steps: List of analysis steps
-            
+
         Returns:
             Formatted string representation of the analysis plan
         """
         if not steps:
             return "No steps defined in the analysis plan."
-        
+
         formatted_steps = []
         for i, step in enumerate(steps, 1):
             step_info = f"Step {i}: {step.get('Name', 'Unnamed Step')}\n"
@@ -285,7 +223,7 @@ class WorkflowNodes:
             step_info += f"   Description: {step.get('Description', 'No description')}\n"
             step_info += f"   Creates new object: {'Yes' if step.get('expect_new_object', False) else 'No'}\n"
             formatted_steps.append(step_info)
-        
+
         return "\n".join(formatted_steps)
     def app_runner_node(self, state: WorkflowState) -> WorkflowState:
         """
@@ -305,8 +243,9 @@ class WorkflowNodes:
         input_object_upa = state.input_object_upa
         try:
             jc = JobCrew(
-                self.llm_factory(self._app_flow_llm, return_crewai=True),
-                self.llm_factory(self._writer_llm, return_crewai=True)
+                get_llm(self._app_flow_llm, api_key=self._app_flow_token, return_crewai=True),
+                get_llm(self._writer_llm, api_key=self._writer_token, return_crewai=True),
+                token=self.token
             )
             result = jc.start_job(app_id, input_object_upa, state.narrative_id, app_id=app_id)
             job_result: CompletedJob = result.pydantic
@@ -354,7 +293,7 @@ class WorkflowNodes:
                 })
 
             # Initialize the validator agent
-            llm = self.llm_factory(self._validator_llm)
+            llm = get_llm(self._validator_llm, api_key=self._validator_token)
             validator = WorkflowValidatorAgent(llm, token=self.token)
 
             # Create the validation task
@@ -462,25 +401,3 @@ class WorkflowNodes:
 
     def workflow_end(self, state: WorkflowState):
         return state.model_copy(update={"results": "✅ Workflow complete."})
-
-# functional-style access to the node methods
-def create_workflow_nodes(analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token: str = None):
-    """
-    Create workflow nodes instance and return node functions.
-    For langgraph add node which expects a function to be passed.
-
-    Args:
-        token (str, optional): Authentication token for the KBase API.
-
-    Returns:
-        dict: Dictionary containing all node functions.
-    """
-    nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=token)
-    return {
-        "analyst_node": nodes.analyst_node,
-        "human_approval_node": nodes.human_approval_node,
-        "app_runner_node": nodes.app_runner_node,
-        "workflow_validator_node": nodes.workflow_validator_node,
-        "handle_error": nodes.handle_error,
-        "workflow_end": nodes.workflow_end
-    }

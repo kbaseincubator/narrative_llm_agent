@@ -6,6 +6,9 @@ from dash import callback_context, html, Input, Output, callback, State
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_INSTANCES, WORKFLOW_STORE
 from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
 from narrative_llm_agent.util.json_util import make_json_serializable
+from narrative_llm_agent.workflow_graph.graph_hitl import (
+    ExecutionWorkflow,
+)
 
 
 def create_approval_interface(workflow_state: dict):
@@ -211,20 +214,15 @@ def run_analysis_execution(workflow_state, credentials, workflow_key=None):
     """Run the analysis execution phase after approval"""
     try:
         # Get credentials and set environment variables
-        kb_auth_token = credentials.get("kb_auth_token", "")
+        kb_auth_token = credentials.get("kb_auth_token")
         provider = credentials.get("provider", "openai")
 
         if provider == "cborg":
-            api_key = credentials.get("cborg_api_key", os.environ.get("CBORG_API_KEY", ""))
+            used_llm = "gpt-4.1-cborg"
+            api_key = credentials.get("cborg_api_key")
         else:
-            api_key = credentials.get("openai_api_key", os.environ.get("OPENAI_API_KEY", ""))
-
-        # Set environment variables
-        os.environ["KB_AUTH_TOKEN"] = kb_auth_token
-        if provider == "cborg":
-            os.environ["CBORG_API_KEY"] = api_key
-        else:
-            os.environ["OPENAI_API_KEY"] = api_key
+            used_llm = "gpt-4o-openai"
+            api_key = credentials.get("openai_api_key")
 
         # Set Neo4j environment variables if they exist
         neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
@@ -239,19 +237,23 @@ def run_analysis_execution(workflow_state, credentials, workflow_key=None):
             os.environ["NEO4J_PASSWORD"] = neo4j_password
 
         # Load the KBase classes
-        success, result = load_kbase_classes()
-        if not success:
-            return {"error": result, "status": "error"}
+        # success, result = load_kbase_classes()
+        # if not success:
+        #     return {"error": result, "status": "error"}
 
-        ExecutionWorkflow = result["ExecutionWorkflow"]
+        # ExecutionWorkflow = result["ExecutionWorkflow"]
 
         # Create execution workflow instance
         execution_workflow = ExecutionWorkflow(
-            analyst_llm="gpt-4.1-cborg",
-            validator_llm="gpt-4.1-cborg",
-            app_flow_llm="gpt-4.1-cborg",
-            writer_llm="gpt-4.1-cborg",
-            token=kb_auth_token,
+            analyst_llm=used_llm,
+            analyst_token=api_key,
+            validator_llm=used_llm,
+            validator_token=api_key,
+            app_flow_llm=used_llm,
+            app_flow_token=api_key,
+            writer_llm=used_llm,
+            writer_token=api_key,
+            kbase_token=kb_auth_token,
         )
 
         # Run the execution phase
