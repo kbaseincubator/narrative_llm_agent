@@ -5,15 +5,16 @@ import os
 from dotenv import find_dotenv, load_dotenv
 from langchain.load import dumps, loads
 from langchain_core.messages import AIMessage, HumanMessage
+from narrative_llm_agent.kbase.clients.auth import KBaseAuth
 from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
 from narrative_llm_agent.user_interface.components.credentials import create_credentials_form
 from narrative_llm_agent.util.json_util import make_json_serializable
 from narrative_llm_agent.agents.metadata_lang import MetadataAgent
 from narrative_llm_agent.config import get_llm
-from narrative_llm_agent.util.metadata_util import (extract_metadata_from_conversation, 
-                                                   check_metadata_completion, 
-                                                   generate_description_from_metadata,
-                                                   process_metadata_chat)
+# from narrative_llm_agent.util.metadata import (extract_metadata_from_conversation,
+#                                                    check_metadata_completion,
+#                                                    generate_description_from_metadata,
+#                                                    process_metadata_chat)
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_INSTANCES
 from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
 # ----------------------------
@@ -293,7 +294,7 @@ app.layout = dbc.Container([
 
     # Main content
     html.Div(id="main-content", children=[
-        create_credentials_form(CREDENTIALS_STORE),
+        create_credentials_form(),
         html.Br(),
 
         # Metadata Collection Interface
@@ -449,6 +450,7 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
 
     except Exception as e:
         # Fallback error handling
+        print(e)
         return f"Callback error: {str(e)}", [], "", [], True, {}
 
 # Toggle manual form visibility

@@ -40,6 +40,7 @@ class AgentConfig:
         self.ee_endpoint = None
         self.nms_endpoint = None
         self.blobstore_endpoint = None
+        self.auth_endpoint = None
         if self.service_endpoint is not None:
             if "workspace" in kb_cfg:
                 self.ws_endpoint = self.service_endpoint + kb_cfg["workspace"]
@@ -51,6 +52,10 @@ class AgentConfig:
                 )
             if "blobstore" in kb_cfg:
                 self.blobstore_endpoint = self.service_endpoint + kb_cfg["blobstore"]
+            if "auth" in kb_cfg:
+                self.auth_endpoint = self.service_endpoint + kb_cfg["auth"]
+        self.cborg_api_endpoint = kb_cfg.get("cborg_api_endpoint")
+        self.openai_api_endpoint = kb_cfg.get("openai_api_endpoint")
 
         self.auth_token_env = kb_cfg.get("auth_token_env")
         self.openai_key_env = kb_cfg.get("openai_key_env")
