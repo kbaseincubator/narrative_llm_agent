@@ -9,17 +9,23 @@ class CborgAuth(LLMProviderClient):
             endpoint = get_config().cborg_api_endpoint
         super().__init__(endpoint)
         self._token_path = "user/info"
+        self._model_path = "model/info"
 
     def get_key_info(self, api_key: str) -> dict:
         if not api_key:
             raise ValueError("Must provide CBORG API key")
         return self.api_get(self._token_path, {"Authorization": ("Bearer " + api_key)})
 
+    def get_model_info(self, api_key: str) -> dict:
+        if not api_key:
+            raise ValueError("Must provide CBORG API key")
+        return self.api_get(self._model_path, {"Authorization": ("Bearer " + api_key)})
+
     def validate_key(self, api_key: str):
         """
         If the key's valid, this won't fail.
         """
-        self.get_key_info(api_key)
+        self.get_model_info(api_key)
 
     def check_request_error(self, response: requests.Response):
         if response.status_code != 200:
