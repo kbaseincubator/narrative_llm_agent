@@ -141,7 +141,7 @@ class AgentConfig:
         provider_config = self.provider_config[provider]
 
         if api_key is None:
-            api_key = self._get_api_key_from_env(provider_config)
+            api_key = self._get_api_key_from_env(provider)
         model_name = model_config["model_name"]
         # Create appropriate LLM based on provider]
         if return_crewai:
