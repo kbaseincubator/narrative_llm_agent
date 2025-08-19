@@ -129,6 +129,7 @@ def create_credentials_form() -> dbc.Accordion:
         This only stores user credentials. NEO4J ones should not be set by the user,
         and are only available as environment vars by the app.
         """
+        print(f"Callback triggered! n_clicks={n_clicks}")
         if not n_clicks:
             return {}, False, "", "", SUCCESS_MSG_DURATION
 

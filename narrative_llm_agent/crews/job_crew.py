@@ -29,6 +29,9 @@ class JobCrew:
     _crew_results: list
 
     def __init__(self, workflow_llm: LLM, writer_llm: LLM, token: str = None) -> None:
+        if not token:
+            raise ValueError("KBase auth token must be provided")
+
         self._workflow_llm = workflow_llm
         self._crew_results = []
         self._token = token
@@ -47,13 +50,12 @@ class JobCrew:
             self._metadata.agent,
             self._writer.agent
         ]
-
     def start_job(self, app_name: str, input_object_upa: str, narrative_id: int, app_id: str|None=None) -> CrewOutput:
         """
         Starts the job from a given app name (note this isn't the ID. Name like "Prokka" not id like "ProkkaAnnotation/annotate_contigs")
         and input object to be run in a given narrative.
         """
-        ws = Workspace()
+        ws = Workspace(token=self._token)
         object_info = ws.get_object_info(input_object_upa)
         self._tasks = self.build_tasks(app_id, narrative_id, object_info)
         crew = Crew(

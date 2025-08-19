@@ -27,14 +27,13 @@ class AnalysisWorkflow:
             writer_llm = "gpt-4.1-mini-cborg"
         if embedding_provider is None:
             embedding_provider = "cborg"
-        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=kbase_token, analyst_token=analyst_token, validator_token=validator_token, app_flow_token=app_flow_token, writer_token=writer_token, embedding_provider_token=embedding_provider_token)
+        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=kbase_token, analyst_token=analyst_token, validator_token=validator_token, app_flow_token=app_flow_token, writer_token=writer_token, embedding_token=embedding_provider_token)
         self.graph = self._build_graph()
 
     def _build_graph(self):
         """Build the workflow graph for genome analysis with human approval."""
         # Create a new graph
         planning_graph = StateGraph(WorkflowState)
-
         # Add the nodes
         planning_graph.add_node("analyst", self.nodes.analyst_node)
         planning_graph.add_node("human_approval", self.nodes.human_approval_node)
@@ -82,7 +81,6 @@ class AnalysisWorkflow:
             "human_approval_status": None,
             "human_feedback": None,
         }
-
         # Execute the graph and get the final state
         final_state = self.graph.invoke(initial_state)
         return final_state
@@ -149,7 +147,7 @@ class ExecutionWorkflow:
             writer_llm = "gpt-4.1-mini-cborg"
         if embedding_provider is None:
             embedding_provider = "cborg"
-        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=kbase_token, analyst_token=analyst_token, validator_token=validator_token, app_flow_token=app_flow_token, writer_token=writer_token, embedding_provider_token=embedding_provider_token)
+        self.nodes = WorkflowNodes(analyst_llm, validator_llm, app_flow_llm, writer_llm, embedding_provider, token=kbase_token, analyst_token=analyst_token, validator_token=validator_token, app_flow_token=app_flow_token, writer_token=writer_token, embedding_token=embedding_provider_token)
         self.graph = self._build_graph()
 
     def _build_graph(self):
