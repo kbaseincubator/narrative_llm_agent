@@ -1,25 +1,25 @@
 import dash
-from dash import dcc, html, Input, Output, State
+from dash import dcc, html, Input, Output, State, callback_context
 import dash_bootstrap_components as dbc
 import os
 from dotenv import find_dotenv, load_dotenv
 from langchain.load import dumps, loads
 from langchain_core.messages import AIMessage, HumanMessage
 from narrative_llm_agent.kbase.clients.auth import KBaseAuth
-from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
 from narrative_llm_agent.user_interface.components.credentials import create_credentials_form
-from narrative_llm_agent.user_interface.components.metadata_agent_format import format_agent_response, format_list_item_content
-
+from narrative_llm_agent.user_interface.components.analysis_setup import create_analysis_input_form
+from narrative_llm_agent.user_interface.components.analysis_approval import create_approval_interface
+from narrative_llm_agent.user_interface.components.metadata_agent_format import format_agent_response
 from narrative_llm_agent.util.json_util import make_json_serializable
 from narrative_llm_agent.agents.metadata_lang import MetadataAgent
 from narrative_llm_agent.config import get_llm
-# from narrative_llm_agent.util.metadata import (extract_metadata_from_conversation,
-#                                                    check_metadata_completion,
-#                                                    generate_description_from_metadata,
-#                                                    process_metadata_chat)
+from narrative_llm_agent.util.metadata_util import (extract_metadata_from_conversation,
+                                                   check_metadata_completion,
+                                                   generate_description_from_metadata,
+                                                   process_metadata_chat)
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_INSTANCES
 from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
-
+from datetime import datetime
 # ----------------------------
 # Setup API keys
 dotenv_path = find_dotenv()
@@ -38,11 +38,25 @@ analysis_history = []
 metadata_agent_executor = None
 
 # Initialize metadata agent
-def initialize_metadata_agent():
+def initialize_metadata_agent(credentials):
     """Initialize the metadata collection agent"""
-    llm = get_llm("gpt-4.1-cborg")
+    
+    # Get credentials and set environment variables
+    kb_auth_token = credentials.get("kb_auth_token", "")
+    provider = credentials.get("provider", "openai")
 
-    metadata_agent = MetadataAgent(llm=llm)
+    if provider == "cborg":
+        api_key = credentials.get("cborg_api_key")
+        used_llm = "gpt-4.1-cborg"
+    else:
+        api_key = credentials.get("openai_api_key")
+        used_llm = "gpt-4o-openai"
+
+    metadata_llm = "gpt-4.1-cborg"
+
+    llm = get_llm(metadata_llm,api_key=api_key)
+    print(f"Using LLM: {metadata_llm} with API key: {api_key}")
+    metadata_agent = MetadataAgent(llm=llm, token=kb_auth_token)
     global metadata_agent_executor
     if not metadata_agent_executor:
         metadata_agent_executor = metadata_agent.agent_executor
@@ -50,6 +64,7 @@ def initialize_metadata_agent():
 
 def run_analysis_planning(narrative_id, reads_id, description, credentials):
     """Run the analysis planning phase only"""
+    
     try:
         # Get credentials and set environment variables
         kb_auth_token = credentials.get("kb_auth_token", "")
@@ -89,21 +104,20 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
             }
 
         AnalysisWorkflow = result["AnalysisWorkflow"]
-
+        
         # Create workflow instance
         workflow = AnalysisWorkflow(
             analyst_llm=used_llm,
             analyst_token=api_key,
             app_flow_llm=used_llm,
             app_flow_token=api_key,
-            token=kb_auth_token,
+            kbase_token=kb_auth_token,
         )
 
         # Run the planning phase only
         workflow_state = workflow.run(
             narrative_id=narrative_id, reads_id=reads_id, description=description
         )
-
         # Store workflow instance globally
         workflow_key = f"{narrative_id}_{reads_id}"
         WORKFLOW_INSTANCES[workflow_key] = workflow
@@ -119,7 +133,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
         }
 
     except Exception as e:
-        result = {
+        return {
             "narrative_id": narrative_id,
             "reads_id": reads_id,
             "description": description,
@@ -360,7 +374,7 @@ def interact_with_metadata_agent(submit_clicks, clear_clicks, start_clicks, user
 
     try:
         # Initialize metadata agent
-        agent_executor = initialize_metadata_agent()
+        agent_executor = initialize_metadata_agent(credentials=credentials)
 
         # Handle clear chat
         if ctx.triggered_id == "metadata-clear-btn":
@@ -500,7 +514,86 @@ def populate_form_from_metadata(collected_data):
         collected_data.get("description", ""),
     )
 
+#here we run the analysis planning callback
+# Proceed to analysis planning from metadata collection
+@app.callback(
+    [
+        Output("workflow-state-store", "data"),
+        Output("analysis-results", "children"),
+    ],
+    [
+        Input("proceed-to-analysis-btn", "n_clicks"),
+    ],
+    [
+        State(CREDENTIALS_STORE, "data"),
+        State("collected-metadata", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def run_analysis_planning_callback(proceed_clicks, credentials, collected_metadata):
+    ctx = callback_context
+    if not ctx.triggered:
+        return {}, html.Div()
+    
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if not credentials or not credentials.get("kb_auth_token"):
+        return {}, dbc.Alert("Please configure your credentials first.", color="warning")
+    
+    # Determine source of data (metadata collection vs manual input)
+    if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
+        narrative_id = collected_metadata.get("narrative_id")
+        reads_id = collected_metadata.get("reads_id")
+        description = collected_metadata.get("description")
+        source = "Metadata Collection Agent"
+        
+        # Ensure description is valid
+        if not description or description.strip() == "":
+            description = """The user has uploaded paired-end sequencing reads into the narrative. Here is the metadata for the reads:
+sequencing_technology: Illumina sequencing
+organism: Bacillus subtilis sp. strain UAMC
+genome type: isolate
 
+I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
+The goal is to have a complete annotated genome and classify the microbe."""
+    else:
+        return {}, html.Div()
+    
+    if not narrative_id or not reads_id:
+        return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
+    
+    # Run the analysis planning
+    result = run_analysis_planning(narrative_id, reads_id, description, credentials)
+    
+    # Update analysis history
+    global analysis_history
+    analysis_history.append({
+        "timestamp": datetime.now().isoformat(),
+        "narrative_id": narrative_id,
+        "reads_id": reads_id,
+        "status": result.get("status", "unknown"),
+        "error": result.get("error"),
+        "source": source,
+    })
+    
+    # Create appropriate display based on result
+    if result.get("status") == "awaiting_approval":
+        display_component = dbc.Card([
+            dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
+            dbc.CardBody([
+                dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
+                create_approval_interface(result["workflow_state"])
+            ])
+        ])
+        return result, display_component
+    
+    elif result.get("status") == "error":
+        error_component = dbc.Alert(f"❌ Error: {result.get('error', 'Unknown error')}", color="danger")
+        return result, error_component
+    else:
+        unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
+        return result, unknown_component
+    #return {}, html.Div("Test")
 # Display execution results
 @app.callback(
     Output("analysis-results", "children", allow_duplicate=True),
@@ -539,10 +632,10 @@ def handle_feedback_submission(n_clicks, feedback_text):
 @app.callback(
     Output("mra-results", "children"),
     Input("generate-mra-btn", "n_clicks"),
-    [State(CREDENTIALS_STORE, "data"), State("narrative-id", "value"), State("collected-metadata", "data")],
+    [State(CREDENTIALS_STORE, "data"), State("collected-metadata", "data")],
     prevent_initial_call=True,
 )
-def generate_mra(n_clicks, credentials, manual_narrative_id, collected_metadata):
+def generate_mra(n_clicks, credentials, collected_metadata):
     if not n_clicks or n_clicks == 0:
         return html.Div()
 
@@ -551,8 +644,6 @@ def generate_mra(n_clicks, credentials, manual_narrative_id, collected_metadata)
         narrative_id = None
         if collected_metadata and collected_metadata.get("narrative_id"):
             narrative_id = collected_metadata["narrative_id"]
-        elif manual_narrative_id:
-            narrative_id = manual_narrative_id
 
         if not narrative_id:
             return dbc.Alert("❌ No narrative ID available for MRA generation", color="danger")
@@ -575,7 +666,6 @@ def generate_mra(n_clicks, credentials, manual_narrative_id, collected_metadata)
             return dbc.Alert(f"❌ Error generating MRA: {str(e)}", color="danger")
 
     return html.Div()
-
 
 # ----------------------------
 # Launch App

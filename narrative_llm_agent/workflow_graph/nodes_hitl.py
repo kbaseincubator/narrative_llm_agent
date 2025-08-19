@@ -100,16 +100,16 @@ class WorkflowNodes:
         try:
             # Get the existing description from the state
             description = state.description
-
+            
             # Initialize the analyst agent
             llm = get_llm(self._analyst_llm, api_key=self._analyst_token)
-
+            print(f"Using LLM: {self._analyst_llm} with llm: {llm}")
             analyst_expert = AnalystAgent(
-                llm,
-                self._embedding_provider,
-                token=self.token,
-            )
-
+                    llm = llm,
+                    provider = self._embedding_provider,
+                    api_key=self._analyst_token,
+                    token=self.token,
+                )
             # Create combined description for the agent
             description_complete = description + """/nThis analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
                     - The analysis steps should begin with read quality assessment.
@@ -140,6 +140,7 @@ class WorkflowNodes:
             # with open(file_path, 'r') as file:
             #     workflow_data = json.load(file)
             # analysis_plan = workflow_data.get("steps", [])[:1]
+            # print(f"Analysis plan: {analysis_plan}")
             # Return updated state with analysis plan and awaiting approval flag
             return state.model_copy(update={
                 "steps_to_run": analysis_plan,

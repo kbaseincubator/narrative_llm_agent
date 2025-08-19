@@ -3,7 +3,7 @@ import os
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
-from langchain_core.language_models.llms import LLM
+from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 from narrative_llm_agent.tools.narrative_tools import create_markdown_cell
 from narrative_llm_agent.tools.workspace_tools import get_object_metadata
@@ -28,16 +28,15 @@ class MetadataAgent(KBaseAgent):
         "You are friendly and skilled at interaction with users to make sure that they've provided necessary "
         "information to make sure a project is successful before it begins."
     )
-
     def __init__(
         self: "MetadataAgent",
-        llm: LLM,
+        llm: ChatOpenAI,
         token: str = None,
     ) -> None:
         super().__init__(llm, token=token)
         self.current_user_input = None
         self.__init_agent()
-
+    
     def __init_agent(self) -> None:
         @tool("get-user-input")
         def get_user_input_tool(prompt: str) -> str:

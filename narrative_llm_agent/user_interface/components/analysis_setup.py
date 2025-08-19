@@ -212,87 +212,90 @@ def create_analysis_input_form(analysis_fn: Callable):
         html_value = converter.convert(log_value, full=False)
         return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
 
-    # Callback for running analysis planning
-    @callback(
-        [
-            Output(WORKFLOW_STORE, "data"),
-            Output("analysis-results", "children"),
-        ],  # Remove the analysis-loading output
-        [
-            Input("proceed-to-analysis-btn", "n_clicks"),
-            Input("run-analysis-btn", "n_clicks"),
-        ],
-        [
-            State(CREDENTIALS_STORE, "data"),
-            State("collected-metadata", "data"),
-            State("narrative-id", "value"),
-            State("reads-id", "value"),
-            State("description", "value"),
-        ],
-        prevent_initial_call=True,
-    )
-    def run_analysis_planning_callback(
-        proceed_clicks: int, manual_clicks: int, credentials, collected_metadata, narrative_id: str, reads_id: str, manual_description: str
-    ):
-        ctx = callback_context
-        if not ctx.triggered:
-            return {}, html.Div()
+    # # Callback for running analysis planning
+    # @callback(
+    #     [
+    #         Output(WORKFLOW_STORE, "data"),
+    #         Output("analysis-results", "children"),
+    #     ],  # Remove the analysis-loading output
+    #     [
+    #         #Input("proceed-to-analysis-btn", "n_clicks"),
+    #         Input("run-analysis-btn", "n_clicks"),
+    #     ],
+    #     [
+    #         State(CREDENTIALS_STORE, "data"),
+    #         #State("collected-metadata", "data"),
+    #         State("narrative-id", "value"),
+    #         State("reads-id", "value"),
+    #         State("description", "value"),
+    #     ],
+    #     prevent_initial_call=True,
+    # )
+    # def run_analysis_planning_callback(manual_clicks: int, credentials, narrative_id: str, reads_id: str, manual_description: str
+    # ):
+    #     ctx = callback_context
+    #     if not ctx.triggered:
+    #         return {}, html.Div()
 
-        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    #     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        if not credentials or not credentials.get("kb_auth_token"):
-            return {}, dbc.Alert("Please configure your credentials first.", color="warning")
-        if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
-            narrative_id = collected_metadata.get("narrative_id")
-            reads_id = collected_metadata.get("reads_id")
-            description = collected_metadata.get("description")
-            source = "Metadata Collection Agent"
-        elif button_id == "run-analysis-btn" and manual_clicks:
-            narrative_id = narrative_id or "217789"
-            reads_id = reads_id or "217789/2/1"
-            description = manual_description
-            source = "Manual Input"
-        else:
-            return {}, html.Div()
+    #     if not credentials or not credentials.get("kb_auth_token"):
+    #         return {}, dbc.Alert("Please configure your credentials first.", color="warning")
+    #     # if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
+    #     #     narrative_id = collected_metadata.get("narrative_id")
+    #     #     reads_id = collected_metadata.get("reads_id")
+    #     #     description = collected_metadata.get("description")
+    #     #     source = "Metadata Collection Agent"
+    #     # elif button_id == "run-analysis-btn" and manual_clicks:
+    #     #     narrative_id = narrative_id or "217789"
+    #     #     reads_id = reads_id or "217789/2/1"
+    #     #     description = manual_description
+    #     #     source = "Manual Input"
+    #     # else:
+    #     #     return {}, html.Div()
+    #     # Use manual input values
+    #     narrative_id = narrative_id or "217789"
+    #     reads_id = reads_id or "217789/2/1"
+    #     description = manual_description
+    #     source = "Manual Input"
+    #     if not description or not description.strip():
+    #         # fail here.
+    #         return {"error": "No analysis prompt found"}, dbc.Alert(
+    #             "Error: No analysis prompt found!", color="danger"
+    #         )
 
-        if not description or not description.strip():
-            # fail here.
-            return {"error": "No analysis prompt found"}, dbc.Alert(
-                "Error: No analysis prompt found!", color="danger"
-            )
+    #     if not narrative_id or not reads_id:
+    #         return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
 
-        if not narrative_id or not reads_id:
-            return {}, dbc.Alert("Missing narrative ID or reads ID. Please complete metadata collection or manual input.", color="warning")
+    #     print('starting analysis runner')
+    #     def analysis_runner():
+    #         return analysis_fn(narrative_id, reads_id, description, credentials)
 
-        print('starting analysis runner')
-        def analysis_runner():
-            return analysis_fn(narrative_id, reads_id, description, credentials)
+    #     # Run the analysis planning
+    #     with StreamRedirector(log_buffer):
+    #         print(datetime.now())
+    #         print(narrative_id)
+    #         print(reads_id)
+    #         print(description)
+    #         # TODO: convert to thread
+    #         result = analysis_runner()
 
-        # Run the analysis planning
-        with StreamRedirector(log_buffer):
-            print(datetime.now())
-            print(narrative_id)
-            print(reads_id)
-            print(description)
-            # TODO: convert to thread
-            result = analysis_runner()
+    #     # Create appropriate display based on result
+    #     if result.get("status") == "awaiting_approval":
+    #         display_component = dbc.Card([
+    #             dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
+    #             dbc.CardBody([
+    #                 dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
+    #                 create_approval_interface(result["workflow_state"])
+    #             ])
+    #         ])
+    #         return result, display_component
 
-        # Create appropriate display based on result
-        if result.get("status") == "awaiting_approval":
-            display_component = dbc.Card([
-                dbc.CardHeader(f"✅ Analysis Plan Generated (via {source})"),
-                dbc.CardBody([
-                    dbc.Alert(f"Successfully generated analysis plan using data from: {source}", color="success"),
-                    create_approval_interface(result["workflow_state"])
-                ])
-            ])
-            return result, display_component
+    #     elif result.get("status") == "error":
+    #         error_component = dbc.Alert(f"❌ Error: {result.get('error', 'Unknown error')}", color="danger")
+    #         return result, error_component
+    #     else:
+    #         unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
+    #         return result, unknown_component
 
-        elif result.get("status") == "error":
-            error_component = dbc.Alert(f"❌ Error: {result.get('error', 'Unknown error')}", color="danger")
-            return result, error_component
-        else:
-            unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
-            return result, unknown_component
-
-    return layout
+    # return layout
