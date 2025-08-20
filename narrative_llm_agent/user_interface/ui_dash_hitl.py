@@ -731,9 +731,9 @@ def run_analysis_planning_callback(proceed_clicks, credentials, collected_metada
         )
 
     # Determine source of data (metadata collection vs manual input)
-    if button_id == "proceed-to-analysis-btn" and proceed_clicks: # and collected_metadata:
-        narrative_id = collected_metadata.get("narrative_id", 225127)
-        reads_id = collected_metadata.get("reads_id", "225127/2/1")
+    if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
+        narrative_id = collected_metadata.get("narrative_id")
+        reads_id = collected_metadata.get("reads_id")
         description = collected_metadata.get("description")
         source = "Metadata Collection Agent"
 
