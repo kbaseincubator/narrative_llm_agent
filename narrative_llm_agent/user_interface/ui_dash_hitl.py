@@ -1,4 +1,6 @@
+import json
 from io import StringIO
+import uuid
 from ansi2html import Ansi2HTMLConverter
 import dash
 from dash import ctx, dcc, html, Input, Output, State, callback_context
@@ -31,6 +33,7 @@ from narrative_llm_agent.util.metadata_util import (
 )
 from narrative_llm_agent.user_interface.constants import (
     CREDENTIALS_STORE,
+    SESSION_ID_STORE,
     WORKFLOW_INSTANCES,
 )
 from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
@@ -368,58 +371,64 @@ def create_execution_display(execution_result):
 # ----------------------------
 # App Layout
 
-app.layout = dbc.Container(
-    [
-        dcc.Store(id=CREDENTIALS_STORE),
-        dcc.Store(id="workflow-state-store"),
-        dcc.Store(id="execution-state-store"),
-        dcc.Store(id="analysis-history-store", data=[]),
-        # Header
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.H1("🧬 KBase Research Agent", className="display-4 mb-4"),
-                        html.P(
-                            "Automated genome analysis workflows with intelligent metadata collection",
-                            className="lead",
-                        ),
-                    ]
-                )
-            ],
-            className="mb-4",
-        ),
-        # Main content
-        html.Div(
-            id="main-content",
-            children=[
-                create_credentials_form(),
-                html.Br(),
-                # Metadata Collection Interface
-                create_metadata_collection_interface(),
-                html.Br(),
-                # Manual Input Form (backup/override)
-                dbc.Collapse(
-                    create_analysis_input_form(run_analysis_planning),
-                    id="manual-form-collapse",
-                    is_open=False,
-                ),
-                dbc.Button(
-                    "Show Manual Input Form",
-                    id="toggle-manual-form",
-                    color="link",
-                    size="sm",
-                ),
-                html.Br(),
-                create_analysis_output_display(),
-                html.Br(),
-                # Analysis Results
-                html.Div(id="analysis-results"),
-            ],
-        ),
-    ],
-    fluid=True,
-)
+def create_main_layout():
+    session_id = str(uuid.uuid4())
+    layout = dbc.Container(
+        [
+            dcc.Store(id=CREDENTIALS_STORE),
+            dcc.Store(id="workflow-state-store"),
+            dcc.Store(id="execution-state-store"),
+            dcc.Store(id="analysis-history-store", data=[]),
+            dcc.Store(id=SESSION_ID_STORE, data=session_id),
+            # Header
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.H1("🧬 KBase Research Agent", className="display-4 mb-4"),
+                            html.P(
+                                "Automated genome analysis workflows with intelligent metadata collection",
+                                className="lead",
+                            ),
+                        ]
+                    )
+                ],
+                className="mb-4",
+            ),
+            # Main content
+            html.Div(
+                id="main-content",
+                children=[
+                    create_credentials_form(),
+                    html.Br(),
+                    # Metadata Collection Interface
+                    create_metadata_collection_interface(),
+                    html.Br(),
+                    # Manual Input Form (backup/override)
+                    dbc.Collapse(
+                        create_analysis_input_form(run_analysis_planning),
+                        id="manual-form-collapse",
+                        is_open=False,
+                    ),
+                    dbc.Button(
+                        "Show Manual Input Form",
+                        id="toggle-manual-form",
+                        color="link",
+                        size="sm",
+                    ),
+                    html.Br(),
+                    create_analysis_output_display(),
+                    html.Br(),
+                    # Analysis Results
+                    html.Div(id="analysis-results"),
+                ],
+            ),
+        ],
+        fluid=True,
+    )
+    return layout
+
+app.layout = create_main_layout()
 
 # ----------------------------
 # Callbacks
@@ -697,6 +706,7 @@ analysis_log_buffer = StringIO()
     prevent_initial_call=True,
 )
 def update_log(_):
+    print("updating analysis log")
     log_value = analysis_log_buffer.getvalue()
     html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
     return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
@@ -708,6 +718,7 @@ def update_log(_):
     [
         Output("workflow-state-store", "data"),
         Output("analysis-results", "children"),
+        Output("auto-analysis-log-poller", "disabled", allow_duplicate=True)
     ],
     [
         Input("proceed-to-analysis-btn", "n_clicks"),
@@ -715,25 +726,26 @@ def update_log(_):
     [
         State(CREDENTIALS_STORE, "data"),
         State("collected-metadata", "data"),
+        State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
 )
-def run_analysis_planning_callback(proceed_clicks, credentials, collected_metadata):
+def run_analysis_planning_callback(proceed_clicks, credentials, collected_metadata, session_id):
     ctx = callback_context
     if not ctx.triggered:
-        return {}, html.Div()
+        return {}, html.Div(), True
 
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if not credentials or not credentials.get("kb_auth_token"):
         return {}, dbc.Alert(
             "Please configure your credentials first.", color="warning"
-        )
+        ), True
 
     # Determine source of data (metadata collection vs manual input)
-    if button_id == "proceed-to-analysis-btn" and proceed_clicks and collected_metadata:
-        narrative_id = collected_metadata.get("narrative_id")
-        reads_id = collected_metadata.get("reads_id")
+    if button_id == "proceed-to-analysis-btn" and proceed_clicks: # and collected_metadata:
+        narrative_id = collected_metadata.get("narrative_id", 225127)
+        reads_id = collected_metadata.get("reads_id", "225127/2/1")
         description = collected_metadata.get("description")
         source = "Metadata Collection Agent"
 
@@ -747,7 +759,7 @@ genome type: isolate
 I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
 The goal is to have a complete annotated genome and classify the microbe."""
     else:
-        return {}, html.Div()
+        return {}, html.Div(), True
 
     print(f"got narrative id {narrative_id}")
     print(f"got obj id {reads_id}")
@@ -758,13 +770,18 @@ The goal is to have a complete annotated genome and classify the microbe."""
         return {}, dbc.Alert(
             "Missing narrative ID or reads ID. Please complete metadata collection or manual input.",
             color="warning",
-        )
+        ), True
 
     # Run the analysis planning
-    print(f"buffer = {analysis_log_buffer}")
+    print(f"analysis buffer = {analysis_log_buffer}")
     with StreamRedirector(analysis_log_buffer):
         print("Starting KBase workflow planning")
-        result = run_analysis_planning(narrative_id, reads_id, description, credentials)
+        print("Skipping planning")
+        with open(os.path.dirname(os.path.abspath(__file__)) + "/temp.json") as in_json:
+            result = json.load(in_json)
+        # result = run_analysis_planning(narrative_id, reads_id, description, credentials)
+
+
 
     # Update analysis history
     global analysis_history
@@ -790,24 +807,23 @@ The goal is to have a complete annotated genome and classify the microbe."""
                             f"Successfully generated analysis plan using data from: {source}",
                             color="success",
                         ),
-                        create_approval_interface(result["workflow_state"]),
+                        create_approval_interface(result["workflow_state"], session_id),
                     ]
                 ),
             ]
         )
-        return result, display_component
+        return result, display_component, True
 
     elif result.get("status") == "error":
         error_component = dbc.Alert(
             f"❌ Error: {result.get('error', 'Unknown error')}", color="danger"
         )
-        return result, error_component
+        return result, error_component, True
     else:
         unknown_component = dbc.Alert(
             f"⚠️ Unexpected status: {result.get('status')}", color="warning"
         )
-        return result, unknown_component
-    # return {}, html.Div("Test")
+        return result, unknown_component, True
 
 
 # Display execution results
