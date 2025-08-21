@@ -173,7 +173,6 @@ def create_credentials_form() -> dbc.Accordion:
         Input(provider_id, "value")
     )
     def toggle_api_title(provider):
-        print("toggling api header")
         if provider == "openai":
             return "OpenAI API Key", "Enter your OpenAI API key"
         else:

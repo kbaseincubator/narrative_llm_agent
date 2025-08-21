@@ -1,4 +1,3 @@
-import json
 from io import StringIO
 import uuid
 from ansi2html import Ansi2HTMLConverter
@@ -6,7 +5,6 @@ import dash
 from dash import ctx, dcc, html, Input, Output, State, callback_context
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
-import os
 from dotenv import find_dotenv, load_dotenv
 from langchain.load import dumps, loads
 from langchain_core.messages import AIMessage, HumanMessage
@@ -24,8 +22,7 @@ from narrative_llm_agent.user_interface.components.analysis_approval import (
 from narrative_llm_agent.user_interface.components.metadata_agent_format import (
     format_agent_response,
 )
-from narrative_llm_agent.agents.metadata_lang import MetadataAgent
-from narrative_llm_agent.config import get_llm
+from narrative_llm_agent.user_interface.workflow_runners import generate_mra_draft, initialize_metadata_agent, run_analysis_planning
 from narrative_llm_agent.util.metadata_util import (
     check_metadata_completion,
     generate_description_from_metadata,
@@ -34,10 +31,11 @@ from narrative_llm_agent.util.metadata_util import (
 from narrative_llm_agent.user_interface.constants import (
     CREDENTIALS_STORE,
     SESSION_ID_STORE,
-    WORKFLOW_INSTANCES,
 )
-from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
 from datetime import datetime
+
+# TODO: move this somewhere else
+ANALYSIS_LOG_BUFFERS = {}
 
 # ----------------------------
 # Setup API keys
@@ -55,161 +53,6 @@ app.title = "KBase Research Agent"
 
 # Global variables
 analysis_history = []
-metadata_agent_executor = None
-
-
-# Initialize metadata agent
-def initialize_metadata_agent(credentials):
-    """Initialize the metadata collection agent"""
-
-    # Get credentials and set environment variables
-    kb_auth_token = credentials.get("kb_auth_token", "")
-    provider = credentials.get("provider", "openai")
-
-    if provider == "cborg":
-        api_key = credentials.get("cborg_api_key")
-        used_llm = "gpt-4.1-cborg"
-    else:
-        api_key = credentials.get("openai_api_key")
-        used_llm = "gpt-4o-openai"
-
-    llm = get_llm(used_llm, api_key=api_key)
-    print(f"Using LLM: {used_llm} with API key: {api_key}")
-    metadata_agent = MetadataAgent(llm=llm, token=kb_auth_token)
-    global metadata_agent_executor
-    if not metadata_agent_executor:
-        metadata_agent_executor = metadata_agent.agent_executor
-    return metadata_agent_executor
-
-
-def run_analysis_planning(narrative_id, reads_id, description, credentials):
-    """Run the analysis planning phase only"""
-
-    try:
-        # Get credentials and set environment variables
-        kb_auth_token = credentials.get("kb_auth_token", "")
-        provider = credentials.get("provider", "openai")
-
-        if provider == "cborg":
-            api_key = credentials.get("cborg_api_key")
-            used_llm = "gpt-4.1-cborg"
-        else:
-            api_key = credentials.get("openai_api_key")
-            used_llm = "gpt-4o-openai"
-
-        # Set Neo4j environment variables if they exist
-        # TODO: should probably be globally set at startup.
-        neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
-        neo4j_username = credentials.get(
-            "neo4j_username", os.environ.get("NEO4J_USERNAME", "")
-        )
-        neo4j_password = credentials.get(
-            "neo4j_password", os.environ.get("NEO4J_PASSWORD", "")
-        )
-
-        if neo4j_uri:
-            os.environ["NEO4J_URI"] = neo4j_uri
-        if neo4j_username:
-            os.environ["NEO4J_USERNAME"] = neo4j_username
-        if neo4j_password:
-            os.environ["NEO4J_PASSWORD"] = neo4j_password
-
-        # Load the KBase classes
-        success, result = load_kbase_classes()
-        if not success:
-            print(f"Error loading KBase classes: {result}")
-            return {
-                "narrative_id": narrative_id,
-                "reads_id": reads_id,
-                "description": description,
-                "workflow_state": None,
-                "error": result,
-                "status": "error",
-            }
-
-        AnalysisWorkflow = result["AnalysisWorkflow"]
-
-        # Create workflow instance
-        workflow = AnalysisWorkflow(
-            analyst_llm=used_llm,
-            analyst_token=api_key,
-            app_flow_llm=used_llm,
-            app_flow_token=api_key,
-            kbase_token=kb_auth_token,
-        )
-
-        # Run the planning phase only
-        workflow_state = workflow.run(
-            narrative_id=narrative_id, reads_id=reads_id, description=description
-        )
-        # Store workflow instance globally
-        workflow_key = f"{narrative_id}_{reads_id}"
-        WORKFLOW_INSTANCES[workflow_key] = workflow
-
-        return {
-            "narrative_id": narrative_id,
-            "reads_id": reads_id,
-            "description": description,
-            "workflow_state": workflow_state,
-            "workflow_key": workflow_key,
-            "error": workflow_state.get("error"),
-            "status": "awaiting_approval"
-            if workflow_state.get("awaiting_approval")
-            else "completed",
-        }
-
-    except Exception as e:
-        return {
-            "narrative_id": narrative_id,
-            "reads_id": reads_id,
-            "description": description,
-            "workflow_state": None,
-            "error": str(e),
-            "status": "error",
-        }
-
-
-def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
-    """Generate MRA draft using the MraWriterGraph"""
-    kbase_token = credentials.get("kb_auth_token")
-    provider = credentials.get("provider")
-    if provider == "cborg":
-        api_key = credentials.get("cborg_api_key")
-        writer_llm = "gpt-o1-cborg"
-    else:
-        api_key = credentials.get("openai_api_key")
-        writer_llm = "gpt-o1-openai"
-
-    try:
-        # Load the KBase classes
-        success, result = load_kbase_classes()
-        if not success:
-            return {"mra_draft": None, "error": result}
-
-        MraWriterGraph = result["MraWriterGraph"]
-        Workspace = result["Workspace"]
-        ExecutionEngine = result["ExecutionEngine"]
-
-        # Create KBase clients
-        ws_client = Workspace()
-        ee_client = ExecutionEngine()
-
-        # Create MRA writer
-        mra_writer = MraWriterGraph(
-            ws_client, ee_client, writer_llm, writer_token=api_key, token=kbase_token
-        )
-
-        # Run the MRA workflow
-        mra_writer.run_workflow(narrative_id)
-
-        return {
-            "mra_draft": "The MRA draft has been successfully generated.",
-            "error": None,
-        }
-
-    except Exception as e:
-        return {"mra_draft": None, "error": str(e)}
-
 
 # ----------------------------
 # UI Components
@@ -473,7 +316,7 @@ def interact_with_metadata_agent(
 ):
     try:
         # Initialize metadata agent
-        agent_executor = initialize_metadata_agent(credentials=credentials)
+        agent_executor = initialize_metadata_agent(credentials)
 
         # Handle clear chat
         if ctx.triggered_id == "metadata-clear-btn":
@@ -692,9 +535,6 @@ def start_analysis_poller(n_clicks):
     return (False if n_clicks else True), {}
 
 
-analysis_log_buffer = StringIO()
-
-
 @app.callback(
     [
         Output("auto-analysis-log-output", "children"),
@@ -703,13 +543,16 @@ analysis_log_buffer = StringIO()
     [
         Input("auto-analysis-log-poller", "n_intervals"),
     ],
+    [
+        State(SESSION_ID_STORE, "data")
+    ],
     prevent_initial_call=True,
 )
-def update_log(_):
-    print("updating analysis log")
-    log_value = analysis_log_buffer.getvalue()
-    html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
-    return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
+def update_log(_, session_id):
+    if session_id in ANALYSIS_LOG_BUFFERS:
+        log_value = ANALYSIS_LOG_BUFFERS[session_id].getvalue()
+        html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
+        return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
 
 
 # here we run the analysis planning callback
@@ -731,6 +574,9 @@ def update_log(_):
     prevent_initial_call=True,
 )
 def run_analysis_planning_callback(proceed_clicks, credentials, collected_metadata, session_id):
+    if session_id not in ANALYSIS_LOG_BUFFERS:
+        ANALYSIS_LOG_BUFFERS[session_id] = StringIO()
+
     ctx = callback_context
     if not ctx.triggered:
         return {}, html.Div(), True
@@ -768,13 +614,13 @@ The goal is to have a complete annotated genome and classify the microbe."""
         ), True
 
     # Run the analysis planning
-    with StreamRedirector(analysis_log_buffer):
+    with StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id]):
         print("Starting KBase workflow planning")
         # with open(os.path.dirname(os.path.abspath(__file__)) + "/temp.json") as in_json:
         #     result = json.load(in_json)
         result = run_analysis_planning(narrative_id, reads_id, description, credentials)
 
-
+    del ANALYSIS_LOG_BUFFERS[session_id]
 
     # Update analysis history
     global analysis_history
