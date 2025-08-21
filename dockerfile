@@ -31,16 +31,21 @@ COPY . .
 # Set the PYTHONPATH environment variable
 ENV PYTHONPATH=/app
 
+# Create user and give ownership of database directories 
+RUN mkdir -p /home/agent_runner && \
+    useradd agent_runner -u96921 -d/home/agent_runner && \
+    chown -R agent_runner:agent_runner /home/agent_runner && \
+    chown -R agent_runner:agent_runner /app/narrative_llm_agent/agents/ && \
+    chmod -R 775 /app/narrative_llm_agent/agents/
+
 # Change the working directory to where app.py is located
 WORKDIR /app/narrative_llm_agent/user_interface
 
 # Expose the port the app runs on
-EXPOSE 8501
+EXPOSE 8050
 
-RUN mkdir -p /home/agent_runner && \
-    useradd agent_runner -u96921 -d/home/agent_runner && \
-    chown 96921 /home/agent_runner
-
+# Switch to the non-root user 
+USER agent_runner
 
 # Command to run the app
-CMD ["poetry", "run", "streamlit", "run", "genome_annotation_pipeline_streamlit.py"]
+CMD ["poetry", "run", "python", "ui_dash_hitl.py"]
