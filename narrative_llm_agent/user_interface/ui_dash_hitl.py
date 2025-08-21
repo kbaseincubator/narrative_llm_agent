@@ -744,8 +744,8 @@ def run_analysis_planning_callback(proceed_clicks, credentials, collected_metada
 
     # Determine source of data (metadata collection vs manual input)
     if button_id == "proceed-to-analysis-btn" and proceed_clicks: # and collected_metadata:
-        narrative_id = collected_metadata.get("narrative_id", 225127)
-        reads_id = collected_metadata.get("reads_id", "225127/2/1")
+        narrative_id = collected_metadata.get("narrative_id")
+        reads_id = collected_metadata.get("reads_id")
         description = collected_metadata.get("description")
         source = "Metadata Collection Agent"
 
@@ -761,11 +761,6 @@ The goal is to have a complete annotated genome and classify the microbe."""
     else:
         return {}, html.Div(), True
 
-    print(f"got narrative id {narrative_id}")
-    print(f"got obj id {reads_id}")
-    print("got description")
-    print(description)
-
     if not narrative_id or not reads_id:
         return {}, dbc.Alert(
             "Missing narrative ID or reads ID. Please complete metadata collection or manual input.",
@@ -773,13 +768,11 @@ The goal is to have a complete annotated genome and classify the microbe."""
         ), True
 
     # Run the analysis planning
-    print(f"analysis buffer = {analysis_log_buffer}")
     with StreamRedirector(analysis_log_buffer):
         print("Starting KBase workflow planning")
-        print("Skipping planning")
-        with open(os.path.dirname(os.path.abspath(__file__)) + "/temp.json") as in_json:
-            result = json.load(in_json)
-        # result = run_analysis_planning(narrative_id, reads_id, description, credentials)
+        # with open(os.path.dirname(os.path.abspath(__file__)) + "/temp.json") as in_json:
+        #     result = json.load(in_json)
+        result = run_analysis_planning(narrative_id, reads_id, description, credentials)
 
 
 
