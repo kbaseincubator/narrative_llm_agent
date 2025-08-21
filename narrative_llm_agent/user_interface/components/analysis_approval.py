@@ -1,18 +1,12 @@
 from io import StringIO
-import json
-import os
-import uuid
 from ansi2html import Ansi2HTMLConverter
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
-from dash import MATCH, dcc, callback_context, html, Input, Output, callback, State
+from dash import dcc, callback_context, html, Input, Output, callback, State
 
 from narrative_llm_agent.user_interface.streaming import StreamRedirector
-from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, SESSION_ID_STORE, WORKFLOW_INSTANCES, WORKFLOW_STORE
-from narrative_llm_agent.util.json_util import make_json_serializable
-from narrative_llm_agent.workflow_graph.graph_hitl import (
-    ExecutionWorkflow,
-)
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, SESSION_ID_STORE, WORKFLOW_STORE
+from narrative_llm_agent.user_interface.workflow_runners import run_analysis_execution
 
 APP_LOG_BUFFERS = {}
 
@@ -275,73 +269,5 @@ def update_app_log(_, session_id):
         html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
         return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
 
-
-def run_analysis_execution(workflow_state, credentials, workflow_key=None):
-    """Run the analysis execution phase after approval"""
-    try:
-        # Get credentials and set environment variables
-        kb_auth_token = credentials.get("kb_auth_token")
-        provider = credentials.get("provider", "openai")
-
-        if provider == "cborg":
-            used_llm = "gpt-4.1-cborg"
-            api_key = credentials.get("cborg_api_key")
-        else:
-            used_llm = "gpt-4o-openai"
-            api_key = credentials.get("openai_api_key")
-
-        # Set Neo4j environment variables if they exist
-        neo4j_uri = credentials.get("neo4j_uri", os.environ.get("NEO4J_URI", ""))
-        neo4j_username = credentials.get("neo4j_username", os.environ.get("NEO4J_USERNAME", ""))
-        neo4j_password = credentials.get("neo4j_password", os.environ.get("NEO4J_PASSWORD", ""))
-
-        if neo4j_uri:
-            os.environ["NEO4J_URI"] = neo4j_uri
-        if neo4j_username:
-            os.environ["NEO4J_USERNAME"] = neo4j_username
-        if neo4j_password:
-            os.environ["NEO4J_PASSWORD"] = neo4j_password
-
-        # Load the KBase classes
-        # success, result = load_kbase_classes()
-        # if not success:
-        #     return {"error": result, "status": "error"}
-
-        # ExecutionWorkflow = result["ExecutionWorkflow"]
-
-        # Create execution workflow instance
-        execution_workflow = ExecutionWorkflow(
-            analyst_llm=used_llm,
-            analyst_token=api_key,
-            validator_llm=used_llm,
-            validator_token=api_key,
-            app_flow_llm=used_llm,
-            app_flow_token=api_key,
-            writer_llm=used_llm,
-            writer_token=api_key,
-            kbase_token=kb_auth_token,
-        )
-
-        # Run the execution phase
-        final_state = execution_workflow.run(workflow_state)
-
-        # Make the final_state JSON serializable
-        final_state_serializable = make_json_serializable(final_state)
-        print("=== FINAL STATE ===")
-        print(json.dumps(final_state, indent=2, default=str))
-
-        # Clean up stored workflow instance if provided
-        if workflow_key and workflow_key in WORKFLOW_INSTANCES:
-            del WORKFLOW_INSTANCES[workflow_key]
-
-        return {
-            "final_state": final_state_serializable,
-            "error": final_state_serializable.get("error"),
-            "status": "completed" if final_state_serializable.get("results") else "error",
-        }
-
-    except Exception as e:
-        print(f"an error occurred: {e}")
-        return {"error": str(e), "status": "error"}
 
 
