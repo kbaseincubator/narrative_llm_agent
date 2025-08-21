@@ -298,4 +298,46 @@ def create_analysis_input_form(analysis_fn: Callable):
     #         unknown_component = dbc.Alert(f"⚠️ Unexpected status: {result.get('status')}", color="warning")
     #         return result, unknown_component
 
-    # return layout
+    return layout
+
+
+def create_analysis_output_display():
+    layout = dbc.Card(
+        [
+            dbc.CardHeader("Workflow analysis processing"),
+            dbc.CardBody([
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.Div([
+                                    dcc.Interval(id="auto-analysis-log-poller", interval=1000, disabled=True),
+                                    dcc.Store(id="auto-analysis-scroll-trigger"),
+                                    html.Div(
+                                        id="auto-analysis-log-output",
+                                        style={
+                                            "whiteSpace": "pre-wrap",
+                                            "height": "500px",
+                                            "overflowY": "auto",
+                                            "fontFamily": "monospace",
+                                            "border": "1px solid #dee2e6",
+                                            "padding": "0.375rem 0.75rem",
+                                            "fontSize": "1rem",
+                                            "borderRadius": "0.375rem",
+
+                                        },
+                                    ),
+                                ]),
+                            ]
+                        )
+                    ],
+                    id="auto-analysis-status",
+                    class_name="mt-3"
+                )
+            ])
+        ],
+        id="auto-analysis-container",
+        style={"display": "none"}
+    )
+
+    return layout
