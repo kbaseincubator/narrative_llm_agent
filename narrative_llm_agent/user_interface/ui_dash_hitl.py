@@ -34,6 +34,9 @@ from narrative_llm_agent.user_interface.constants import (
 )
 from datetime import datetime
 
+# TODO: move this somewhere else
+ANALYSIS_LOG_BUFFERS = {}
+
 # ----------------------------
 # Setup API keys
 dotenv_path = find_dotenv()
@@ -532,9 +535,6 @@ def start_analysis_poller(n_clicks):
     return (False if n_clicks else True), {}
 
 
-analysis_log_buffer = StringIO()
-
-
 @app.callback(
     [
         Output("auto-analysis-log-output", "children"),
@@ -543,13 +543,16 @@ analysis_log_buffer = StringIO()
     [
         Input("auto-analysis-log-poller", "n_intervals"),
     ],
+    [
+        State(SESSION_ID_STORE, "data")
+    ],
     prevent_initial_call=True,
 )
-def update_log(_):
-    print("updating analysis log")
-    log_value = analysis_log_buffer.getvalue()
-    html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
-    return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
+def update_log(_, session_id):
+    if session_id in ANALYSIS_LOG_BUFFERS:
+        log_value = ANALYSIS_LOG_BUFFERS[session_id].getvalue()
+        html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
+        return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
 
 
 # here we run the analysis planning callback
@@ -571,6 +574,9 @@ def update_log(_):
     prevent_initial_call=True,
 )
 def run_analysis_planning_callback(proceed_clicks, credentials, collected_metadata, session_id):
+    if session_id not in ANALYSIS_LOG_BUFFERS:
+        ANALYSIS_LOG_BUFFERS[session_id] = StringIO()
+
     ctx = callback_context
     if not ctx.triggered:
         return {}, html.Div(), True
@@ -608,11 +614,13 @@ The goal is to have a complete annotated genome and classify the microbe."""
         ), True
 
     # Run the analysis planning
-    with StreamRedirector(analysis_log_buffer):
+    with StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id]):
         print("Starting KBase workflow planning")
         # with open(os.path.dirname(os.path.abspath(__file__)) + "/temp.json") as in_json:
         #     result = json.load(in_json)
         result = run_analysis_planning(narrative_id, reads_id, description, credentials)
+
+    del ANALYSIS_LOG_BUFFERS[session_id]
 
     # Update analysis history
     global analysis_history

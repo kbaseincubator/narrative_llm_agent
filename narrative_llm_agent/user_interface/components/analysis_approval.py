@@ -268,6 +268,7 @@ def update_app_log(_, session_id):
         log_value = APP_LOG_BUFFERS[session_id].getvalue()
         html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
         return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
+    return "", {"scroll": True}
 
 
 
