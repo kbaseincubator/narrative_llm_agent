@@ -1,17 +1,22 @@
+from io import StringIO
 import json
 import os
+import uuid
+from ansi2html import Ansi2HTMLConverter
 import dash_bootstrap_components as dbc
-from dash import callback_context, html, Input, Output, callback, State
+from dash_extensions import Purify
+from dash import MATCH, dcc, callback_context, html, Input, Output, callback, State
 
-from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, WORKFLOW_INSTANCES, WORKFLOW_STORE
-from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
+from narrative_llm_agent.user_interface.streaming import StreamRedirector
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, SESSION_ID_STORE, WORKFLOW_INSTANCES, WORKFLOW_STORE
 from narrative_llm_agent.util.json_util import make_json_serializable
 from narrative_llm_agent.workflow_graph.graph_hitl import (
     ExecutionWorkflow,
 )
 
+APP_LOG_BUFFERS = {}
 
-def create_approval_interface(workflow_state: dict):
+def create_approval_interface(workflow_state: dict, session_id):
     """Create the approval interface for the analysis plan"""
     if not workflow_state:
         return html.Div("No workflow state available")
@@ -19,6 +24,8 @@ def create_approval_interface(workflow_state: dict):
     steps = workflow_state.get("steps_to_run", [])
     if not steps:
         return html.Div("No steps found in workflow state")
+
+    APP_LOG_BUFFERS[session_id] = StringIO()
 
     # Create table data
     table_data = []
@@ -123,12 +130,34 @@ def create_approval_interface(workflow_state: dict):
                     ],
                 ),
                 html.Div(id="approval-status", className="mt-3"),
+                html.Div(
+                    [
+                        dcc.Interval(id="app-log-poller", interval=1000, disabled=True),
+                        dcc.Store(id="app-scroll-trigger"),
+                        html.Div(
+                            id="app-log-output",
+                            style={
+                                "whiteSpace": "pre-wrap",
+                                "height": "500px",
+                                "overflowY": "auto",
+                                "fontFamily": "monospace",
+                                "border": "1px solid #dee2e6",
+                                "padding": "0.375rem 0.75rem",
+                                "fontSize": "1rem",
+                                "borderRadius": "0.375rem",
+
+                            },
+                        ),
+                    ],
+                    id="app-log-container",
+                    style={"display": "none"}
+                )
             ]),
         ],
         className="shadow-sm",
     )
-
     return layout
+
 @callback(
     [
         Output("execution-state-store", "data"),
@@ -141,22 +170,22 @@ def create_approval_interface(workflow_state: dict):
     ],
     [
         State(WORKFLOW_STORE, "data"),
-        State(CREDENTIALS_STORE, "data")
+        State(CREDENTIALS_STORE, "data"),
+        State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
 )
-def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state, credentials):
-    print("starting handle approval process")
+def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state, credentials, session_id):
     ctx = callback_context
     if not ctx.triggered:
-        print("context not triggered, ignoring everything")
         return {}, html.Div()
 
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    print("selected button")
-    print(button_id)
 
     if button_id == "approve-btn" and approve_clicks:
+        if session_id not in APP_LOG_BUFFERS:
+            return {}, "missing app log buffer!?"
+
         loading_status = dbc.Alert("🔄 Executing approved workflow... Please wait.", color="info")
 
         try:
@@ -167,11 +196,15 @@ def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state
             inner_workflow_state["input_object_upa"] = workflow_state.get("reads_id")
 
             # Execute the workflow
-            execution_result = run_analysis_execution(
-                workflow_state.get("workflow_state", {}),
-                credentials,
-                workflow_state.get("workflow_key"),
-            )
+            with StreamRedirector(APP_LOG_BUFFERS[session_id]):
+                try:
+                    execution_result = run_analysis_execution(
+                        workflow_state.get("workflow_state", {}),
+                        credentials,
+                        workflow_state.get("workflow_key"),
+                    )
+                finally:
+                    del APP_LOG_BUFFERS[session_id]
 
             # Update execution state
             execution_state = {
@@ -209,6 +242,39 @@ def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state
         return {"status": "cancelled"}, cancel_status
 
     return {}, html.Div()
+
+@callback(
+    [
+        Output("app-log-poller", "disabled"),
+        Output("app-log-container", "style"),
+    ],
+    [
+        Input("approve-btn", "n_clicks")
+    ],
+    prevent_initial_call=True,
+)
+def start_app_poller(n_clicks):
+    return (False if n_clicks else True), {}
+
+@callback(
+    [
+        Output("app-log-output", "children"),
+        Output("app-scroll-trigger", "data"),
+    ],
+    [
+        Input("app-log-poller", "n_intervals"),
+    ],
+    [
+        State(SESSION_ID_STORE, "data")
+    ],
+    prevent_initial_call=True,
+)
+def update_app_log(_, session_id):
+    if session_id in APP_LOG_BUFFERS:
+        log_value = APP_LOG_BUFFERS[session_id].getvalue()
+        html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
+        return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
+
 
 def run_analysis_execution(workflow_state, credentials, workflow_key=None):
     """Run the analysis execution phase after approval"""
@@ -277,3 +343,5 @@ def run_analysis_execution(workflow_state, credentials, workflow_key=None):
     except Exception as e:
         print(f"an error occurred: {e}")
         return {"error": str(e), "status": "error"}
+
+

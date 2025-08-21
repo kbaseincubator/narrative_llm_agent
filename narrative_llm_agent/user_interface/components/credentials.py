@@ -121,16 +121,15 @@ def create_credentials_form() -> dbc.Accordion:
         ],
         prevent_initial_call=True,
     )
-    def save_credentials(n_clicks, provider, kb_auth_token, api_key):
+    def save_credentials(cred_clicks, provider, kb_auth_token, api_key):
         """
-        TODO: validate kbase auth token, api key
         This saves a new set of credentials.
         It removes all keys and re-stores them.
         This only stores user credentials. NEO4J ones should not be set by the user,
         and are only available as environment vars by the app.
         """
-        print(f"Callback triggered! n_clicks={n_clicks}")
-        if not n_clicks:
+        print(f"Callback triggered! cred_clicks={cred_clicks}")
+        if not cred_clicks:
             return {}, False, "", "", SUCCESS_MSG_DURATION
 
         kbase_auth = KBaseAuth()
@@ -174,6 +173,7 @@ def create_credentials_form() -> dbc.Accordion:
         Input(provider_id, "value")
     )
     def toggle_api_title(provider):
+        print("toggling api header")
         if provider == "openai":
             return "OpenAI API Key", "Enter your OpenAI API key"
         else:
