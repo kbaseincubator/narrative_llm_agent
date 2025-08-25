@@ -29,6 +29,7 @@ from narrative_llm_agent.util.metadata_util import (
     process_metadata_chat,
 )
 from narrative_llm_agent.user_interface.constants import (
+    CREDENTIALS_LOCAL_STORE,
     CREDENTIALS_STORE,
     SESSION_ID_STORE,
 )
@@ -223,6 +224,7 @@ def create_main_layout():
             dcc.Store(id="execution-state-store"),
             dcc.Store(id="analysis-history-store", data=[]),
             dcc.Store(id=SESSION_ID_STORE, data=session_id),
+            dcc.Store(id=CREDENTIALS_LOCAL_STORE, storage_type="local"),
             # Header
             dbc.Row(
                 [
