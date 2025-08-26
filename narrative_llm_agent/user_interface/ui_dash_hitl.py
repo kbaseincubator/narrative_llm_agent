@@ -32,6 +32,7 @@ from narrative_llm_agent.util.metadata_util import (
 from narrative_llm_agent.user_interface.constants import (
     CREDENTIALS_LOCAL_STORE,
     CREDENTIALS_STORE,
+    DATA_SELECTION_STORE,
     SESSION_ID_STORE,
 )
 from datetime import datetime
@@ -226,6 +227,7 @@ def create_main_layout():
             dcc.Store(id="analysis-history-store", data=[]),
             dcc.Store(id=SESSION_ID_STORE, data=session_id),
             dcc.Store(id=CREDENTIALS_LOCAL_STORE, storage_type="local"),
+            dcc.Store(id=DATA_SELECTION_STORE),
             # Header
             dbc.Row(
                 [

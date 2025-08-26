@@ -5,33 +5,47 @@ import dash_bootstrap_components as dbc
 
 from narrative_llm_agent.kbase.clients.search import NarrativeDoc, Search
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, DATA_SELECTION_STORE
 
 NARRATIVE_SEL = "narrative-select"
 OBJECT_SEL = "object-select"
+START_BTN = "start-with-data-btn"
 
 def narrative_data_dropdown():
-    return dbc.Row(
-        [
-            dbc.Col(
+    return dbc.Card([
+        dbc.CardHeader("Select data for analysis"),
+        dbc.CardBody([
+            dbc.Row(
                 [
-                    html.H5("Narrative"),
-                    dcc.Dropdown(
-                        id=NARRATIVE_SEL,
-                    )
-                ]
+                    dbc.Col(
+                        [
+                            html.H5("Narrative"),
+                            dcc.Dropdown(
+                                id=NARRATIVE_SEL,
+                            )
+                        ]
+                    ),
+                    dbc.Col(
+                        [
+                            html.H5("Object"),
+                            dcc.Dropdown(
+                                id=OBJECT_SEL
+                            )
+                        ]
+                    ),
+                ],
+                class_name="mb-3"
             ),
-            dbc.Col(
-                [
-                    html.H5("Object"),
-                    dcc.Dropdown(
-                        id=OBJECT_SEL
-                    )
-                ]
-            ),
-            html.Div(id="output-stuff")
-        ]
-    )
+            dbc.Row(
+                dbc.Col(
+                    dbc.Button(
+                        "Start Analysis", id=START_BTN, color="success", disabled=True
+                    ),
+                    width=2
+                )
+            )
+        ]),
+    ], class_name="mb-2")
 
 @callback(
     Output(NARRATIVE_SEL, "options"),
@@ -64,15 +78,16 @@ def init_object_dropdown(narrative_id, creds):
     } for obj in objs]
 
 @callback(
-    Output("output-stuff", "children"),
+    Output(DATA_SELECTION_STORE, "data"),
+    Output(START_BTN, "disabled"),
     Input(NARRATIVE_SEL, "value"),
     Input(OBJECT_SEL, "value"),
     prevent_initial_call=True
 )
 def set_narr_and_upa(narrative_id, obj_upa):
     if narrative_id is not None and obj_upa is not None:
-        return f"narrative - {narrative_id}, upa - {obj_upa}"
-    return "Nothing yet."
+        return {"narrative_id": narrative_id, "obj_upa": obj_upa}, False
+    return {}, True
 
 def lookup_narratives(user_id: str, auth_token: str) -> List[NarrativeDoc]:
     try:
