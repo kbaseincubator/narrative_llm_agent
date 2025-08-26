@@ -49,10 +49,10 @@ class ServiceClient:
         self._timeout = timeout
 
     def simple_call(self: "ServiceClient", method: str, params: Any) -> Any:
-        return self.make_kbase_jsonrpc_1_call(method, [params])[0]
+        return self.make_kbase_jsonrpc_1_call(f"{self._service}.{method}", [params])[0]
 
     def make_kbase_jsonrpc_1_call(
-        self: "ServiceClient", method: str, params: list[Any]
+        self: "ServiceClient", method: str, params: Any
     ) -> Any:
         """
         A very simple JSON-RPC 1 request maker for KBase services.
@@ -63,7 +63,7 @@ class ServiceClient:
         call_id = str(uuid.uuid4())
         json_rpc_package = {
             "params": params,
-            "method": f"{self._service}.{method}",
+            "method": method,
             "version": "1.1",
             "id": call_id,
         }

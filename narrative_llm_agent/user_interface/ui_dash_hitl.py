@@ -22,6 +22,7 @@ from narrative_llm_agent.user_interface.components.analysis_approval import (
 from narrative_llm_agent.user_interface.components.metadata_agent_format import (
     format_agent_response,
 )
+from narrative_llm_agent.user_interface.components.narrative_data import narrative_data_dropdown
 from narrative_llm_agent.user_interface.workflow_runners import generate_mra_draft, initialize_metadata_agent, run_analysis_planning
 from narrative_llm_agent.util.metadata_util import (
     check_metadata_completion,
@@ -247,6 +248,7 @@ def create_main_layout():
                     create_credentials_form(),
                     html.Br(),
                     # Metadata Collection Interface
+                    narrative_data_dropdown(),
                     create_metadata_collection_interface(),
                     html.Br(),
                     # Manual Input Form (backup/override)
