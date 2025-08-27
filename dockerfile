@@ -38,6 +38,11 @@ RUN mkdir -p /home/agent_runner && \
     chown -R agent_runner:agent_runner /app/narrative_llm_agent/agents/ && \
     chmod -R 775 /app/narrative_llm_agent/agents/
 
+# Create and copy the entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh && \
+    chown agent_runner:agent_runner /app/entrypoint.sh
+
 # Change the working directory to where app.py is located
 WORKDIR /app/narrative_llm_agent/user_interface
 
@@ -46,6 +51,9 @@ EXPOSE 8050
 
 # Switch to the non-root user 
 USER agent_runner
+
+# Set the entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Command to run the app
 CMD ["poetry", "run", "python", "ui_dash_hitl.py"]
