@@ -54,6 +54,8 @@ class AgentConfig:
                 self.blobstore_endpoint = self.service_endpoint + kb_cfg["blobstore"]
             if "auth" in kb_cfg:
                 self.auth_endpoint = self.service_endpoint + kb_cfg["auth"]
+            if "search" in kb_cfg:
+                self.search_endpoint = self.service_endpoint + kb_cfg["search"]
         self.cborg_api_endpoint = kb_cfg.get("cborg_api_endpoint")
         self.openai_api_endpoint = kb_cfg.get("openai_api_endpoint")
 
