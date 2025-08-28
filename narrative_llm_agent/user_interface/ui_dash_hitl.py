@@ -2,33 +2,23 @@ from io import StringIO
 import uuid
 from ansi2html import Ansi2HTMLConverter
 import dash
-from dash import ctx, dcc, html, Input, Output, State, callback_context
+from dash import dcc, html, Input, Output, State, callback_context
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
 from dotenv import find_dotenv, load_dotenv
-from langchain.load import dumps, loads
-from langchain_core.messages import AIMessage, HumanMessage
 from narrative_llm_agent.user_interface.components.credentials import (
     create_credentials_form,
 )
 from narrative_llm_agent.user_interface.components.analysis_setup import (
     StreamRedirector,
-    create_analysis_input_form,
     create_analysis_output_display,
 )
 from narrative_llm_agent.user_interface.components.analysis_approval import (
     create_approval_interface,
 )
-from narrative_llm_agent.user_interface.components.metadata_agent_format import (
-    format_agent_response,
-)
+from narrative_llm_agent.user_interface.components.metadata import create_metadata_collection_interface
 from narrative_llm_agent.user_interface.components.narrative_data import narrative_data_dropdown
-from narrative_llm_agent.user_interface.workflow_runners import generate_mra_draft, initialize_metadata_agent, run_analysis_planning
-from narrative_llm_agent.util.metadata_util import (
-    check_metadata_completion,
-    generate_description_from_metadata,
-    process_metadata_chat,
-)
+from narrative_llm_agent.user_interface.workflow_runners import generate_mra_draft, run_analysis_planning
 from narrative_llm_agent.user_interface.constants import (
     CREDENTIALS_LOCAL_STORE,
     CREDENTIALS_STORE,
@@ -55,97 +45,8 @@ app = dash.Dash(
 app.title = "KBase Research Agent"
 
 # Global variables
+# TODO: this should be a log file or something. It doesn't appear to be used, just written to.
 analysis_history = []
-
-# ----------------------------
-# UI Components
-
-
-def create_metadata_collection_interface():
-    """Create the metadata collection interface"""
-    return dbc.Card(
-        [
-            dbc.CardHeader("🔍 Metadata Collection Agent"),
-            dbc.CardBody(
-                [
-                    html.P(
-                        "Let me help you gather information about your computational biology project."
-                    ),
-                    html.Div(
-                        "Assistant: Hello! I'm here to help gather information about your computational biology project. Please provide the narrative ID to start.",
-                        id="metadata-response-space",
-                    ),
-                    html.Br(),
-                    dcc.Input(
-                        id="metadata-input",
-                        type="text",
-                        debounce=True,
-                        placeholder="Type your answer here",
-                        style={"width": "100%", "height": 40},
-                    ),
-                    html.Br(),
-                    html.Br(),
-                    dbc.ButtonGroup(
-                        [
-                            dbc.Button(
-                                "Submit", id="metadata-submit-btn", color="success"
-                            ),
-                            dbc.Button(
-                                "Clear Chat", id="metadata-clear-btn", color="secondary"
-                            ),
-                            dbc.Button(
-                                "Start Over", id="metadata-start-btn", color="primary"
-                            ),
-                        ]
-                    ),
-                    html.Br(),
-                    html.Br(),
-                    html.Div(
-                        id="metadata-chat-history",
-                        style={
-                            "height": "300px",
-                            "overflowY": "scroll",
-                            "border": "1px solid #ccc",
-                            "padding": "10px",
-                            "backgroundColor": "#f8f9fa",
-                        },
-                    ),
-                    html.Hr(),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Button(
-                                        "🚀 Proceed to Analysis Planning",
-                                        id="proceed-to-analysis-btn",
-                                        color="warning",
-                                        size="lg",
-                                        disabled=True,
-                                    ),
-                                ],
-                                width=6,
-                            ),
-                            dbc.Col(
-                                [
-                                    dbc.Button(
-                                        "✅ Force Enable (I have enough info)",
-                                        id="force-enable-btn",
-                                        color="info",
-                                        size="sm",
-                                        outline=True,
-                                    ),
-                                ],
-                                width=6,
-                            ),
-                        ]
-                    ),
-                    dcc.Store(id="metadata-store", data=[]),
-                    dcc.Store(id="collected-metadata", data={}),
-                ]
-            ),
-        ]
-    )
-
 
 def create_execution_display(execution_result):
     """Create display for execution results"""
@@ -253,19 +154,6 @@ def create_main_layout():
                     narrative_data_dropdown(),
                     create_metadata_collection_interface(),
                     html.Br(),
-                    # Manual Input Form (backup/override)
-                    dbc.Collapse(
-                        create_analysis_input_form(run_analysis_planning),
-                        id="manual-form-collapse",
-                        is_open=False,
-                    ),
-                    dbc.Button(
-                        "Show Manual Input Form",
-                        id="toggle-manual-form",
-                        color="link",
-                        size="sm",
-                    ),
-                    html.Br(),
                     create_analysis_output_display(),
                     html.Br(),
                     # Analysis Results
@@ -281,253 +169,6 @@ app.layout = create_main_layout()
 
 # ----------------------------
 # Callbacks
-
-
-# Force enable button callback
-@app.callback(
-    Output("proceed-to-analysis-btn", "disabled", allow_duplicate=True),
-    Input("force-enable-btn", "n_clicks"),
-    prevent_initial_call=True,
-)
-def force_enable_proceed_button(n_clicks):
-    if n_clicks:
-        return False  # Enable the button
-    return True
-
-
-# Metadata Collection Chat Callback - Updated to use the imported module
-@app.callback(
-    [
-        Output("metadata-response-space", "children"),
-        Output("metadata-store", "data"),
-        Output("metadata-input", "value"),
-        Output("metadata-chat-history", "children"),
-        Output("proceed-to-analysis-btn", "disabled"),
-        Output("collected-metadata", "data"),
-    ],
-    [
-        Input("metadata-submit-btn", "n_clicks"),
-        Input("metadata-clear-btn", "n_clicks"),
-        Input("metadata-start-btn", "n_clicks"),
-    ],
-    [
-        State("metadata-input", "value"),
-        State("metadata-store", "data"),
-        State(CREDENTIALS_STORE, "data"),
-    ],
-    prevent_initial_call=True,
-)
-def interact_with_metadata_agent(
-    submit_clicks, clear_clicks, start_clicks, user_input, chat_history, credentials
-):
-    try:
-        # Initialize metadata agent
-        agent_executor = initialize_metadata_agent(credentials)
-
-        # Handle clear chat
-        if ctx.triggered_id == "metadata-clear-btn":
-            return (
-                format_agent_response("Assistant: Chat cleared. Ready to start over!"),
-                [],
-                "",
-                [],
-                True,
-                {},
-            )
-
-        # Handle start over
-        if ctx.triggered_id == "metadata-start-btn":
-            try:
-                response = process_metadata_chat(agent_executor, None, [])
-                chat_history_obj = [AIMessage(content=response)]
-                # Format the response for visual display
-                formatted_response = format_agent_response(response)
-                visual_history = [
-                    html.Div(
-                        [html.Strong("Assistant: "), html.Span(response)],
-                        style={
-                            "margin": "5px 0",
-                            "padding": "10px",
-                            "backgroundColor": "#e8f4fd",
-                            "borderRadius": "5px",
-                        },
-                    )
-                ]
-                history = dumps(chat_history_obj)
-                return formatted_response, history, "", visual_history, True, {}
-            except Exception as e:
-                return f"Error starting conversation: {str(e)}", [], "", [], True, {}
-
-        # Handle submit
-        if not user_input or not user_input.strip():
-            current_history = []
-            if chat_history:
-                try:
-                    chat_history_obj = (
-                        loads(chat_history)
-                        if isinstance(chat_history, str)
-                        else chat_history
-                    )
-                    if chat_history_obj:
-                        current_history = [
-                            html.Div(
-                                [
-                                    html.Strong(
-                                        f"{'User' if isinstance(msg, HumanMessage) else 'Assistant'}: "
-                                    ),
-                                    html.Span(msg.content),
-                                ],
-                                style={
-                                    "margin": "5px 0",
-                                    "padding": "5px",
-                                    "backgroundColor": "#f0f0f0"
-                                    if isinstance(msg, HumanMessage)
-                                    else "#e8f4fd",
-                                },
-                            )
-                            for msg in chat_history_obj
-                        ]
-                except Exception:
-                    current_history = []
-
-            return (
-                "Please enter your response before submitting.",
-                chat_history if chat_history else [],
-                "",
-                current_history,
-                True,
-                {},
-            )
-
-        # Process the user input
-        try:
-            if chat_history:
-                if isinstance(chat_history, str):
-                    chat_history_obj = loads(chat_history)
-                elif isinstance(chat_history, list):
-                    chat_history_obj = chat_history
-                else:
-                    chat_history_obj = []
-            else:
-                chat_history_obj = []
-
-            response = process_metadata_chat(
-                agent_executor, user_input, chat_history_obj
-            )
-
-            # Update chat history
-            chat_history_obj.append(HumanMessage(content=user_input))
-            chat_history_obj.append(AIMessage(content=response))
-
-            # Create visual chat history
-            visual_history = []
-            for msg in chat_history_obj:
-                is_user = isinstance(msg, HumanMessage)
-                content = msg.content if is_user else format_agent_response(msg.content)
-
-                visual_history.append(
-                    html.Div(
-                        [
-                            html.Strong(
-                                f"{'User' if is_user else 'Assistant'}: ",
-                                className="text-primary" if is_user else "text-info",
-                            ),
-                            html.Span(content) if is_user else content,
-                        ],
-                        style={
-                            "margin": "5px 0",
-                            "padding": "15px",
-                            "backgroundColor": "#f8f9fa" if is_user else "#e8f4fd",
-                            "borderRadius": "8px",
-                            "border": f"1px solid {'#dee2e6' if is_user else '#bee5eb'}",
-                        },
-                    )
-                )
-
-            # Check completion and extract metadata using imported functions
-            metadata_complete, collected_data = check_metadata_completion(
-                chat_history_obj
-            )
-
-            # Generate description if we have metadata
-            if collected_data and not collected_data.get("description"):
-                collected_data["description"] = generate_description_from_metadata(
-                    collected_data
-                )
-            formatted_response = format_agent_response(response)
-            history = dumps(chat_history_obj)
-            return_val = (
-                formatted_response,
-                history,
-                "",
-                visual_history,
-                not metadata_complete,
-                collected_data,
-            )
-            print("returning from metadata agent")
-            print(return_val)
-            return return_val
-
-        except Exception as e:
-            return (
-                f"Error processing request: {str(e)}",
-                chat_history if chat_history else [],
-                user_input,
-                [],
-                True,
-                {},
-            )
-
-    except Exception as e:
-        # Fallback error handling
-        print(e)
-        return f"Callback error: {str(e)}", [], "", [], True, {}
-
-
-# Toggle manual form visibility
-@app.callback(
-    [
-        Output("manual-form-collapse", "is_open"),
-        Output("toggle-manual-form", "children"),
-    ],
-    [Input("toggle-manual-form", "n_clicks")],
-    [State("manual-form-collapse", "is_open")],
-    prevent_initial_call=True,
-)
-def toggle_manual_form(n_clicks, is_open):
-    if n_clicks:
-        return (
-            not is_open,
-            "Hide Manual Input Form" if not is_open else "Show Manual Input Form",
-        )
-    return is_open, "Show Manual Input Form"
-
-
-# Auto-populate manual form from collected metadata
-@app.callback(
-    [
-        Output("narrative-id", "value"),
-        Output("reads-id", "value"),
-        Output("sequencing-tech", "value"),
-        Output("organism", "value"),
-        Output("genome-type", "value"),
-        Output("description", "value"),
-    ],
-    [Input("collected-metadata", "data")],
-    prevent_initial_call=True,
-)
-def populate_form_from_metadata(collected_data):
-    if not collected_data:
-        return "", "", "Illumina sequencing", "", "isolate", ""
-
-    return (
-        collected_data.get("narrative_id", ""),
-        collected_data.get("reads_id", ""),
-        collected_data.get("sequencing_technology", "Illumina sequencing"),
-        collected_data.get("organism", ""),
-        collected_data.get("genome_type", "isolate"),
-        collected_data.get("description", ""),
-    )
 
 
 @app.callback(
@@ -583,11 +224,10 @@ def run_analysis_planning_callback(proceed_clicks, credentials, collected_metada
     if session_id not in ANALYSIS_LOG_BUFFERS:
         ANALYSIS_LOG_BUFFERS[session_id] = StringIO()
 
-    ctx = callback_context
-    if not ctx.triggered:
+    if not callback_context.triggered:
         return {}, html.Div(), True
 
-    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    button_id = callback_context.triggered[0]["prop_id"].split(".")[0]
 
     if not credentials or not credentials.get("kb_auth_token"):
         return {}, dbc.Alert(
@@ -608,14 +248,14 @@ sequencing_technology: Illumina sequencing
 organism: Bacillus subtilis sp. strain UAMC
 genome type: isolate
 
-I want you to generate an analysis plan for annotating the uploaded pair-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
+I want you to generate an analysis plan for annotating the uploaded paired-end reads obtained from Illumina sequencing for a isolate genome using KBase apps.
 The goal is to have a complete annotated genome and classify the microbe."""
     else:
         return {}, html.Div(), True
 
     if not narrative_id or not reads_id:
         return {}, dbc.Alert(
-            "Missing narrative ID or reads ID. Please complete metadata collection or manual input.",
+            "Missing narrative ID or reads ID. Please complete metadata collection.",
             color="warning",
         ), True
 
