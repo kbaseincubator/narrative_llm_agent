@@ -16,6 +16,7 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, SystemMes
 from langchain.agents import Tool, AgentExecutor, create_react_agent, create_tool_calling_agent
 from narrative_llm_agent.tools.kgtool_cosine_sim import InformationTool
 from narrative_llm_agent.config import get_config
+import traceback
 
 class AnalystInput(BaseModel):
     query: str = Field(
@@ -236,20 +237,24 @@ class AnalystAgent(KBaseAgent):
                 template=HUMAN_PROMPT_TEMPLATE
             )
         ])
+        try:
+            agent = create_react_agent(
+                llm=self._llm,
+                tools=tools,
+                prompt=prompt,
+            )
 
-        agent = create_react_agent(
-            llm=self._llm,
-            tools=tools,
-            prompt=prompt,
-        )
-
-        self.agent = AgentExecutor(
-            agent=agent,
-            tools=tools,
-            verbose=True,
-            memory=ConversationBufferMemory(memory_key="react_chat_history", return_messages=True),
-            handle_parsing_errors=True
-        )
+            self.agent = AgentExecutor(
+                agent=agent,
+                tools=tools,
+                verbose=True,
+                memory=ConversationBufferMemory(memory_key="react_chat_history", return_messages=True),
+                handle_parsing_errors=True
+            )
+        except Exception as e:
+            print("Error creating the agent:")
+            traceback.print_exc()
+            raise e
 
     def _create_doc_chain(self, persist_directory: str | Path):
         """Create a retrieval qa chain for the given embeddings model and persist directory."""

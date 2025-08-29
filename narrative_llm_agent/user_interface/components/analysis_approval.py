@@ -3,10 +3,24 @@ from ansi2html import Ansi2HTMLConverter
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
 from dash import dcc, callback_context, html, Input, Output, callback, State
+import os
 
 from narrative_llm_agent.user_interface.streaming import StreamRedirector
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, SESSION_ID_STORE, WORKFLOW_STORE
 from narrative_llm_agent.user_interface.workflow_runners import run_analysis_execution
+from narrative_llm_agent.user_interface.components.redis_streaming import RedisStreamRedirector, redis_client, get_logs_from_redis
+
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client
+
+#setup callback manager and redis client for long callbacks using redis or diskcache
+
+celery_app = None
+if 'REDIS_URL' in os.environ:
+    from celery import Celery
+    celery_app = Celery(__name__, broker=os.environ['REDIS_URL'], backend=os.environ['REDIS_URL'])
+
+background_callback_manager = get_background_callback_manager(celery_app)
+redis_client = get_redis_client()
 
 APP_LOG_BUFFERS = {}
 
@@ -19,7 +33,8 @@ def create_approval_interface(workflow_state: dict, session_id):
     if not steps:
         return html.Div("No steps found in workflow state")
 
-    APP_LOG_BUFFERS[session_id] = StringIO()
+    if not redis_client:
+        APP_LOG_BUFFERS[session_id] = StringIO()
 
     # Create table data
     table_data = []
@@ -168,6 +183,8 @@ def create_approval_interface(workflow_state: dict, session_id):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
+    background=True,
+    manager=background_callback_manager
 )
 def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state, credentials, session_id):
     ctx = callback_context
@@ -177,7 +194,7 @@ def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state
     button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if button_id == "approve-btn" and approve_clicks:
-        if session_id not in APP_LOG_BUFFERS:
+        if not redis_client and session_id not in APP_LOG_BUFFERS:
             return {}, "missing app log buffer!?"
 
         loading_status = dbc.Alert("🔄 Executing approved workflow... Please wait.", color="info")
@@ -189,8 +206,30 @@ def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state
             inner_workflow_state["awaiting_approval"] = False
             inner_workflow_state["input_object_upa"] = workflow_state.get("reads_id")
 
-            # Execute the workflow
-            with StreamRedirector(APP_LOG_BUFFERS[session_id]):
+            # Setup streaming based on environment
+            if redis_client:
+                # Redis-based streaming for production
+                stream_redirector = RedisStreamRedirector(session_id, redis_client, "execution")
+                
+                # Log initial message to Redis
+                stream_redirector.write("Starting KBase workflow execution...\n")
+                stream_redirector.write(f"Session ID: {session_id}\n")
+                stream_redirector.write("=" * 50 + "\n")
+                
+            else:
+                # Local buffer for development
+                stream_redirector = StreamRedirector(APP_LOG_BUFFERS[session_id])
+                
+                print("Starting KBase workflow execution")
+                print(f"Session ID: {session_id}")
+                print("=" * 50)
+
+            try:
+                # Redirect stdout to our streaming mechanism
+                import sys
+                original_stdout = sys.stdout
+                sys.stdout = stream_redirector
+                
                 try:
                     execution_result = run_analysis_execution(
                         workflow_state.get("workflow_state", {}),
@@ -198,6 +237,28 @@ def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state
                         workflow_state.get("workflow_key"),
                     )
                 finally:
+                    sys.stdout = original_stdout
+                    
+                # Log completion
+                if redis_client:
+                    stream_redirector.write(f"\nWorkflow execution completed with status: {execution_result.get('status', 'unknown')}\n")
+                else:
+                    print(f"\nWorkflow execution completed with status: {execution_result.get('status', 'unknown')}")
+                    
+            except Exception as e:
+                # Restore stdout
+                import sys
+                sys.stdout = original_stdout
+                
+                error_msg = f"Error during workflow execution: {str(e)}"
+                if redis_client:
+                    stream_redirector.write(error_msg + "\n")
+                else:
+                    print(error_msg)
+                    
+                execution_result = {"status": "error", "error": str(e)}
+            finally:
+                if not redis_client and session_id in APP_LOG_BUFFERS:
                     del APP_LOG_BUFFERS[session_id]
 
             # Update execution state
@@ -262,13 +323,25 @@ def start_app_poller(n_clicks):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
+    background=True,
+    manager=background_callback_manager
 )
-def update_app_log(_, session_id):
-    if session_id in APP_LOG_BUFFERS:
-        log_value = APP_LOG_BUFFERS[session_id].getvalue()
-        html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
-        return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
-    return "", {"scroll": True}
-
-
-
+def update_app_log(n_intervals, session_id):
+    if not session_id:
+        return html.Div(), {}
+    
+    log_content = ""
+    
+    if redis_client:
+        # Redis-based logging
+        log_content = get_logs_from_redis(session_id, "execution")
+    else:
+        # Local buffer-based logging
+        if session_id in APP_LOG_BUFFERS:
+            log_content = APP_LOG_BUFFERS[session_id].getvalue()
+    
+    if log_content:
+        html_content = Ansi2HTMLConverter(inline=True).convert(log_content, full=False)
+        return Purify(html=f"<div style='white-space: pre-wrap;'>{html_content}</div>"), {"scroll": True}
+    
+    return html.Div("Waiting for execution to start..."), {}
