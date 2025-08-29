@@ -2,7 +2,7 @@ from io import StringIO
 from ansi2html import Ansi2HTMLConverter
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
-from dash import dcc, callback_context, html, Input, Output, callback, State, DiskcacheManager
+from dash import dcc, callback_context, html, Input, Output, callback, State
 import os
 
 from narrative_llm_agent.user_interface.streaming import StreamRedirector
@@ -10,18 +10,17 @@ from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, SESS
 from narrative_llm_agent.user_interface.workflow_runners import run_analysis_execution
 from narrative_llm_agent.user_interface.components.redis_streaming import RedisStreamRedirector, redis_client, get_logs_from_redis
 
-# Setup background callback manager matching main file
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client
+
+#setup callback manager and redis client for long callbacks using redis or diskcache
+
+celery_app = None
 if 'REDIS_URL' in os.environ:
-    # Use Redis & Celery if REDIS_URL set as an env variable
     from celery import Celery
-    from dash import CeleryManager
     celery_app = Celery(__name__, broker=os.environ['REDIS_URL'], backend=os.environ['REDIS_URL'])
-    background_callback_manager = CeleryManager(celery_app)
-else:
-    # Diskcache for non-production apps when developing locally
-    import diskcache
-    cache = diskcache.Cache("./cache")
-    background_callback_manager = DiskcacheManager(cache)
+
+background_callback_manager = get_background_callback_manager(celery_app)
+redis_client = get_redis_client()
 
 APP_LOG_BUFFERS = {}
 

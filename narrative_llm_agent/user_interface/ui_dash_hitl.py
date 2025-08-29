@@ -37,23 +37,17 @@ from narrative_llm_agent.user_interface.constants import (
 )
 from datetime import datetime
 import os
-import redis
-#setup long callbacks using redis and diskcache
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client
 
+#setup callback manager and redis client for long callbacks using redis or diskcache
+celery_app = None
 if 'REDIS_URL' in os.environ:
-    # Use Redis & Celery if REDIS_URL set as an env variable
     from celery import Celery
-    from dash import CeleryManager
     celery_app = Celery(__name__, broker=os.environ['REDIS_URL'], backend=os.environ['REDIS_URL'])
-    background_callback_manager = CeleryManager(celery_app)
-    redis_client = redis.from_url(os.environ['REDIS_URL'])
 
-else:
-    # Diskcache for non-production apps when developing locally
-    import diskcache
-    cache = diskcache.Cache("./cache")
-    background_callback_manager = DiskcacheManager(cache)
-    redis_client = None
+background_callback_manager = get_background_callback_manager(celery_app)
+redis_client = get_redis_client()
+
 # Redis-based stream redirector for distributed environments
 class RedisStreamRedirector:
     def __init__(self, session_id, redis_client):
@@ -89,6 +83,7 @@ app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True,
+    background_callback_manager=background_callback_manager,
 )
 app.title = "KBase Research Agent"
 

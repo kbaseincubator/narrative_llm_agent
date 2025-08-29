@@ -1,11 +1,28 @@
 import os
 import redis
+from dash import DiskcacheManager
 
-# Redis client setup
-if 'REDIS_URL' in os.environ:
-    redis_client = redis.from_url(os.environ['REDIS_URL'])
-else:
-    redis_client = None
+
+def get_background_callback_manager(celery_app=None):
+    """Factory function to get appropriate background callback manager."""
+
+    if 'REDIS_URL' in os.environ:
+        # Use Redis & Celery if REDIS_URL set as an env variable
+        from dash import CeleryManager
+        background_callback_manager = CeleryManager(celery_app)
+
+    else:
+        # Diskcache for non-production apps when developing locally
+        import diskcache
+        cache = diskcache.Cache("./cache")
+        background_callback_manager = DiskcacheManager(cache)
+    
+    return background_callback_manager
+
+def get_redis_client():
+    """Get Redis client if available"""
+    return redis.from_url(os.environ['REDIS_URL']) if 'REDIS_URL' in os.environ else None
+
 
 class RedisStreamRedirector:
     """Stream redirector that writes to Redis for distributed logging"""
@@ -28,6 +45,7 @@ class RedisStreamRedirector:
     
     def flush(self):
         pass
+redis_client = get_redis_client()
 
 def get_logs_from_redis(session_id, log_type="default"):
     """Retrieve logs from Redis for a given session and log type"""
