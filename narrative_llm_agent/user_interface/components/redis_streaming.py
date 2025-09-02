@@ -1,7 +1,8 @@
 import os
 import redis
 from dash import DiskcacheManager
-
+import sys
+import time
 
 def get_background_callback_manager(celery_app=None):
     """Factory function to get appropriate background callback manager."""
@@ -25,13 +26,30 @@ def get_redis_client():
 
 
 class RedisStreamRedirector:
-    """Stream redirector that writes to Redis for distributed logging"""
-    
-    def __init__(self, session_id, redis_client, log_type="default"):
+    def __init__(self, session_id: str, redis_client):
         self.session_id = session_id
         self.redis_client = redis_client
-        self.key = f"{log_type}_log:{session_id}"
+        self.original_stdout = None
+        self.original_stderr = None
+        self.key = f"analysis_log:{session_id}"
+    def __enter__(self):
+        # Store original streams
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
         
+        # Redirect to this instance
+        sys.stdout = self
+        sys.stderr = self
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Restore original streams
+        sys.stdout = self.original_stdout
+        sys.stderr = self.original_stderr
+        if exc_type:
+            # Log exception to Redis
+            self._write_to_redis(f"💥 Exception: {exc_type.__name__}: {exc_val}")
+
     def write(self, text):
         if self.redis_client:
             # Append to Redis list
@@ -44,7 +62,8 @@ class RedisStreamRedirector:
             print(text, end='')
     
     def flush(self):
-        pass
+        pass  
+
 redis_client = get_redis_client()
 
 def get_logs_from_redis(session_id, log_type="default"):

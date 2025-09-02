@@ -8,9 +8,7 @@ import os
 from narrative_llm_agent.user_interface.streaming import StreamRedirector
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, SESSION_ID_STORE, WORKFLOW_STORE
 from narrative_llm_agent.user_interface.workflow_runners import run_analysis_execution
-from narrative_llm_agent.user_interface.components.redis_streaming import RedisStreamRedirector, redis_client, get_logs_from_redis
-
-from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client, RedisStreamRedirector, get_logs_from_redis
 
 #setup callback manager and redis client for long callbacks using redis or diskcache
 
@@ -208,59 +206,49 @@ def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state
 
             # Setup streaming based on environment
             if redis_client:
-                # Redis-based streaming for production
-                stream_redirector = RedisStreamRedirector(session_id, redis_client, "execution")
-                
-                # Log initial message to Redis
-                stream_redirector.write("Starting KBase workflow execution...\n")
-                stream_redirector.write(f"Session ID: {session_id}\n")
-                stream_redirector.write("=" * 50 + "\n")
-                
+                stream_redirector = RedisStreamRedirector(session_id, redis_client)
             else:
-                # Local buffer for development
+                # Initialize buffer 
+                if session_id not in APP_LOG_BUFFERS:
+                    APP_LOG_BUFFERS[session_id] = StringIO()
                 stream_redirector = StreamRedirector(APP_LOG_BUFFERS[session_id])
-                
-                print("Starting KBase workflow execution")
-                print(f"Session ID: {session_id}")
-                print("=" * 50)
 
             try:
-                # Redirect stdout to our streaming mechanism
-                import sys
-                original_stdout = sys.stdout
-                sys.stdout = stream_redirector
-                
-                try:
+                # Use context manager 
+                with stream_redirector:
+                    print(f"🚀 Starting KBase workflow execution...\n"
+                          f"📋 Session ID: {session_id}\n"
+                          f"{'=' * 50}")
+                    
+                    # Run the execution
                     execution_result = run_analysis_execution(
                         workflow_state.get("workflow_state", {}),
                         credentials,
                         workflow_state.get("workflow_key"),
                     )
-                finally:
-                    sys.stdout = original_stdout
                     
-                # Log completion
-                if redis_client:
-                    stream_redirector.write(f"\nWorkflow execution completed with status: {execution_result.get('status', 'unknown')}\n")
-                else:
-                    print(f"\nWorkflow execution completed with status: {execution_result.get('status', 'unknown')}")
-                    
+                    print(f"\n✅ Workflow execution completed with status: {execution_result.get('status', 'unknown')}")
+
             except Exception as e:
-                # Restore stdout
-                import sys
-                sys.stdout = original_stdout
+                error_msg = f"❌ Error during workflow execution: {str(e)}"
                 
-                error_msg = f"Error during workflow execution: {str(e)}"
+                # Handle error logging based on stream type
                 if redis_client:
-                    stream_redirector.write(error_msg + "\n")
+                    try:
+                        with RedisStreamRedirector(session_id, redis_client) as error_stream:
+                            print(error_msg)
+                    except:
+                        print(error_msg)  
                 else:
                     print(error_msg)
                     
                 execution_result = {"status": "error", "error": str(e)}
+            
             finally:
+                # Clean up buffer 
                 if not redis_client and session_id in APP_LOG_BUFFERS:
                     del APP_LOG_BUFFERS[session_id]
-
+                    
             # Update execution state
             execution_state = {
                 "status": execution_result.get("status", "unknown"),

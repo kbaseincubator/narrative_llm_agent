@@ -37,7 +37,7 @@ from narrative_llm_agent.user_interface.constants import (
 )
 from datetime import datetime
 import os
-from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client, RedisStreamRedirector
 
 #setup callback manager and redis client for long callbacks using redis or diskcache
 celery_app = None
@@ -48,26 +48,26 @@ if 'REDIS_URL' in os.environ:
 background_callback_manager = get_background_callback_manager(celery_app)
 redis_client = get_redis_client()
 
-# Redis-based stream redirector for distributed environments
-class RedisStreamRedirector:
-    def __init__(self, session_id, redis_client):
-        self.session_id = session_id
-        self.redis_client = redis_client
-        self.key = f"analysis_log:{session_id}"
+# # Redis-based stream redirector for distributed environments
+# class RedisStreamRedirector:
+#     def __init__(self, session_id, redis_client):
+#         self.session_id = session_id
+#         self.redis_client = redis_client
+#         self.key = f"analysis_log:{session_id}"
         
-    def write(self, text):
-        if self.redis_client:
-            # Append to Redis list
-            self.redis_client.lpush(self.key, text)
-            # Keep only last 1000 entries
-            self.redis_client.ltrim(self.key, 0, 999)
-            # Set expiration (24 hours)
-            self.redis_client.expire(self.key, 86400)
-        else:
-            print(text, end='')
+#     def write(self, text):
+#         if self.redis_client:
+#             # Append to Redis list
+#             self.redis_client.lpush(self.key, text)
+#             # Keep only last 1000 entries
+#             self.redis_client.ltrim(self.key, 0, 999)
+#             # Set expiration (24 hours)
+#             self.redis_client.expire(self.key, 86400)
+#         else:
+#             print(text, end='')
     
-    def flush(self):
-        pass
+#     def flush(self):
+#         pass
 
 # TODO: move this somewhere else
 ANALYSIS_LOG_BUFFERS = {}
@@ -687,65 +687,37 @@ The goal is to have a complete annotated genome and classify the microbe."""
         ), True
     # Setup streaming based on environment
     if redis_client:
-        # Redis-based streaming for production
+        # Redis-based streaming
         stream_redirector = RedisStreamRedirector(session_id, redis_client)
-        
-        # Log initial message to Redis
-        stream_redirector.write("🚀 Starting KBase workflow planning...\n")
-        stream_redirector.write(f"📋 Session ID: {session_id}\n")
-        stream_redirector.write(f"🔬 Narrative ID: {narrative_id}\n")
-        stream_redirector.write(f"📊 Reads ID: {reads_id}\n")
-        stream_redirector.write("=" * 50 + "\n")
-        
     else:
-        # Local buffer for development
         if session_id not in ANALYSIS_LOG_BUFFERS:
             ANALYSIS_LOG_BUFFERS[session_id] = StringIO()
-        stream_redirector = StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id])
-        
-        print("🚀 Starting KBase workflow planning")
-        print(f"📋 Session ID: {session_id}")
-        print(f"🔬 Narrative ID: {narrative_id}")
-        print(f"📊 Reads ID: {reads_id}")
-        print("=" * 50)
-        # Run the analysis planning
-        with StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id]):
-            print("Starting KBase workflow planning")
-            # with open(os.path.dirname(os.path.abspath(__file__)) + "/temp.json") as in_json:
-            #     result = json.load(in_json)
-            result = run_analysis_planning(narrative_id, reads_id, description, credentials)
-    del ANALYSIS_LOG_BUFFERS[session_id]
+        stream_redirector = StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id])  
     try:
-        # Redirect stdout to our streaming mechanism
-        import sys
-        original_stdout = sys.stdout
-        sys.stdout = stream_redirector
-        
-        try:
+        # Log initial message 
+        with stream_redirector:
+            print(f" Starting KBase workflow planning...\n Session ID: {session_id}\n")
+
             result = run_analysis_planning(narrative_id, reads_id, description, credentials)
-        finally:
-            sys.stdout = original_stdout
-            
-        # Log completion
-        if redis_client:
-            stream_redirector.write(f"\n✅ Analysis planning completed with status: {result.get('status', 'unknown')}\n")
-        else:
-            print(f"\n✅ Analysis planning completed with status: {result.get('status', 'unknown')}")
-            
     except Exception as e:
-        # Restore stdout
-        import sys
-        sys.stdout = original_stdout
-        
         error_msg = f"❌ Error during analysis planning: {str(e)}"
+        
+        # Handle error logging based on stream type
         if redis_client:
-            stream_redirector.write(error_msg + "\n")
+            try:
+                with RedisStreamRedirector(session_id, redis_client) as error_stream:
+                    print(error_msg)
+            except:
+                # Fallback to regular print if Redis fails
+                print(error_msg)
         else:
             print(error_msg)
             
         result = {"status": "error", "error": str(e)}
-
-    
+    finally:
+        # Clean up log buffer if using local storage
+        if not redis_client and session_id in ANALYSIS_LOG_BUFFERS:
+            del ANALYSIS_LOG_BUFFERS[session_id]
 
     # Update analysis history
     global analysis_history
