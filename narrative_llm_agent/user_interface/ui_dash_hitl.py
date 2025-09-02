@@ -23,6 +23,7 @@ from narrative_llm_agent.user_interface.constants import (
     CREDENTIALS_LOCAL_STORE,
     CREDENTIALS_STORE,
     DATA_SELECTION_STORE,
+    METADATA_STORE,
     SESSION_ID_STORE,
 )
 from datetime import datetime
@@ -215,7 +216,7 @@ def update_log(_, session_id):
     ],
     [
         State(CREDENTIALS_STORE, "data"),
-        State("collected-metadata", "data"),
+        State(METADATA_STORE, "data"),
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
@@ -354,7 +355,7 @@ def handle_feedback_submission(n_clicks, feedback_text):
 @app.callback(
     Output("mra-results", "children"),
     Input("generate-mra-btn", "n_clicks"),
-    [State(CREDENTIALS_STORE, "data"), State("collected-metadata", "data")],
+    [State(CREDENTIALS_STORE, "data"), State(METADATA_STORE, "data")],
     prevent_initial_call=True,
 )
 def generate_mra(n_clicks, credentials, collected_metadata):
