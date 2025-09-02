@@ -2,7 +2,7 @@ from io import StringIO
 import uuid
 from ansi2html import Ansi2HTMLConverter
 import dash
-from dash import ctx, dcc, html, Input, Output, State, callback_context
+from dash import ctx, dcc, html, Input, Output, State, callback_context, DiskcacheManager
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
 from dotenv import find_dotenv, load_dotenv
@@ -36,6 +36,38 @@ from narrative_llm_agent.user_interface.constants import (
     SESSION_ID_STORE,
 )
 from datetime import datetime
+import os
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client, RedisStreamRedirector
+
+#setup callback manager and redis client for long callbacks using redis or diskcache
+celery_app = None
+if 'REDIS_URL' in os.environ:
+    from celery import Celery
+    celery_app = Celery(__name__, broker=os.environ['REDIS_URL'], backend=os.environ['REDIS_URL'])
+
+background_callback_manager = get_background_callback_manager(celery_app)
+redis_client = get_redis_client()
+
+# # Redis-based stream redirector for distributed environments
+# class RedisStreamRedirector:
+#     def __init__(self, session_id, redis_client):
+#         self.session_id = session_id
+#         self.redis_client = redis_client
+#         self.key = f"analysis_log:{session_id}"
+        
+#     def write(self, text):
+#         if self.redis_client:
+#             # Append to Redis list
+#             self.redis_client.lpush(self.key, text)
+#             # Keep only last 1000 entries
+#             self.redis_client.ltrim(self.key, 0, 999)
+#             # Set expiration (24 hours)
+#             self.redis_client.expire(self.key, 86400)
+#         else:
+#             print(text, end='')
+    
+#     def flush(self):
+#         pass
 
 # TODO: move this somewhere else
 ANALYSIS_LOG_BUFFERS = {}
@@ -51,6 +83,7 @@ app = dash.Dash(
     __name__,
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True,
+    background_callback_manager=background_callback_manager,
 )
 app.title = "KBase Research Agent"
 
@@ -316,6 +349,8 @@ def force_enable_proceed_button(n_clicks):
         State(CREDENTIALS_STORE, "data"),
     ],
     prevent_initial_call=True,
+    background=True,
+    manager=background_callback_manager
 )
 def interact_with_metadata_agent(
     submit_clicks, clear_clicks, start_clicks, user_input, chat_history, credentials
@@ -553,13 +588,43 @@ def start_analysis_poller(n_clicks):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
+    background=True,
+    manager=background_callback_manager
 )
-def update_log(_, session_id):
-    if session_id in ANALYSIS_LOG_BUFFERS:
-        log_value = ANALYSIS_LOG_BUFFERS[session_id].getvalue()
-        html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
-        return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
+# def update_log(_, session_id):
+#     if session_id in ANALYSIS_LOG_BUFFERS:
+#         log_value = ANALYSIS_LOG_BUFFERS[session_id].getvalue()
+#         html_value = Ansi2HTMLConverter(inline=True).convert(log_value, full=False)
+#         return Purify(html=(f"<div>{html_value}</div>")), {"scroll": True}
+#     return html.Div(), {}
 
+def update_log(n_intervals, session_id):
+    if not session_id:
+        return html.Div(), {}
+    
+    log_content = ""
+    
+    if redis_client:
+        # Redis-based logging
+        try:
+            key = f"analysis_log:{session_id}"
+            logs = redis_client.lrange(key, 0, -1)
+            if logs:
+                # Reverse to get chronological order
+                log_content = "".join(log.decode('utf-8') for log in reversed(logs))
+        except Exception as e:
+            print(f"Error reading from Redis: {e}")
+            log_content = f"Error reading logs: {e}"
+    else:
+        # Local buffer-based logging
+        if session_id in ANALYSIS_LOG_BUFFERS:
+            log_content = ANALYSIS_LOG_BUFFERS[session_id].getvalue()
+    
+    if log_content:
+        html_content = Ansi2HTMLConverter(inline=True).convert(log_content, full=False)
+        return Purify(html=f"<div style='white-space: pre-wrap;'>{html_content}</div>"), {"scroll": True}
+    
+    return html.Div("Waiting for analysis to start..."), {}
 
 # here we run the analysis planning callback
 # Proceed to analysis planning from metadata collection
@@ -578,6 +643,8 @@ def update_log(_, session_id):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
+    background=True,
+    manager=background_callback_manager
 )
 def run_analysis_planning_callback(proceed_clicks, credentials, collected_metadata, session_id):
     if session_id not in ANALYSIS_LOG_BUFFERS:
@@ -618,15 +685,39 @@ The goal is to have a complete annotated genome and classify the microbe."""
             "Missing narrative ID or reads ID. Please complete metadata collection or manual input.",
             color="warning",
         ), True
+    # Setup streaming based on environment
+    if redis_client:
+        # Redis-based streaming
+        stream_redirector = RedisStreamRedirector(session_id, redis_client)
+    else:
+        if session_id not in ANALYSIS_LOG_BUFFERS:
+            ANALYSIS_LOG_BUFFERS[session_id] = StringIO()
+        stream_redirector = StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id])  
+    try:
+        # Log initial message 
+        with stream_redirector:
+            print(f" Starting KBase workflow planning...\n Session ID: {session_id}\n")
 
-    # Run the analysis planning
-    with StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id]):
-        print("Starting KBase workflow planning")
-        # with open(os.path.dirname(os.path.abspath(__file__)) + "/temp.json") as in_json:
-        #     result = json.load(in_json)
-        result = run_analysis_planning(narrative_id, reads_id, description, credentials)
-
-    del ANALYSIS_LOG_BUFFERS[session_id]
+            result = run_analysis_planning(narrative_id, reads_id, description, credentials)
+    except Exception as e:
+        error_msg = f"❌ Error during analysis planning: {str(e)}"
+        
+        # Handle error logging based on stream type
+        if redis_client:
+            try:
+                with RedisStreamRedirector(session_id, redis_client) as error_stream:
+                    print(error_msg)
+            except:
+                # Fallback to regular print if Redis fails
+                print(error_msg)
+        else:
+            print(error_msg)
+            
+        result = {"status": "error", "error": str(e)}
+    finally:
+        # Clean up log buffer if using local storage
+        if not redis_client and session_id in ANALYSIS_LOG_BUFFERS:
+            del ANALYSIS_LOG_BUFFERS[session_id]
 
     # Update analysis history
     global analysis_history
