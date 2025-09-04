@@ -2,6 +2,7 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, ctx, html, dcc
 
 from narrative_llm_agent.user_interface.components.metadata_agent_format import format_agent_response
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, METADATA_CHAT_STORE, METADATA_STORE
 from narrative_llm_agent.user_interface.workflow_runners import initialize_metadata_agent
 from narrative_llm_agent.util.metadata_util import check_metadata_completion, generate_description_from_metadata, process_metadata_chat
@@ -150,6 +151,8 @@ Always return the final information that was stored in the narrative at the end 
         State(CREDENTIALS_STORE, "data"),
     ],
     prevent_initial_call=True,
+    background=True,
+    manager=get_background_callback_manager(celery_app=get_celery_app())
 )
 def interact_with_metadata_agent(
     submit_clicks, clear_clicks, start_clicks, user_input, metadata, chat_history, credentials
