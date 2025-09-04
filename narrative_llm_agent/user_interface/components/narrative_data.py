@@ -5,7 +5,7 @@ import dash_bootstrap_components as dbc
 
 from narrative_llm_agent.kbase.clients.search import NarrativeDoc, Search
 from narrative_llm_agent.kbase.clients.workspace import Workspace
-from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, DATA_SELECTION_STORE
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, DATA_SELECTION_STORE, METADATA_STORE
 
 NARRATIVE_SEL = "narrative-select"
 OBJECT_SEL = "object-select"
@@ -78,16 +78,21 @@ def init_object_dropdown(narrative_id, creds):
     } for obj in objs]
 
 @callback(
+    Output(METADATA_STORE, "data", allow_duplicate=True),
     Output(DATA_SELECTION_STORE, "data"),
     Output(START_BTN, "disabled"),
     Input(NARRATIVE_SEL, "value"),
     Input(OBJECT_SEL, "value"),
+    State(CREDENTIALS_STORE, "data"),
     prevent_initial_call=True
 )
-def set_narr_and_upa(narrative_id, obj_upa):
+def set_narr_and_upa(narrative_id, obj_upa, creds):
     if narrative_id is not None and obj_upa is not None:
-        return {"narrative_id": narrative_id, "obj_upa": obj_upa}, False
-    return {}, True
+        ws = Workspace(token=creds["kb_auth_token"])
+        obj_info = ws.get_object_info(obj_upa)
+        data = {"narrative_id": narrative_id, "obj_upa": obj_upa, "obj_metadata": obj_info.metadata}
+        return data, data, False
+    return {}, {}, True
 
 def lookup_narratives(user_id: str, auth_token: str) -> List[NarrativeDoc]:
     try:

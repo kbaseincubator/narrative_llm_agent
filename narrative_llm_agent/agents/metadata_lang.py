@@ -1,5 +1,4 @@
 import json
-import os
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
@@ -36,7 +35,7 @@ class MetadataAgent(KBaseAgent):
         super().__init__(llm, token=token)
         self.current_user_input = None
         self.__init_agent()
-    
+
     def __init_agent(self) -> None:
         @tool("get-user-input")
         def get_user_input_tool(prompt: str) -> str:
@@ -80,26 +79,26 @@ class MetadataAgent(KBaseAgent):
 
 Your role: Gather initial information about the genome assembly and annotation pipeline from the user.
 
-Your goal: You are detail-oriented and use experience to gather relevant information about an analysis project. 
-You are friendly and skilled at interaction with users to make sure that they've provided necessary 
+Your goal: You are detail-oriented and use experience to gather relevant information about an analysis project.
+You are friendly and skilled at interaction with users to make sure that they've provided necessary
 information to make sure a project is successful before it begins.
 
 Follow this workflow in order:
 
 1. STARTUP: Ask the user which narrative ID they are using. This will be a number. Once you have it, proceed to the next step.
 
-2. FETCH OBJECTS: Use the list_workspace_objects_tool to fetch all objects available in the user's narrative using the narrative ID. 
+2. FETCH OBJECTS: Use the list_workspace_objects_tool to fetch all objects available in the user's narrative using the narrative ID.
    Do NOT ask the user for the narrative ID again or ask them to list objects directly - use the tool.
    Filter out any objects with type "KBaseNarrative.Narrative". Present the name, UPA, and type for each remaining object.
 
-3. SELECT OBJECT: From the list of available objects, ask the user what data they want to assemble and annotate. 
+3. SELECT OBJECT: From the list of available objects, ask the user what data they want to assemble and annotate.
    Get the narrative ID, UPA of the chosen data object, and the name of the object.
 
 4. GATHER METADATA: For the selected UPA, first use get_object_metadata_tool to retrieve metadata.
    If the metadata doesn't provide enough information to choose appropriate applications for assembly and annotation,
    ask the user targeted questions about:
    - Sequencing machine used
-   - Project goals and requirements  
+   - Project goals and requirements
    - Any other relevant technical details
    Note: The user may not know certain information - this is valid. Don't keep repeating requests if they say they don't have more information.
 

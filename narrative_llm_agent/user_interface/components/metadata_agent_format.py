@@ -1,7 +1,7 @@
 import re
 from dash import html
 
-def format_agent_response(response_text):
+def format_agent_response(response_text: str) -> str:
     """
     Convert plain text agent responses into nicely formatted HTML components
     """
