@@ -218,6 +218,5 @@ def initialize_metadata_agent(credentials):
         used_llm = "gpt-4o-openai"
 
     llm = get_llm(used_llm, api_key=api_key)
-    print(f"Using LLM: {used_llm} with API key: {api_key}")
     metadata_agent = MetadataAgent(llm=llm, token=kb_auth_token)
     return metadata_agent.agent_executor
