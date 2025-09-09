@@ -3,22 +3,18 @@ from ansi2html import Ansi2HTMLConverter
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
 from dash import dcc, callback_context, html, Input, Output, callback, State
-import os
 
+from narrative_llm_agent.config import get_config
 from narrative_llm_agent.user_interface.streaming import StreamRedirector
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, SESSION_ID_STORE, WORKFLOW_STORE
 from narrative_llm_agent.user_interface.workflow_runners import run_analysis_execution
-from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_redis_client, RedisStreamRedirector, get_logs_from_redis
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app, get_redis_client, RedisStreamRedirector, get_logs_from_redis
 
 #setup callback manager and redis client for long callbacks using redis or diskcache
 
-celery_app = None
-if 'REDIS_URL' in os.environ:
-    from celery import Celery
-    celery_app = Celery(__name__, broker=os.environ['REDIS_URL'], backend=os.environ['REDIS_URL'])
-
-background_callback_manager = get_background_callback_manager(celery_app)
+background_callback_manager = get_background_callback_manager(celery_app = get_celery_app())
 redis_client = get_redis_client()
+REDIS_LOG_NAME = "execution_log"
 
 APP_LOG_BUFFERS = {}
 
@@ -181,7 +177,7 @@ def create_approval_interface(workflow_state: dict, session_id):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
-    background=True,
+    background=get_config().use_background_llm_callbacks,
     manager=background_callback_manager
 )
 def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state, credentials, session_id):
@@ -205,50 +201,50 @@ def handle_approval(approve_clicks, reject_clicks, cancel_clicks, workflow_state
             inner_workflow_state["input_object_upa"] = workflow_state.get("reads_id")
 
             # Setup streaming based on environment
-            if redis_client:
-                stream_redirector = RedisStreamRedirector(session_id, redis_client)
+            if redis_client is not None:
+                stream_redirector = RedisStreamRedirector(session_id, REDIS_LOG_NAME, redis_client)
             else:
-                # Initialize buffer 
+                # Initialize buffer
                 if session_id not in APP_LOG_BUFFERS:
                     APP_LOG_BUFFERS[session_id] = StringIO()
                 stream_redirector = StreamRedirector(APP_LOG_BUFFERS[session_id])
 
             try:
-                # Use context manager 
+                # Use context manager
                 with stream_redirector:
                     print(f"🚀 Starting KBase workflow execution...\n"
                           f"📋 Session ID: {session_id}\n"
                           f"{'=' * 50}")
-                    
+
                     # Run the execution
                     execution_result = run_analysis_execution(
                         workflow_state.get("workflow_state", {}),
                         credentials,
                         workflow_state.get("workflow_key"),
                     )
-                    
+
                     print(f"\n✅ Workflow execution completed with status: {execution_result.get('status', 'unknown')}")
 
             except Exception as e:
                 error_msg = f"❌ Error during workflow execution: {str(e)}"
-                
+
                 # Handle error logging based on stream type
                 if redis_client:
                     try:
-                        with RedisStreamRedirector(session_id, redis_client) as error_stream:
+                        with RedisStreamRedirector(session_id, REDIS_LOG_NAME, redis_client) as error_stream:
                             print(error_msg)
-                    except:
-                        print(error_msg)  
+                    except Exception:
+                        print(error_msg)
                 else:
                     print(error_msg)
-                    
+
                 execution_result = {"status": "error", "error": str(e)}
-            
+
             finally:
-                # Clean up buffer 
+                # Clean up buffer
                 if not redis_client and session_id in APP_LOG_BUFFERS:
                     del APP_LOG_BUFFERS[session_id]
-                    
+
             # Update execution state
             execution_state = {
                 "status": execution_result.get("status", "unknown"),
@@ -311,25 +307,25 @@ def start_app_poller(n_clicks):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
-    background=True,
+    background=get_config().use_background_llm_callbacks,
     manager=background_callback_manager
 )
 def update_app_log(n_intervals, session_id):
     if not session_id:
         return html.Div(), {}
-    
+
     log_content = ""
-    
+
     if redis_client:
         # Redis-based logging
-        log_content = get_logs_from_redis(session_id, "execution")
+        log_content = get_logs_from_redis(session_id, REDIS_LOG_NAME, redis_client)
     else:
         # Local buffer-based logging
         if session_id in APP_LOG_BUFFERS:
             log_content = APP_LOG_BUFFERS[session_id].getvalue()
-    
+
     if log_content:
         html_content = Ansi2HTMLConverter(inline=True).convert(log_content, full=False)
         return Purify(html=f"<div style='white-space: pre-wrap;'>{html_content}</div>"), {"scroll": True}
-    
+
     return html.Div("Waiting for execution to start..."), {}

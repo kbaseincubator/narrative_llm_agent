@@ -14,6 +14,7 @@ import os
 from typing import Any, Dict, Optional
 from langchain_openai import ChatOpenAI
 from crewai import LLM
+from urllib.parse import urlparse
 
 DEFAULT_CONFIG_FILE = "config.cfg"
 ENV_CONFIG_FILE = "NARRATIVE_LLM_AGENT_CONFIG"
@@ -65,6 +66,16 @@ class AgentConfig:
         self.neo4j_username_env = kb_cfg.get("neo4j_username")
         self.neo4j_password_env = kb_cfg.get("neo4j_password")
         self.cborg_key_env = kb_cfg.get("cborg_key_env")
+        self.redis_url_env = kb_cfg.get("redis_url_env")
+        self.redis_url = os.environ.get(self.redis_url_env)
+        self.use_background_llm_callbacks = kb_cfg.get("use_background_llm_callbacks", "false").lower() == "true"
+        if self.use_background_llm_callbacks:
+            if not self.redis_url:
+                raise ValueError("when using background LLM callbacks, the Redis URL must not be None")
+            parsed_redis = urlparse(self.redis_url)
+            if not all([parsed_redis.scheme, parsed_redis.netloc]):
+                raise ValueError(f"when using background LLM callbacks, the Redis URL must be a valid URL, got {self.redis_url}")
+
         self.debug = DEBUG
         # LLM Configuration
         self.llm_config = {}
