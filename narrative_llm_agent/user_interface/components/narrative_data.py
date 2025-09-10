@@ -54,7 +54,6 @@ def narrative_data_dropdown():
     prevent_initial_call=True
 )
 def init_narrative_dropdown(_, creds):
-    print("initing narratives")
     if not creds.get("kb_user_id"):
         return []
     narratives = lookup_narratives(creds["kb_user_id"], creds["kb_auth_token"])
@@ -68,7 +67,6 @@ def init_narrative_dropdown(_, creds):
     prevent_initial_call=True
 )
 def init_object_dropdown(narrative_id, creds):
-    print(f"initing objects - narrative_id {narrative_id}")
     if not narrative_id:
         return []
     objs = sorted(lookup_objects(narrative_id, creds["kb_auth_token"]), key=lambda x: x["type"])

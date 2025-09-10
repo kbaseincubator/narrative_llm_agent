@@ -1,6 +1,7 @@
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, ctx, html, dcc
 
+from narrative_llm_agent.config import get_config
 from narrative_llm_agent.user_interface.components.metadata_agent_format import format_agent_response
 from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app
 from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, METADATA_CHAT_STORE, METADATA_STORE
@@ -110,7 +111,9 @@ def turn_on_metadata(n_clicks):
     Input("start-with-data-btn", "n_clicks"),
     State(METADATA_STORE, "data"),
     State(CREDENTIALS_STORE, "data"),
-    prevent_initial_call=True
+    prevent_initial_call=True,
+    background=get_config().use_background_llm_callbacks,
+    manager=get_background_callback_manager(celery_app=get_celery_app())
 )
 def initial_metadata_agent_call(n_clicks, metadata, creds):
     agent_executor = initialize_metadata_agent(creds)
@@ -151,7 +154,7 @@ Always return the final information that was stored in the narrative at the end 
         State(CREDENTIALS_STORE, "data"),
     ],
     prevent_initial_call=True,
-    background=True,
+    background=get_config().use_background_llm_callbacks,
     manager=get_background_callback_manager(celery_app=get_celery_app())
 )
 def interact_with_metadata_agent(
@@ -293,8 +296,6 @@ def interact_with_metadata_agent(
                 not metadata_complete,
                 collected_data,
             )
-            print("returning from metadata agent")
-            print(return_val)
             return return_val
 
         except Exception as e:

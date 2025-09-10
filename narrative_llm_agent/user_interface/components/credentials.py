@@ -153,8 +153,6 @@ def save_credentials(cred_clicks, store_local, provider, kb_auth_token, api_key,
     This only stores user credentials. NEO4J ones should not be set by the user,
     and are only available as environment vars by the app.
     """
-    print(f"Callback triggered! cred_clicks={cred_clicks}, store_local={store_local}")
-
     if not cred_clicks:
         return {}, current_browser_store, False, "", "", SUCCESS_MSG_DURATION
 

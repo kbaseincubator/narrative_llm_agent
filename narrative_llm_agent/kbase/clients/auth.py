@@ -54,7 +54,6 @@ class KBaseAuth:
         Returns the user id associated with the given auth token.
         Raises errors otherwise.
         """
-        print(f"get_user: {self._token_url}")
         if token in self._cache:
             return self._cache.get(token)
         result = _get(self._token_url, {"Authorization": token})
@@ -74,7 +73,6 @@ class KBaseAuth:
         else:
             username = self.get_user(token)
 
-        print(f"get_user_display_name: {self._user_url}")
         result = _get(self._user_url + username, {"Authorization": token})
         return {
             "user_name": username,

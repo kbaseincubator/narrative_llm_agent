@@ -2,7 +2,7 @@ from io import StringIO
 import uuid
 from ansi2html import Ansi2HTMLConverter
 import dash
-from dash import ctx, dcc, html, Input, Output, State, callback_context, DiskcacheManager
+from dash import dcc, html, Input, Output, State, callback_context
 import dash_bootstrap_components as dbc
 from dash_extensions import Purify
 from dotenv import find_dotenv, load_dotenv
@@ -27,19 +27,14 @@ from narrative_llm_agent.user_interface.constants import (
     SESSION_ID_STORE,
 )
 from datetime import datetime
-import os
-from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app, get_redis_client, RedisStreamRedirector
+from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app, get_logs_from_redis, get_redis_client, RedisStreamRedirector
+from narrative_llm_agent.config import get_config
 
-#setup callback manager and redis client for long callbacks using redis or diskcache
-
-# None
-# if 'REDIS_URL' in os.environ:
-#     from celery import Celery
-#     celery_app = Celery(__name__, broker=os.environ['REDIS_URL'], backend=os.environ['REDIS_URL'])
-
-background_callback_manager = get_background_callback_manager(celery_app = get_celery_app())
+celery_app = get_celery_app()
+background_callback_manager = get_background_callback_manager(celery_app = celery_app)
 redis_client = get_redis_client()
 
+ANALYSIS_LOG_NAME = "analysis_log"
 # TODO: move this somewhere else
 ANALYSIS_LOG_BUFFERS = {}
 
@@ -47,8 +42,6 @@ ANALYSIS_LOG_BUFFERS = {}
 # Setup API keys
 dotenv_path = find_dotenv()
 load_dotenv(dotenv_path)
-
-print(f"loading app as '{__name__}'")
 
 # Initialize the Dash app
 app = dash.Dash(
@@ -192,7 +185,6 @@ app.layout = create_main_layout()
     prevent_initial_call=True,
 )
 def start_analysis_poller(n_clicks):
-    print("starting analysis poller")
     return (False if n_clicks else True), {}
 
 
@@ -208,11 +200,8 @@ def start_analysis_poller(n_clicks):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
-    background=True,
-    manager=background_callback_manager
 )
-def update_log(n_intervals, session_id):
-    print(f"updating analysis log - {n_intervals} - {session_id}")
+def update_analysis_log(n_intervals, session_id):
     if not session_id:
         return html.Div(), {}
 
@@ -221,20 +210,17 @@ def update_log(n_intervals, session_id):
     if redis_client:
         # Redis-based logging
         try:
-            key = f"analysis_log:{session_id}"
-            logs = redis_client.lrange(key, 0, -1)
-            if logs:
-                # Reverse to get chronological order
-                log_content = "".join(log.decode('utf-8') for log in reversed(logs))
+            log_content = get_logs_from_redis(session_id, ANALYSIS_LOG_NAME, redis_client)
         except Exception as e:
             print(f"Error reading from Redis: {e}")
             log_content = f"Error reading logs: {e}"
     else:
         # Local buffer-based logging
+        global ANALYSIS_LOG_BUFFERS
         if session_id in ANALYSIS_LOG_BUFFERS:
             log_content = ANALYSIS_LOG_BUFFERS[session_id].getvalue()
         else:
-            print("local log session not found")
+            print("local log session not found, not streaming")
 
     if log_content:
         html_content = Ansi2HTMLConverter(inline=True).convert(log_content, full=False)
@@ -259,13 +245,11 @@ def update_log(n_intervals, session_id):
         State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
-    background=True,
+    background=get_config().use_background_llm_callbacks,
     manager=background_callback_manager
 )
 def run_analysis_planning_callback(proceed_clicks, credentials, collected_metadata, session_id):
-    print("start of run_analysis_planning_callback")
-    if session_id not in ANALYSIS_LOG_BUFFERS:
-        ANALYSIS_LOG_BUFFERS[session_id] = StringIO()
+    global ANALYSIS_LOG_BUFFERS
 
     if not callback_context.triggered:
         return {}, html.Div(), True
@@ -296,26 +280,22 @@ The goal is to have a complete annotated genome and classify the microbe."""
     else:
         return {}, html.Div(), True
 
-    print(f"Starting analysis bits - {narrative_id} - {reads_id} - {description}")
     if not narrative_id or not reads_id:
         return {}, dbc.Alert(
             "Missing narrative ID or reads ID. Please complete metadata collection.",
             color="warning",
         ), True
     # Setup streaming based on environment
-    if redis_client:
+    if redis_client is not None:
         # Redis-based streaming
-        stream_redirector = RedisStreamRedirector(session_id, redis_client)
+        stream_redirector = RedisStreamRedirector(session_id, ANALYSIS_LOG_NAME, redis_client)
     else:
         if session_id not in ANALYSIS_LOG_BUFFERS:
             ANALYSIS_LOG_BUFFERS[session_id] = StringIO()
         stream_redirector = StreamRedirector(ANALYSIS_LOG_BUFFERS[session_id])
     try:
         # Log initial message
-        print(f" Starting KBase workflow planning...\n Session ID: {session_id}\n")
         with stream_redirector:
-            print(f" Starting KBase workflow planning...\n Session ID: {session_id}\n")
-
             result = run_analysis_planning(narrative_id, reads_id, description, credentials)
     except Exception as e:
         error_msg = f"❌ Error during analysis planning: {str(e)}"
@@ -323,7 +303,7 @@ The goal is to have a complete annotated genome and classify the microbe."""
         # Handle error logging based on stream type
         if redis_client:
             try:
-                with RedisStreamRedirector(session_id, redis_client):
+                with RedisStreamRedirector(session_id, ANALYSIS_LOG_NAME, redis_client):
                     print(error_msg)
             except Exception:
                 # Fallback to regular print if Redis fails

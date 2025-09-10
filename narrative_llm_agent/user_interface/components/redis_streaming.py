@@ -1,17 +1,28 @@
-import os
 import redis
 from dash import DiskcacheManager
 import sys
-import time
+from celery import Celery
+from dash import CeleryManager
+
+from narrative_llm_agent.config import get_config
 
 CELERY_CALLBACK_MANAGER = None
 DISKCACHE_CALLBACK_MANAGER = None
 
 
 def get_celery_app():
-    if 'REDIS_URL' in os.environ:
-        from celery import Celery
-        return Celery("__main__", broker=os.environ['REDIS_URL'], backend=os.environ['REDIS_URL'])
+    config = get_config()
+    redis_url = get_config().redis_url
+    if config.use_background_llm_callbacks and redis_url is not None:
+        return Celery("__main__", broker=redis_url, backend=redis_url)
+    return None
+
+
+def get_redis_client():
+    """Get Redis client if available"""
+    redis_url = get_config().redis_url
+    if redis_url is not None:
+        return redis.from_url(redis_url)
     return None
 
 
@@ -22,31 +33,18 @@ def get_background_callback_manager(celery_app=None):
         global CELERY_CALLBACK_MANAGER
         if CELERY_CALLBACK_MANAGER is None:
             # Use Redis & Celery if REDIS_URL set as an env variable
-            from dash import CeleryManager
             CELERY_CALLBACK_MANAGER = CeleryManager(celery_app)
         return CELERY_CALLBACK_MANAGER
 
-    global DISKCACHE_CALLBACK_MANAGER
-    if DISKCACHE_CALLBACK_MANAGER is None:
-        # Diskcache for non-production apps when developing locally
-        import diskcache
-        cache = diskcache.Cache("./cache")
-        DISKCACHE_CALLBACK_MANAGER = DiskcacheManager(cache)
-
-    return DISKCACHE_CALLBACK_MANAGER
-
-def get_redis_client():
-    """Get Redis client if available"""
-    return redis.from_url(os.environ['REDIS_URL']) if 'REDIS_URL' in os.environ else None
-
+    return None
 
 class RedisStreamRedirector:
-    def __init__(self, session_id: str, redis_client):
+    def __init__(self, session_id: str, log_name: str, redis_client: redis.Redis):
         self.session_id = session_id
         self.redis_client = redis_client
         self.original_stdout = None
         self.original_stderr = None
-        self.key = f"analysis_log:{session_id}"
+        self.key = f"{log_name}:{session_id}"
     def __enter__(self):
         # Store original streams
         self.original_stdout = sys.stdout
@@ -79,15 +77,14 @@ class RedisStreamRedirector:
     def flush(self):
         pass
 
-redis_client = get_redis_client()
 
-def get_logs_from_redis(session_id, log_type="default"):
+def get_logs_from_redis(session_id: str, log_name: str, redis_client: redis.Redis):
     """Retrieve logs from Redis for a given session and log type"""
     if not redis_client:
         return ""
 
     try:
-        key = f"{log_type}_log:{session_id}"
+        key = f"{log_name}:{session_id}"
         logs = redis_client.lrange(key, 0, -1)
         if logs:
             # Reverse to get chronological order
