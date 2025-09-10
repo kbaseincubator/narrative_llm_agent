@@ -1,5 +1,5 @@
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, dcc, html, callback
+from dash import Input, Output, State, dcc, html, callback, callback_context
 import os
 from narrative_llm_agent.kbase.clients.auth import KBaseAuth
 from narrative_llm_agent.kbase.clients.cborg import CborgAuth
@@ -124,71 +124,6 @@ def create_credentials_form() -> dbc.Accordion:
     return layout
 
 
-# Callback for saving credentials
-@callback(
-    [
-        Output(CREDENTIALS_STORE, "data", allow_duplicate=True),
-        Output(CREDENTIALS_LOCAL_STORE, "data"),
-        Output(message_id, "is_open"),
-        Output(message_id, "color"),
-        Output(message_id, "children", allow_duplicate=True),
-        Output(message_id, "duration"),
-    ],
-    [
-        Input(btn_id, "n_clicks"),
-    ],
-    [
-        State(store_id, "value"),
-        State(provider_id, "value"),
-        State(auth_id, "value"),
-        State(api_key_id, "value"),
-        State(CREDENTIALS_LOCAL_STORE, "data")
-    ],
-    prevent_initial_call=True,
-)
-def save_credentials(cred_clicks, store_local, provider, kb_auth_token, api_key, current_browser_store):
-    """
-    This saves a new set of credentials.
-    It removes all keys and re-stores them.
-    This only stores user credentials. NEO4J ones should not be set by the user,
-    and are only available as environment vars by the app.
-    """
-    if not cred_clicks:
-        return {}, current_browser_store, False, "", "", SUCCESS_MSG_DURATION
-
-    user_info, errors = validate_credentials(kb_auth_token, provider, api_key)
-
-    if errors:
-        return {}, current_browser_store, True, "danger", ", ".join(errors), FAIL_MSG_DURATION
-
-    credentials = {
-        "provider": provider,
-        "kb_user_id": user_info["user_name"],
-        "kb_user_display": user_info["display_name"],
-        "kb_auth_token": kb_auth_token,
-        "neo4j_uri": os.environ.get("NEO4J_URI", ""),
-        "neo4j_username": os.environ.get("NEO4J_USERNAME", ""),
-        "neo4j_password": os.environ.get("NEO4J_PASSWORD", ""),
-    }
-
-    if store_local:
-        browser_store = {
-            auth_id: kb_auth_token,
-            provider_id: provider,
-            api_key_id: api_key,
-            "kb_user_id": credentials["kb_user_id"],
-            "kb_user_display": credentials["kb_user_display"]
-        }
-    else:
-        browser_store = {}
-
-    if provider == "cborg":
-        credentials["cborg_api_key"] = api_key
-    else:
-        credentials["openai_api_key"] = api_key
-
-    return credentials, browser_store, True, "success", "Credentials validated and saved!", SUCCESS_MSG_DURATION
-
 @callback(
     Output(api_key_label_id, "children"),
     Output(api_key_id, "placeholder"),
@@ -200,58 +135,170 @@ def toggle_api_title(provider):
     else:
         return "CBORG API Key", "Enter your CBORG API key"
 
+
 @callback(
     [
-        Output(CREDENTIALS_STORE, "data"),
+        Output(CREDENTIALS_STORE, "data", allow_duplicate=True),
+        Output(CREDENTIALS_LOCAL_STORE, "data"),
         Output(auth_id, "value"),
         Output(provider_id, "value"),
         Output(api_key_id, "value"),
         Output(store_id, "value"),
         Output("credentials-label", "children"),
+        Output(message_id, "is_open", allow_duplicate=True),
+        Output(message_id, "color", allow_duplicate=True),
+        Output(message_id, "children", allow_duplicate=True),
+        Output(message_id, "duration", allow_duplicate=True),
     ],
-    Input(CREDENTIALS_LOCAL_STORE, "modified_timestamp"),
     [
+        Input(btn_id, "n_clicks"),
+        Input(CREDENTIALS_LOCAL_STORE, "modified_timestamp"),
+    ],
+    [
+        State(store_id, "value"),
+        State(provider_id, "value"),
+        State(auth_id, "value"),
+        State(api_key_id, "value"),
         State(CREDENTIALS_LOCAL_STORE, "data"),
-        State(CREDENTIALS_STORE, "data")
-    ]
+        State(CREDENTIALS_STORE, "data"),
+    ],
+    prevent_initial_call=True,
 )
-def initialize_from_store(_, local_creds, creds):
+def handle_credentials(cred_clicks, timestamp, store_local, provider, kb_auth_token, api_key, local_creds, current_creds):
     """
-    This function triggers when the store timestamp is updated. Which is (AFACT) twice:
-    1. On page load if local storage exists
-    2. When the local storage is saved, so when the user hits the save button.
-    In the second case, we don't need to do anything, so just return the creds as they are.
-    Otherwise, load them from storage, validate them, then return.
+    Handles credential validation and storage for both button clicks and page load.
+    Validates credentials only once and stores them appropriately.
     """
-    if creds:
-        provider = creds["provider"]
-        api_key = creds["cborg_api_key"] if provider == "cborg" else creds["openai_api_key"]
-        return creds, creds["kb_auth_token"], provider, api_key, True, make_loaded_message(creds["kb_user_id"], creds["kb_user_display"], creds["provider"])
-    if not local_creds:
-        return {}, None, default_provider, None, False, ""
+    ctx = callback_context
 
-    provider = local_creds.get(provider_id)
-    api_key = local_creds.get(api_key_id)
-    user_info, errors = validate_credentials(local_creds[auth_id], provider, api_key)
-    if len(errors):
-        return {}, None, default_provider, None, False, ""
+    # Default return values for form fields and labels
+    default_return = (
+        {},  # CREDENTIALS_STORE
+        {},  # CREDENTIALS_LOCAL_STORE
+        None,  # auth_id value
+        default_provider,  # provider_id value
+        None,  # api_key_id value
+        False,  # store_id value
+        "",  # credentials-label
+        False,  # message is_open
+        "",  # message color
+        "",  # message children
+        SUCCESS_MSG_DURATION  # message duration
+    )
 
-    loaded_credentials = {
-        "provider": provider,
-        "kb_user_id": user_info.get("user_name", ""),
-        "kb_user_display": user_info.get("display_name", ""),
-        "kb_auth_token": local_creds.get(auth_id),
+    # Determine trigger source
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
+
+    if triggered_id == btn_id:
+        # Button was clicked - validate form inputs
+        if not cred_clicks:
+            return default_return
+
+        # Use form values for validation
+        validation_provider = provider
+        validation_auth_token = kb_auth_token
+        validation_api_key = api_key
+        should_store_local = store_local
+
+    elif triggered_id == CREDENTIALS_LOCAL_STORE:
+        # Local storage was updated - check if we need to load from it
+        if current_creds:
+            # Credentials already exist, just update form with current values
+            provider = current_creds["provider"]
+            api_key = current_creds["cborg_api_key"] if provider == "cborg" else current_creds["openai_api_key"]
+            return (
+                current_creds,  # CREDENTIALS_STORE
+                local_creds or {},  # CREDENTIALS_LOCAL_STORE
+                current_creds["kb_auth_token"],  # auth_id value
+                provider,  # provider_id value
+                api_key,  # api_key_id value
+                True,  # store_id value
+                make_loaded_message(current_creds["kb_user_id"], current_creds["kb_user_display"], current_creds["provider"]),
+                False,  # message is_open
+                "",  # message color
+                "",  # message children
+                SUCCESS_MSG_DURATION  # message duration
+            )
+
+        if not local_creds:
+            # No local credentials to load
+            return default_return
+
+        # Use local storage values for validation
+        validation_provider = local_creds.get(provider_id)
+        validation_auth_token = local_creds.get(auth_id)
+        validation_api_key = local_creds.get(api_key_id)
+        should_store_local = True  # Already stored locally
+
+    else:
+        return default_return
+
+    # Validate credentials (this happens only once per trigger)
+    user_info, errors = validate_credentials(validation_auth_token, validation_provider, validation_api_key)
+
+    if errors:
+        # Validation failed
+        return (
+            {},  # CREDENTIALS_STORE (keep empty)
+            {} if triggered_id == btn_id else local_creds,  # CREDENTIALS_LOCAL_STORE
+            validation_auth_token if triggered_id == CREDENTIALS_LOCAL_STORE else None,
+            validation_provider if triggered_id == CREDENTIALS_LOCAL_STORE else default_provider,
+            validation_api_key if triggered_id == CREDENTIALS_LOCAL_STORE else None,
+            should_store_local if triggered_id == CREDENTIALS_LOCAL_STORE else False,
+            "" if triggered_id == btn_id else "",
+            True,  # message is_open
+            "danger",  # message color
+            ", ".join(errors),  # message children
+            FAIL_MSG_DURATION  # message duration
+        )
+
+    # Validation successful - create credentials object
+    credentials = {
+        "provider": validation_provider,
+        "kb_user_id": user_info["user_name"],
+        "kb_user_display": user_info["display_name"],
+        "kb_auth_token": validation_auth_token,
         "neo4j_uri": os.environ.get("NEO4J_URI", ""),
         "neo4j_username": os.environ.get("NEO4J_USERNAME", ""),
         "neo4j_password": os.environ.get("NEO4J_PASSWORD", ""),
     }
 
-    if loaded_credentials["provider"] == "cborg":
-        loaded_credentials["cborg_api_key"] = api_key
+    if validation_provider == "cborg":
+        credentials["cborg_api_key"] = validation_api_key
     else:
-        loaded_credentials["openai_api_key"] = api_key
+        credentials["openai_api_key"] = validation_api_key
 
-    return loaded_credentials, loaded_credentials["kb_auth_token"], provider, api_key, True, make_loaded_message(loaded_credentials["kb_user_id"], loaded_credentials["kb_user_display"], loaded_credentials["provider"])
+    # Determine browser storage
+    if should_store_local:
+        browser_store = {
+            auth_id: validation_auth_token,
+            provider_id: validation_provider,
+            api_key_id: validation_api_key,
+            "kb_user_id": credentials["kb_user_id"],
+            "kb_user_display": credentials["kb_user_display"]
+        }
+    else:
+        browser_store = {}
+
+    # Create success message
+    if triggered_id == btn_id:
+        success_message = "Credentials validated and saved!"
+    else:
+        success_message = "Successfully loaded credentials"
+
+    return (
+        credentials,  # CREDENTIALS_STORE
+        browser_store,  # CREDENTIALS_LOCAL_STORE
+        validation_auth_token,  # auth_id value
+        validation_provider,  # provider_id value
+        validation_api_key,  # api_key_id value
+        should_store_local,  # store_id value
+        make_loaded_message(credentials["kb_user_id"], credentials["kb_user_display"], credentials["provider"]) if triggered_id == CREDENTIALS_LOCAL_STORE else "",
+        True,  # message is_open
+        "success",  # message color
+        success_message,  # message children
+        SUCCESS_MSG_DURATION  # message duration
+    )
 
 
 def validate_credentials(kbase_token: str, llm_provider: str, llm_key: str):
