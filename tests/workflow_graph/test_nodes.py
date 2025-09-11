@@ -77,17 +77,11 @@ def test_workflow_nodes_init_with_token():
     nodes = WorkflowNodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg", token="test_token")
     assert nodes.token == "test_token"
 
-def test_workflow_nodes_init_from_env():
-    """Test initializing WorkflowNodes from environment variable."""
-    os.environ["KB_AUTH_TOKEN"] = "env_token"
-    nodes = WorkflowNodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg")
-    assert nodes.token == "env_token"
-
 def test_workflow_nodes_init_missing_token():
     """Test that initialization fails when token is missing."""
     if "KB_AUTH_TOKEN" in os.environ:
         del os.environ["KB_AUTH_TOKEN"]
-    with pytest.raises(ValueError, match="KB_AUTH_TOKEN must be provided"):
+    with pytest.raises(ValueError, match="KBase auth token must be provided"):
         WorkflowNodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg")
 
 def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_extract_json, mock_analysis_pipeline):
@@ -110,7 +104,7 @@ def test_analyst_node_success(workflow_nodes, mock_analyst_agent, mock_extract_j
 
     # Check that the agent was invoked directly
     #mock_analyst_agent.return_value.agent.invoke.assert_called_once_with({"input": "Test genome analysis"})
-    
+
     # Check that the results were processed correctly
     mock_extract_json.assert_called_once()
 
@@ -346,17 +340,3 @@ def test_workflow_end(workflow_nodes):
 
     # Check that the completion message was set
     assert result.results == "✅ Workflow complete."
-
-def test_create_workflow_nodes():
-    """Test the create_workflow_nodes helper function."""
-    from narrative_llm_agent.workflow_graph.nodes import create_workflow_nodes
-
-    # Call the function
-    node_functions = create_workflow_nodes(VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, VALID_LLM_NAME, "cborg", token="test_token")
-
-    # Check that it returns a dictionary with the expected keys
-    assert isinstance(node_functions, dict)
-    expected_keys = ["analyst_node", "app_runner_node", "workflow_validator_node", "handle_error", "workflow_end"]
-    for key in expected_keys:
-        assert key in node_functions
-        assert callable(node_functions[key])

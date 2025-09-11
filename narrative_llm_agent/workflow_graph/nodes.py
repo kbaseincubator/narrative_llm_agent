@@ -56,7 +56,7 @@ class WorkflowNodes:
     This class handles creating and managing agents for different steps in the workflow.
     """
 
-    def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token=None, analyst_token: str | None = None, validator_token: str | None = None, app_flow_token: str | None = None, writer_token: str | None = None, embedding_token: str | None = None):
+    def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token: str=None, analyst_token: str | None = None, validator_token: str | None = None, app_flow_token: str | None = None, writer_token: str | None = None, embedding_token: str | None = None):
         """
         Initialize the WorkflowNodes class.
 
