@@ -3,7 +3,9 @@ from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
+from langchain_community.callbacks import get_openai_callback
 from pydantic import BaseModel
+from narrative_llm_agent.token_counter import TokenCount
 from narrative_llm_agent.tools.narrative_tools import create_markdown_cell
 from narrative_llm_agent.tools.workspace_tools import get_object_metadata
 from narrative_llm_agent.util.tool import process_tool_input
@@ -31,9 +33,11 @@ class MetadataAgent(KBaseAgent):
         self: "MetadataAgent",
         llm: ChatOpenAI,
         token: str = None,
+        llm_name: str = ""
     ) -> None:
         super().__init__(llm, token=token)
         self.current_user_input = None
+        self.llm_name = llm_name
         self.__init_agent()
 
     def __init_agent(self) -> None:
@@ -121,4 +125,11 @@ Be conversational, ask follow-up questions when needed, but follow the workflow 
         ])
 
         agent = create_tool_calling_agent(self._llm, tools, prompt)
-        self.agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+        self.agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, stream_runnable=False)
+
+    def invoke(self, llm_input: dict):
+        with get_openai_callback() as cb:
+            response = self.agent_executor.invoke(llm_input)
+            print(f"count: {cb.prompt_tokens} | {cb.completion_tokens}")
+            count = TokenCount(prompt_tokens = cb.prompt_tokens, completion_tokens = cb.completion_tokens)
+            return response, count

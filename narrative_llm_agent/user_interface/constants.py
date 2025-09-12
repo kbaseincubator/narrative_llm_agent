@@ -5,4 +5,5 @@ CREDENTIALS_LOCAL_STORE = "credentials-local-store"
 DATA_SELECTION_STORE = "data-selection-store"
 METADATA_CHAT_STORE = "metadata-chat-store"
 METADATA_STORE = "metadata-store"
+TOKEN_USAGE_STORE = "token-usage-store"
 WORKFLOW_INSTANCES = {}
