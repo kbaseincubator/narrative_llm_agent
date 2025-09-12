@@ -174,8 +174,8 @@ References
 class MraWriterGraph:
     """
     Usage:
-    Instantiate a WriterGraph object with a narrative id, and optionally a KBase auth token.
-    If not, one will be taken from the KB_AUTH_TOKEN environment variable.
+    Instantiate a WriterGraph object with a narrative id, and authenticated workspace and execution
+    engine clients.
 
     When ready, run run_workflow, which will execute the graph and output the document.
 
@@ -183,9 +183,8 @@ class MraWriterGraph:
     """
 
     def __init__(
-        self, ws_client: Workspace, ee_client: ExecutionEngine, writer_llm: str, writer_token: str = None, kbase_token: str = None
+        self, ws_client: Workspace, ee_client: ExecutionEngine, writer_llm: str, writer_token: str = None
     ):
-        self._kbase_token = kbase_token
         self._ws_client = ws_client
         self._ee_client = ee_client
         self._writer_llm = writer_llm

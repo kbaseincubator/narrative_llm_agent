@@ -20,9 +20,10 @@ def create_metadata_collection_interface():
                     html.P(
                         "Let me help you gather information about your computational biology project."
                     ),
-                    html.Div(
-                        "Assistant: Hello! I'm here to help gather information about your computational biology project.",
-                        id="metadata-response-space",
+                    dbc.Spinner(
+                        html.Div(
+                            id="metadata-response-space",
+                        )
                     ),
                     html.Br(),
                     dcc.Input(
@@ -96,41 +97,14 @@ def create_metadata_collection_interface():
     Output("metadata-submit-btn", "disabled"),
     Output("metadata-clear-btn", "disabled"),
     Output("metadata-start-btn", "disabled"),
-    Output("metadata-response-space", "children"),
     Input("start-with-data-btn", "n_clicks"),
     prevent_initial_call=True
 )
 def turn_on_metadata(n_clicks):
     if n_clicks:
-        return {}, False, False, False, None
-    return {"display": "none"}, True, True, True, "waiting..."
+        return {}, False, False, False
+    return {"display": "none"}, True, True, True
 
-@callback(
-    Output("metadata-response-space", "children", allow_duplicate=True),
-    Output(METADATA_CHAT_STORE, "data", allow_duplicate=True),
-    Input("start-with-data-btn", "n_clicks"),
-    State(METADATA_STORE, "data"),
-    State(CREDENTIALS_STORE, "data"),
-    prevent_initial_call=True,
-    background=get_config().use_background_llm_callbacks,
-    manager=get_background_callback_manager(celery_app=get_celery_app())
-)
-def initial_metadata_agent_call(n_clicks, metadata, creds):
-    agent_executor = initialize_metadata_agent(creds)
-    initial_query = f"""
-I am working with narrative id {metadata['narrative_id']} and object UPA {metadata['obj_upa']}.
-This object has the registered metadata dictionary: {metadata.get('obj_metadata')}.
-
-Use this information to advance your goals.
-
-If there is enough information here to form an analysis, check with the user first. The user MUST verify that
-they see enough information before you can proceed to the next step. If there is not enough information,
-ask the user to help fill in missing information.
-
-Always return the final information that was stored in the narrative at the end of the chat session.
-"""
-    response = process_metadata_chat(agent_executor, initial_query, [])
-    return format_agent_response(response), dumps([HumanMessage(content=initial_query), AIMessage(content=response)])
 
 # Metadata Collection Chat Callback - Updated to use the imported module
 @callback(
@@ -146,6 +120,7 @@ Always return the final information that was stored in the narrative at the end 
         Input("metadata-submit-btn", "n_clicks"),
         Input("metadata-clear-btn", "n_clicks"),
         Input("metadata-start-btn", "n_clicks"),
+        Input("start-with-data-btn", "n_clicks"),
     ],
     [
         State("metadata-input", "value"),
@@ -158,7 +133,7 @@ Always return the final information that was stored in the narrative at the end 
     manager=get_background_callback_manager(celery_app=get_celery_app())
 )
 def interact_with_metadata_agent(
-    submit_clicks, clear_clicks, start_clicks, user_input, metadata, chat_history, credentials
+    submit_clicks, clear_clicks, start_clicks, init_clicks, user_input, metadata, chat_history, credentials
 ):
     # Initialize metadata agent
     agent_executor = initialize_metadata_agent(credentials)
@@ -168,7 +143,7 @@ def interact_with_metadata_agent(
             return reset_metadata_chat()
 
         # Handle start over
-        if ctx.triggered_id == "metadata-start-btn":
+        elif ctx.triggered_id == "metadata-start-btn":
             try:
                 response = process_metadata_chat(agent_executor, None, [])
                 chat_history_obj = [AIMessage(content=response)]
@@ -190,8 +165,23 @@ def interact_with_metadata_agent(
             except Exception as e:
                 return f"Error starting conversation: {str(e)}", [], "", [], True, {}
 
+        elif ctx.triggered_id == "start-with-data-btn":
+            print("starting off with initial metadata query")
+            user_input = f"""
+I am working with narrative id {metadata['narrative_id']} and object UPA {metadata['obj_upa']}.
+This object has the registered metadata dictionary: {metadata.get('obj_metadata')}.
+
+Use this information to advance your goals.
+
+If there is enough information here to form an analysis, check with the user first. The user MUST verify that
+they see enough information before you can proceed to the next step. If there is not enough information,
+ask the user to help fill in missing information.
+
+Always return the final information that was stored in the narrative at the end of the chat session.
+"""
+
         # Handle submit
-        if not user_input or not user_input.strip():
+        if user_input is None or not user_input.strip():
             current_history = []
             if chat_history:
                 try:
