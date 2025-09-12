@@ -17,7 +17,7 @@ MOCK_NARRATIVE_DATA = [
     - Output: annotation.gff
     - Status: completed""",
 ]
-
+WRITER_LLM = "gpt-o1-cborg"
 
 @pytest.fixture
 def mock_llm(mocker):
@@ -41,7 +41,7 @@ def initial_state(mock_workspace):
 
 def test_writer_node(initial_state, mock_llm, mock_workspace):
     """Test that writer_node correctly processes narrative data and generates a writeup."""
-    writer = SummaryWriterGraph(mock_workspace)
+    writer = SummaryWriterGraph(mock_workspace, WRITER_LLM)
     result = writer.summary_writer_node(initial_state)
 
     assert result.writeup_doc == "Test writeup document"
@@ -54,7 +54,7 @@ def test_save_node(initial_state, mock_workspace, mocker):
     """Test that save_node correctly saves the writeup document."""
 
     mock_workspace.save_objects.return_value = [[]]
-    writer = SummaryWriterGraph(mock_workspace)
+    writer = SummaryWriterGraph(mock_workspace, WRITER_LLM)
 
     state_with_writeup = initial_state.model_copy(
         update={"writeup_doc": "Test writeup"}
@@ -66,7 +66,7 @@ def test_save_node(initial_state, mock_workspace, mocker):
 
 def test_writer_graph_initialization(mock_workspace):
     """Test WriterGraph initialization."""
-    graph = SummaryWriterGraph(mock_workspace)
+    graph = SummaryWriterGraph(mock_workspace, WRITER_LLM)
     assert graph._workflow is not None
     assert graph._token is None
 
@@ -83,7 +83,7 @@ def test_writer_graph_run_workflow(mock_llm, initial_state, mock_workspace, mock
         "narrative_llm_agent.writer_graph.summary_graph.Workspace",
         return_value=mock_workspace,
     )
-    graph = SummaryWriterGraph(mock_workspace)
+    graph = SummaryWriterGraph(mock_workspace, WRITER_LLM)
     graph.run_workflow(narrative_id, ["foobar/baz"])
 
     # Verify narrative state was retrieved
@@ -92,7 +92,7 @@ def test_writer_graph_run_workflow(mock_llm, initial_state, mock_workspace, mock
 
 def test_writer_graph_error_handling(mocker, mock_workspace):
     """Test error handling in the workflow."""
-    graph = SummaryWriterGraph(mock_workspace)
+    graph = SummaryWriterGraph(mock_workspace, WRITER_LLM)
 
     mock_get_md = mocker.patch(
         "narrative_llm_agent.writer_graph.summary_graph.get_all_markdown_text",

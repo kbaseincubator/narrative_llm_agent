@@ -17,6 +17,8 @@ App: Annotation
 - Status: completed
 """
 
+WRITER_LLM = "gpt-o1-cborg"
+
 
 @pytest.fixture
 def mock_execution_engine(mocker):
@@ -42,7 +44,7 @@ def initial_state(mock_workspace):
 
 def test_writer_node(initial_state, mock_llm, mock_workspace, mock_execution_engine):
     """Test that writer_node correctly processes narrative data and generates a writeup."""
-    writer = MraWriterGraph(mock_workspace, mock_execution_engine)
+    writer = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     result = writer.writer_node(initial_state)
 
     assert result.writeup_doc == "Test writeup document"
@@ -53,7 +55,7 @@ def test_writer_node(initial_state, mock_llm, mock_workspace, mock_execution_eng
 
 def test_checker_node_success(initial_state, mock_workspace, mock_execution_engine):
     """Test checker_node when narrative state is valid."""
-    writer = MraWriterGraph(mock_workspace, mock_execution_engine)
+    writer = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     result = writer.checker_node(initial_state)
 
     assert result.error is None
@@ -62,7 +64,7 @@ def test_checker_node_success(initial_state, mock_workspace, mock_execution_engi
 
 def test_checker_node_error(initial_state, mock_workspace, mock_execution_engine):
     """Test checker_node when narrative state is invalid."""
-    writer = MraWriterGraph(mock_workspace, mock_execution_engine)
+    writer = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     # Modify the state to simulate an error condition
     state_with_error = initial_state.model_copy(update={"error": "Test error"})
     result = writer.checker_node(state_with_error)
@@ -74,7 +76,7 @@ def test_save_node(initial_state, mock_workspace, mock_execution_engine, mocker)
     """Test that save_node correctly saves the writeup document."""
 
     mock_workspace.save_objects.return_value = [[]]
-    writer = MraWriterGraph(mock_workspace, mock_execution_engine)
+    writer = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
 
     state_with_writeup = initial_state.model_copy(
         update={"writeup_doc": "Test writeup"}
@@ -86,7 +88,7 @@ def test_save_node(initial_state, mock_workspace, mock_execution_engine, mocker)
 
 def test_error_node(initial_state, mock_workspace, mock_execution_engine):
     """Test error_node correctly handles error state."""
-    writer = MraWriterGraph(mock_workspace, mock_execution_engine)
+    writer = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     state_with_error = initial_state.model_copy(update={"error": "Test error"})
     result = writer.error(state_with_error)
 
@@ -96,7 +98,7 @@ def test_error_node(initial_state, mock_workspace, mock_execution_engine):
 def test_check_analysis_state_error(mocker, mock_workspace, mock_execution_engine):
     """Test check_analysis_state routing logic."""
     # Test error state
-    writer = MraWriterGraph(mock_workspace, mock_execution_engine)
+    writer = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     error_state = MraWriteupState(
         narrative_data="test",
         narrative_id=12345,
@@ -109,7 +111,7 @@ def test_check_analysis_state_error(mocker, mock_workspace, mock_execution_engin
 def test_check_analysis_state_ok(mocker, mock_workspace, mock_execution_engine):
     """Test check_analysis_state routing logic."""
     # Test error state
-    writer = MraWriterGraph(mock_workspace, mock_execution_engine)
+    writer = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     # Test success state
     success_state = MraWriteupState(
         narrative_data="test", narrative_id=12345, ws_client=mocker.Mock(spec=Workspace)
@@ -119,9 +121,8 @@ def test_check_analysis_state_ok(mocker, mock_workspace, mock_execution_engine):
 
 def test_writer_graph_initialization(mock_workspace, mock_execution_engine):
     """Test WriterGraph initialization."""
-    graph = MraWriterGraph(mock_workspace, mock_execution_engine)
+    graph = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     assert graph._workflow is not None
-    assert graph._kbase_token is None
 
 
 def test_writer_graph_run_workflow(
@@ -142,7 +143,7 @@ def test_writer_graph_run_workflow(
         "narrative_llm_agent.writer_graph.mra_graph.ExecutionEngine",
         return_value=mock_execution_engine,
     )
-    graph = MraWriterGraph(mock_workspace, mock_execution_engine)
+    graph = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
     graph.run_workflow(narrative_id)
 
     # Verify narrative state was retrieved
@@ -153,7 +154,7 @@ def test_writer_graph_run_workflow(
 
 def test_writer_graph_error_handling(mocker, mock_workspace, mock_execution_engine):
     """Test error handling in the workflow."""
-    graph = MraWriterGraph(mock_workspace, mock_execution_engine)
+    graph = MraWriterGraph(mock_workspace, mock_execution_engine, WRITER_LLM)
 
     mock_get_state = mocker.patch(
         "narrative_llm_agent.writer_graph.mra_graph.get_narrative_state",
