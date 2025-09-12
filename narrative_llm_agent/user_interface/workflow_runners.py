@@ -203,7 +203,7 @@ def run_analysis_execution(workflow_state, credentials, workflow_key=None):
 
 
 # Initialize metadata agent
-def initialize_metadata_agent(credentials):
+def initialize_metadata_agent(credentials) -> MetadataAgent:
     """Initialize the metadata collection agent"""
 
     # Get credentials and set environment variables
@@ -218,5 +218,6 @@ def initialize_metadata_agent(credentials):
         used_llm = "gpt-4o-openai"
 
     llm = get_llm(used_llm, api_key=api_key)
-    metadata_agent = MetadataAgent(llm=llm, token=kb_auth_token)
-    return metadata_agent.agent_executor
+    return MetadataAgent(llm=llm, llm_name=used_llm, token=kb_auth_token)
+    # metadata_agent = MetadataAgent(llm=llm, token=kb_auth_token)
+    # return metadata_agent.agent_executor
