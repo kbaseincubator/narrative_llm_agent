@@ -25,35 +25,35 @@ class WorkflowCallback:
         self.logger = logger
     
     def on_chain_start(self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs) -> None:
-        self.logger.info(f"🚀 WORKFLOW STARTED with inputs: {list(inputs.keys())}")
+        self.logger.info(f"WORKFLOW STARTED with inputs: {list(inputs.keys())}")
     
     def on_chain_end(self, outputs: Dict[str, Any], **kwargs) -> None:
-        self.logger.info(f"🏁 WORKFLOW COMPLETED")
+        self.logger.info(f"WORKFLOW COMPLETED")
     
     def on_chain_error(self, error: Exception, **kwargs) -> None:
-        self.logger.error(f"❌ WORKFLOW ERROR: {error}")
+        self.logger.error(f"WORKFLOW ERROR: {error}")
 
 def log_node_execution(node_name: str, state: WorkflowState, result: WorkflowState = None):
     """Helper function to log node execution details"""
-    workflow_logger.info(f"📍 NODE: {node_name}")
-    workflow_logger.info(f"   📥 Input - Steps remaining: {len(state.steps_to_run) if state.steps_to_run else 0}")
-    workflow_logger.info(f"   📥 Input - Awaiting approval: {state.awaiting_approval}")
-    workflow_logger.info(f"   📥 Input - Error: {state.error}")
-    workflow_logger.info(f"   📥 Input - Results: {state.results}")
+    workflow_logger.info(f"NODE: {node_name}")
+    workflow_logger.info(f"Input - Steps remaining: {len(state.steps_to_run) if state.steps_to_run else 0}")
+    workflow_logger.info(f"Input - Awaiting approval: {state.awaiting_approval}")
+    workflow_logger.info(f"Input - Error: {state.error}")
+    workflow_logger.info(f"Input - Results: {state.results}")
     
     if result:
-        workflow_logger.info(f"   📤 Output - Steps remaining: {len(result.steps_to_run) if result.steps_to_run else 0}")
-        workflow_logger.info(f"   📤 Output - Awaiting approval: {result.awaiting_approval}")
-        workflow_logger.info(f"   📤 Output - Error: {result.error}")
-        workflow_logger.info(f"   📤 Output - Results: {result.results}")
+        workflow_logger.info(f"Output - Steps remaining: {len(result.steps_to_run) if result.steps_to_run else 0}")
+        workflow_logger.info(f"Output - Awaiting approval: {result.awaiting_approval}")
+        workflow_logger.info(f"Output - Error: {result.error}")
+        workflow_logger.info(f"Output - Results: {result.results}")
 
 def log_router_decision(router_name: str, state: WorkflowState, decision: str):
     """Helper function to log router decisions"""
-    workflow_logger.info(f"🔀 ROUTER: {router_name}")
-    workflow_logger.info(f"   📊 State - Steps remaining: {len(state.steps_to_run) if state.steps_to_run else 0}")
-    workflow_logger.info(f"   📊 State - Error: {state.error}")
-    workflow_logger.info(f"   📊 State - Awaiting approval: {state.awaiting_approval}")
-    workflow_logger.info(f"   ➡️ DECISION: {decision}")
+    workflow_logger.info(f"ROUTER: {router_name}")
+    workflow_logger.info(f"State - Steps remaining: {len(state.steps_to_run) if state.steps_to_run else 0}")
+    workflow_logger.info(f"State - Error: {state.error}")
+    workflow_logger.info(f"State - Awaiting approval: {state.awaiting_approval}")
+    workflow_logger.info(f"DECISION: {decision}")
 
 class AnalysisWorkflow:
     """
@@ -80,24 +80,16 @@ class AnalysisWorkflow:
     def _create_logged_node(self, node_name: str, node_func):
         """Wrap a node function with logging"""
         def logged_node(state: WorkflowState):
-            workflow_logger.info(f"🔵 ENTERING NODE: {node_name}")
+            workflow_logger.info(f"ENTERING: {node_name}")
             log_node_execution(node_name, state)
             
             result = node_func(state)
             
-            workflow_logger.info(f"🟢 EXITING NODE: {node_name}")
+            workflow_logger.info(f"EXITING: {node_name}")
             log_node_execution(node_name, state, result)
             
             return result
         return logged_node
-
-    def _create_logged_router(self, router_name: str, router_func):
-        """Wrap a router function with logging"""
-        def logged_router(state: WorkflowState):
-            decision = router_func(state)
-            log_router_decision(router_name, state, decision)
-            return decision
-        return logged_router
 
     def _build_graph(self):
         """Build the workflow graph for genome analysis with human approval."""
@@ -112,7 +104,7 @@ class AnalysisWorkflow:
         # Define the edges with logging wrappers for routers
         planning_graph.add_conditional_edges(
             "analyst",
-            self._create_logged_router("analyst_router", analyst_router),
+            self._create_logged_node("analyst_router", analyst_router),
             {
                 "human_approval": "human_approval",
                 "handle_error": "handle_error"
@@ -231,7 +223,7 @@ class ExecutionWorkflow:
         # Add conditional edges with logging
         genome_graph.add_conditional_edges(
             "validate_step",
-            self._create_logged_router("post_validation_router", post_validation_router),
+            self._create_logged_node("post_validation_router", post_validation_router),
             {
                 "run_workflow_step": "run_workflow_step",
                 "workflow_end": "workflow_end",
@@ -241,7 +233,7 @@ class ExecutionWorkflow:
 
         genome_graph.add_conditional_edges(
             "run_workflow_step",
-            self._create_logged_router("next_step_router", next_step_router),
+            self._create_logged_node("next_step_router", next_step_router),
             {
                 "validate_step": "validate_step",
                 "workflow_end": "workflow_end",
