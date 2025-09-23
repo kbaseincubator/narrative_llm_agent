@@ -7,7 +7,10 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from narrative_llm_agent.config import get_llm
 import json
+import time
+import logging
 
+workflow_logger = logging.getLogger("WorkflowExecution")
 # Define a model for each analysis step
 class AnalysisStep(BaseModel):
     step: int
@@ -97,6 +100,7 @@ class WorkflowNodes:
         Returns:
             WorkflowState: Updated workflow state with analysis plan.
         """
+        workflow_logger.info(f"Starting analyst_node for Narrative ID, logging from nodes file: {state.narrative_id}")
         try:
             # Get the existing description from the state
             description = state.description
@@ -226,6 +230,7 @@ class WorkflowNodes:
             formatted_steps.append(step_info)
 
         return "\n".join(formatted_steps)
+    
     def app_runner_node(self, state: WorkflowState) -> WorkflowState:
         """
         Node function for running an app in a single step.
@@ -236,6 +241,7 @@ class WorkflowNodes:
         Returns:
             WorkflowState: Updated workflow state with execution results.
         """
+
         steps_to_run = state.steps_to_run
         current_step = steps_to_run[0]
         remaining_steps = steps_to_run[1:]
@@ -259,10 +265,10 @@ class WorkflowNodes:
                 "last_executed_step": current_step,
                 "completed_steps": state.completed_steps + [current_step],
                 "last_data_object_upa": updated_last_data_object_upa,
-                "error": job_result.job_error
+                "error": job_result.job_error,
             })
         except Exception as e:
-            print(e)
+            workflow_logger.info(e)
             return state.model_copy(update={
                 "results": None,
                 "step_result": None,
@@ -401,4 +407,6 @@ class WorkflowNodes:
         })
 
     def workflow_end(self, state: WorkflowState):
-        return state.model_copy(update={"results": "✅ Workflow complete."})
+        return state.model_copy(update={
+            "results": "✅ Workflow complete."
+            })

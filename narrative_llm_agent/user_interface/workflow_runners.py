@@ -125,7 +125,7 @@ def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
 
         # Create MRA writer
         mra_writer = MraWriterGraph(
-            ws_client, ee_client, writer_llm, writer_token=api_key, token=kbase_token
+            ws_client, ee_client, writer_llm, writer_token=api_key, kbase_token=kbase_token
         )
 
         # Run the MRA workflow
