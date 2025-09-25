@@ -90,7 +90,14 @@ class AnalysisWorkflow:
             
             return result
         return logged_node
-
+    def _create_logged_router(self, router_name: str, router_func):
+        """Wrap a router function with logging"""
+        def logged_router(state: WorkflowState):
+            decision = router_func(state)
+            workflow_logger.info(f"ROUTER DECISION: {router_name} -> '{decision}'")
+            log_router_decision(router_name, state, decision)
+            return decision
+        return logged_router
     def _build_graph(self):
         """Build the workflow graph for genome analysis with human approval."""
         # Create a new graph
@@ -104,7 +111,7 @@ class AnalysisWorkflow:
         # Define the edges with logging wrappers for routers
         planning_graph.add_conditional_edges(
             "analyst",
-            self._create_logged_node("analyst_router", analyst_router),
+            self._create_logged_router("analyst_router", analyst_router),
             {
                 "human_approval": "human_approval",
                 "handle_error": "handle_error"
@@ -112,6 +119,7 @@ class AnalysisWorkflow:
         )
 
         planning_graph.add_edge("handle_error", END)
+        planning_graph.add_edge("human_approval", END)
         planning_graph.set_entry_point("analyst")
 
         return planning_graph.compile()
@@ -201,7 +209,6 @@ class ExecutionWorkflow:
             
             return result
         return logged_node
-
     def _create_logged_router(self, router_name: str, router_func):
         """Wrap a router function with logging"""
         def logged_router(state: WorkflowState):
@@ -209,7 +216,7 @@ class ExecutionWorkflow:
             log_router_decision(router_name, state, decision)
             return decision
         return logged_router
-
+    
     def _build_graph(self):
         """Build the workflow graph for with logging."""
         genome_graph = StateGraph(WorkflowState)
@@ -223,7 +230,7 @@ class ExecutionWorkflow:
         # Add conditional edges with logging
         genome_graph.add_conditional_edges(
             "validate_step",
-            self._create_logged_node("post_validation_router", post_validation_router),
+            self._create_logged_router("post_validation_router", post_validation_router),
             {
                 "run_workflow_step": "run_workflow_step",
                 "workflow_end": "workflow_end",
@@ -233,7 +240,7 @@ class ExecutionWorkflow:
 
         genome_graph.add_conditional_edges(
             "run_workflow_step",
-            self._create_logged_node("next_step_router", next_step_router),
+            self._create_logged_router("next_step_router", next_step_router),
             {
                 "validate_step": "validate_step",
                 "workflow_end": "workflow_end",

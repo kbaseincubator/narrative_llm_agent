@@ -123,21 +123,13 @@ class WorkflowNodes:
                     - Classify the microbe for taxonomy, where relevant.
 
                     Based on the metadata, devise a detailed step-by-step analysis workflow, the apps and app_ids should be from the app graph.
-                    The analysis plan should be a json with schema as:
+                    """
+            config = {"configurable": {"thread_id": "1"}}
 
-                    {{"Step": "Integer number indicating the step",
-                    "Name": "Name of the step",
-                    "Description": "Describe the step",
-                    "App": "Name of the app",
-                    "expect_new_object": boolean indicating if this step creates a new data object,
-                    "app_id": "Id of the KBase app"}}
-
-                    Ensure that app_ids are obtained from the app graph and are correct.
-                    Make sure that the analysis plan is included in the final response."""
-
-            output = analyst_expert.agent.invoke({"input": description_complete})
+            output = analyst_expert.agent.invoke({"messages": [{"role": "user", "content": description_complete}]},config)
             # Extract the JSON from the output
-            analysis_plan = extract_json_from_string(output["output"])
+            analysis_plan = [step.dict() for step in output['structured_response'].steps_to_run]
+            workflow_logger.info(f"Analysis plan: {analysis_plan}")
             #Mock analysis plan for testing purposes
             #read from json file
             # file_path = ("/Users/prachigupta/LLM/narrative_agent_test/notebooks/evaluation/mra_isolate.json")
