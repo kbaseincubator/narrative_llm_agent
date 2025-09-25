@@ -14,7 +14,9 @@ from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
 from narrative_llm_agent.tools.app_tools import app_params_pydantic, get_app_params
 from narrative_llm_agent.tools.job_tools import CompletedJob, CreatedObject
+import logging 
 
+workflow_logger = logging.getLogger("WorkflowExecution")
 class JobCrew:
     """
     Initializes and runs a CrewAI Crew that will run a single KBase job from start to finish,
@@ -61,10 +63,12 @@ class JobCrew:
         crew = Crew(
             agents=self._agents,
             tasks=self._tasks,
-            # verbose=True,
+            #verbose=True,
             function_calling_llm=self._workflow_llm
         )
         self._crew_results.append(crew.kickoff())
+        logging.info(f"Crew results: {self._crew_results[-1]}")
+        logging.info(f"Crew usage metrics: {crew.usage_metrics}")
         return self._crew_results[-1]
 
     def start_job_debug_skip(self, app_name: str, input_object_upa: str, narrative_id: int, app_id: str|None=None) -> str:

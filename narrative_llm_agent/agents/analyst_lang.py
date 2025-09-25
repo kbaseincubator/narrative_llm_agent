@@ -4,6 +4,8 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_nomic import NomicEmbeddings
 from pydantic import BaseModel, Field
 from langchain_chroma import Chroma
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import InMemorySaver
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.chains import RetrievalQA
 from langchain.tools import tool
@@ -13,16 +15,28 @@ from narrative_llm_agent.kbase.clients.narrative_method_store import (
     NarrativeMethodStore,
 )
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from langchain.agents import Tool, AgentExecutor, create_react_agent, create_tool_calling_agent
+from langchain.agents import Tool, AgentExecutor, create_tool_calling_agent
 from narrative_llm_agent.tools.kgtool_cosine_sim import InformationTool
 from narrative_llm_agent.config import get_config
 import traceback
+from typing import List
 
 class AnalystInput(BaseModel):
     query: str = Field(
         description="query to look up KBase documentation, catalog or tutorials"
     )
+# Model for each step
+class AnalysisSteps(BaseModel):
+    step: int
+    name: str
+    app: str
+    description: str
+    expect_new_object: bool
+    app_id: str
 
+# Model for the complete workflow
+class AnalysisPlan(BaseModel):
+    steps_to_run: List[AnalysisSteps]
 
 DEFAULT_CATALOG_DB_DIR: Path = Path(__file__).parent / "Nomic_vector_db_app_catalog"
 DEFAULT_DOCS_DB_DIR: Path = Path(__file__).parent / "Nomic_vector_db_kbase_docs"
@@ -187,9 +201,7 @@ class AnalystAgent(KBaseAgent):
 
         HUMAN_PROMPT_TEMPLATE = """
         Answer the following questions accurately and concisely.
-        You have access to the following tools:
-
-        {tools}
+        You have access tools.
 
         Use the following format:
 
@@ -197,7 +209,7 @@ class AnalystAgent(KBaseAgent):
 
         Thought: you should always think about what to do
 
-        Action: the action to take, should be one of [{tool_names}]
+        Action: the action to take, should be one of tools
 
         Action Input: the input to the action
 
@@ -219,38 +231,39 @@ class AnalystAgent(KBaseAgent):
         -Make sure to make recommendations of apps that exist in KBase.
         -Always use the KBase Documentation tool to find relevant KBase apps then check the Knowledge Graph to find the full app name, appid, tooltip, version, category and data objects.
         -Do not use the Knowledge Graph tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead.
-        Here is the history of the conversation so far:
-        {react_chat_history}
-        Begin!
-
-        Question: {input}
 
         Thought:{agent_scratchpad}
         """
-        prompt = ChatPromptTemplate.from_messages([
-            SystemMessagePromptTemplate.from_template(
-                template=SYSTEM_PROMPT_TEMPLATE
-            ),
-            MessagesPlaceholder(variable_name='react_chat_history', optional=True),
-            HumanMessagePromptTemplate.from_template(
-                input_variables=["tools", "input", "react_chat_history", "agent_scratchpad"],
-                template=HUMAN_PROMPT_TEMPLATE
-            )
-        ])
+        # prompt = ChatPromptTemplate.from_messages([
+        #     SystemMessagePromptTemplate.from_template(
+        #         template=SYSTEM_PROMPT_TEMPLATE
+        #     ),
+        #     MessagesPlaceholder(variable_name='react_chat_history', optional=True),
+        #     HumanMessagePromptTemplate.from_template(
+        #         input_variables=["tools", "input", "react_chat_history", "agent_scratchpad"],
+        #         template=HUMAN_PROMPT_TEMPLATE
+        #     )
+        # ])
+        prompt = SYSTEM_PROMPT_TEMPLATE + HUMAN_PROMPT_TEMPLATE
         try:
-            agent = create_react_agent(
-                llm=self._llm,
+            self.agent = create_react_agent(
+                model=self._llm,
                 tools=tools,
                 prompt=prompt,
+                response_format=AnalysisPlan,
+                checkpointer=InMemorySaver(),
             )
+            print("Created the agent successfully")
+            print(f"Agent type: {type(self.agent)}")
+            print(f"Agent has invoke: {hasattr(self.agent, 'invoke')}")
 
-            self.agent = AgentExecutor(
-                agent=agent,
-                tools=tools,
-                verbose=True,
-                memory=ConversationBufferMemory(memory_key="react_chat_history", return_messages=True),
-                handle_parsing_errors=True
-            )
+            # self.agent = AgentExecutor(
+            #     agent=agent,
+            #     tools=tools,
+            #     verbose=True,
+            #     memory=ConversationBufferMemory(memory_key="react_chat_history", return_messages=True),
+            #     handle_parsing_errors=True
+            # )
         except Exception as e:
             print("Error creating the agent:")
             traceback.print_exc()
@@ -264,9 +277,6 @@ class AnalystAgent(KBaseAgent):
             embedding_function=self._embeddings
         )
         retriever = vectordb.as_retriever()
-
-        memory = ConversationBufferMemory(memory_key="chat_history")
-        readonlymemory = ReadOnlySharedMemory(memory=memory)
         chain_type = "refine"
 
         # Retrieval chain
@@ -274,7 +284,6 @@ class AnalystAgent(KBaseAgent):
             llm=self._llm,
             chain_type=chain_type,
             retriever=retriever,
-            memory=readonlymemory,
         )
 
         return qa_chain

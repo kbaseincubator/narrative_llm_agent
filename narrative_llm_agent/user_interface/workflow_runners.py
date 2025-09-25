@@ -20,7 +20,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
 
         if provider == "cborg":
             api_key = credentials.get("cborg_api_key")
-            used_llm = "gpt-4.1-cborg"
+            used_llm = "gpt-5-cborg"
         else:
             api_key = credentials.get("openai_api_key")
             used_llm = "gpt-4o-openai"
@@ -125,7 +125,7 @@ def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
 
         # Create MRA writer
         mra_writer = MraWriterGraph(
-            ws_client, ee_client, writer_llm, writer_token=api_key
+            ws_client, ee_client, writer_llm, writer_token=api_key, kbase_token=kbase_token
         )
 
         # Run the MRA workflow
