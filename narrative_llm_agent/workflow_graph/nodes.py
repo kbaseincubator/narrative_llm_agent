@@ -105,7 +105,7 @@ class WorkflowNodes:
                 token=self.token,
             )
 
-            #Create combined description for the agent
+            # Create combined description for the agent
             description_complete = description + """/nThis analysis is for a Microbiology Resource Announcements (MRA) paper so these need to be a part of analysis. Always keep in mind the following:
                     - The analysis steps should begin with read quality assessment.
                     - Make sure you select appropriate KBase apps based on genome type.

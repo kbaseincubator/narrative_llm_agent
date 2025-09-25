@@ -1,6 +1,9 @@
+import logging
 from narrative_llm_agent.crews.job_crew import JobCrew
 from narrative_llm_agent.agents.validator import WorkflowValidatorAgent
 from narrative_llm_agent.agents.analyst_lang import AnalystAgent
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.tools.job_tools import CompletedJob
 from narrative_llm_agent.util.json_util import extract_json_from_string, extract_json_from_string_curly
 from pydantic import BaseModel
@@ -100,7 +103,7 @@ class WorkflowNodes:
         try:
             # Get the existing description from the state
             description = state.description
-            
+
             # Initialize the analyst agent
             llm = get_llm(self._analyst_llm, api_key=self._analyst_token)
             print(f"Using LLM: {self._analyst_llm} with llm: {llm}")
@@ -129,6 +132,7 @@ class WorkflowNodes:
                     "app_id": "Id of the KBase app"}}
 
                     Ensure that app_ids are obtained from the app graph and are correct.
+                    Make sure that the expect_new_object field is correct.
                     Make sure that the analysis plan is included in the final response."""
 
             output = analyst_expert.agent.invoke({"input": description_complete})
@@ -142,6 +146,9 @@ class WorkflowNodes:
             # analysis_plan = workflow_data.get("steps", [])[:1]
             # print(f"Analysis plan: {analysis_plan}")
             # Return updated state with analysis plan and awaiting approval flag
+
+            analysis_plan = validate_analysis_plan(analysis_plan)
+
             return state.model_copy(update={
                 "steps_to_run": analysis_plan,
                 "error": None,
@@ -226,6 +233,7 @@ class WorkflowNodes:
             formatted_steps.append(step_info)
 
         return "\n".join(formatted_steps)
+
     def app_runner_node(self, state: WorkflowState) -> WorkflowState:
         """
         Node function for running an app in a single step.
@@ -236,6 +244,7 @@ class WorkflowNodes:
         Returns:
             WorkflowState: Updated workflow state with execution results.
         """
+        logging.info(f"starting app runner node with state: {state}")
         steps_to_run = state.steps_to_run
         current_step = steps_to_run[0]
         remaining_steps = steps_to_run[1:]
@@ -402,3 +411,24 @@ class WorkflowNodes:
 
     def workflow_end(self, state: WorkflowState):
         return state.model_copy(update={"results": "✅ Workflow complete."})
+
+def validate_analysis_plan(plan: dict[str, Any]):
+    """
+    Validates whether an analysis plan is coherent. Does the following:
+    1. Makes sure that app ids all really exist in KBase. Raises a ValueError if any do not.
+    2. Ensures that the expect_new_object values are correct. Adjusts them if they are not.
+    3. ...other things TBD
+    """
+    nms = NarrativeMethodStore()
+    for idx, step in enumerate(plan):
+        if "app_id" not in step:
+            raise ValueError(f"missing app_id key in step {step.get('Step')}")
+        app_id = step["app_id"]
+        try:
+            spec = nms.get_app_spec(app_id)
+        except Exception as e:
+            raise ValueError("App spec for app '{app_id}' not found!", e)
+
+        spec = AppSpec.model_validate(spec)
+        plan[idx]["expect_new_object"] = len(spec.info.output_types) > 0
+    return plan

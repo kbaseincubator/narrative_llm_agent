@@ -220,6 +220,38 @@ class Narrative:
         self._add_cell(new_cell)
         return new_cell
 
+    def add_bulk_import_cell(self, job_state: JobState, app_specs: dict) -> BulkImportCell:
+        cell_dict = self._create_cell_dict("code", "app-bulk-import", "")
+        cell_dict["metadata"]["kbase"]["attributes"]["subtitle"] = "Import files into your Narrative as data objects"
+        cell_dict["metadata"]["kbase"]["attributes"]["title"] = "Import from Staging Area"
+        cell_dict["metadata"]["kbase"]["attributes"]["id"] = (
+            job_state.job_input.narrative_cell_info.cell_id
+        )
+        cell_dict["metadata"]["kbase"]["bulkImportCell"] = self._create_bulk_import_cell_meta(
+            job_state, app_specs
+        )
+        new_cell = BulkImportCell(cell_dict)
+        self._add_cell(new_cell)
+        return new_cell
+
+    def _create_bulk_import_cell_meta(job_state: JobState, app_specs: dict) -> dict[str, Any]:
+        """
+            app
+                fileParamIds
+                otherParamIds
+                outputParamIds
+                specs
+                tag
+            exec
+
+            inputs
+            params
+            state
+            user-settings
+        """
+        # TODO. Maybe. If it becomes relevant.
+        return {}
+
     def add_app_cell(self, job_state: JobState, app_spec: dict) -> AppCell:
         """Adds an app cell to this narrative based on the job state and app spec.
 
@@ -364,7 +396,7 @@ class Narrative:
                         "status": cur_state.status,
                     }
                     if cur_state.error:
-                        reduced_app_cell["job_state"]["error"] = cur_state.error
+                        reduced_app_cell["job_state"]["error"] = cur_state.error.to_dict()
                     results = cur_state.job_output
                     if results:
                         if "results" in results:

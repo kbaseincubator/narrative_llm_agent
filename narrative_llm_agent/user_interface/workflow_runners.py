@@ -120,12 +120,12 @@ def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
         ExecutionEngine = result["ExecutionEngine"]
 
         # Create KBase clients
-        ws_client = Workspace()
-        ee_client = ExecutionEngine()
+        ws_client = Workspace(token=kbase_token)
+        ee_client = ExecutionEngine(token=kbase_token)
 
         # Create MRA writer
         mra_writer = MraWriterGraph(
-            ws_client, ee_client, writer_llm, writer_token=api_key, token=kbase_token
+            ws_client, ee_client, writer_llm, writer_token=api_key
         )
 
         # Run the MRA workflow

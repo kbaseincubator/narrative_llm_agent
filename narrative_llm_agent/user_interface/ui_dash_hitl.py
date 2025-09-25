@@ -25,6 +25,7 @@ from narrative_llm_agent.user_interface.constants import (
     DATA_SELECTION_STORE,
     METADATA_STORE,
     SESSION_ID_STORE,
+    TOKEN_USAGE_STORE,
 )
 from datetime import datetime
 from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app, get_logs_from_redis, get_redis_client, RedisStreamRedirector
@@ -136,6 +137,7 @@ def create_main_layout():
             dcc.Store(id="analysis-history-store", data=[]),
             dcc.Store(id=SESSION_ID_STORE, data=session_id),
             dcc.Store(id=CREDENTIALS_LOCAL_STORE, storage_type="local"),
+            dcc.Store(id=TOKEN_USAGE_STORE, storage_type="local", data={"sessions": {session_id: {"session_id": session_id}}}),
             dcc.Store(id=DATA_SELECTION_STORE),
             # Header
             dbc.Row(

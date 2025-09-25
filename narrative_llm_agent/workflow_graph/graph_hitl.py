@@ -193,7 +193,7 @@ class ExecutionWorkflow:
         # Compile the graph
         return genome_graph.compile()
 
-    def run(self, state):
+    def run(self, state) -> WorkflowState:
         """
         Run a genome analysis workflow with the given parameters.
 
