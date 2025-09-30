@@ -199,6 +199,9 @@ class MockLLM(LLM):
 
     def _llm_type():
         pass
+    def bind_tools(self, tools):
+        return self
+
 
 
 @pytest.fixture
