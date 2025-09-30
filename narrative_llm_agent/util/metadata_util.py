@@ -1,5 +1,9 @@
+from typing import Tuple
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain.load import loads
+
+from narrative_llm_agent.agents.metadata_lang import MetadataAgent
+from narrative_llm_agent.token_counter import TokenCount
 
 
 def extract_metadata_from_conversation(chat_history):
@@ -147,13 +151,13 @@ The goal is to have a complete annotated genome and classify the microbe."""
     return description
 
 
-def process_metadata_chat(agent_executor, user_input, chat_history):
+def process_metadata_chat(agent: MetadataAgent, user_input: str, chat_history: list) -> Tuple[str, TokenCount]:
     """Static method to process chat - used by the Dash app"""
     try:
         if not isinstance(chat_history, list):
             chat_history = []
 
-        response = agent_executor.invoke(
+        response, token_count = agent.invoke(
             {
                 "input": user_input
                 if user_input
@@ -161,8 +165,16 @@ def process_metadata_chat(agent_executor, user_input, chat_history):
                 "chat_history": chat_history,
             }
         )
+        # response = agent.agent_executor.invoke(
+        #     {
+        #         "input": user_input
+        #         if user_input
+        #         else "Start the conversation by asking for the narrative ID",
+        #         "chat_history": chat_history,
+        #     }
+        # )
 
-        return response.get("output", "No response generated")
+        return response.get("output", "No response generated"), token_count
 
     except Exception as e:
-        return f"Error in agent processing: {str(e)}"
+        return f"Error in agent processing: {str(e)}", TokenCount()

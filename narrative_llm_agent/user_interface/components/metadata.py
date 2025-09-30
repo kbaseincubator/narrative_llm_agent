@@ -2,9 +2,10 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, ctx, html, dcc
 
 from narrative_llm_agent.config import get_config
+from narrative_llm_agent.token_counter import TokenCounter, TokenCounterStore
 from narrative_llm_agent.user_interface.components.metadata_agent_format import format_agent_response
 from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app
-from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, METADATA_CHAT_STORE, METADATA_STORE
+from narrative_llm_agent.user_interface.constants import CREDENTIALS_STORE, METADATA_CHAT_STORE, METADATA_STORE, SESSION_ID_STORE, TOKEN_USAGE_STORE
 from narrative_llm_agent.user_interface.workflow_runners import initialize_metadata_agent
 from narrative_llm_agent.util.metadata_util import check_metadata_completion, generate_description_from_metadata, process_metadata_chat
 from langchain_core.messages import AIMessage, HumanMessage
@@ -115,6 +116,7 @@ def turn_on_metadata(n_clicks):
         Output("metadata-chat-history", "children"),
         Output("proceed-to-analysis-btn", "disabled"),
         Output(METADATA_STORE, "data", allow_duplicate=True),
+        Output(TOKEN_USAGE_STORE, "data"),
     ],
     [
         Input("metadata-submit-btn", "n_clicks"),
@@ -127,25 +129,30 @@ def turn_on_metadata(n_clicks):
         State(METADATA_STORE, "data"),
         State(METADATA_CHAT_STORE, "data"),
         State(CREDENTIALS_STORE, "data"),
+        State(TOKEN_USAGE_STORE, "data"),
+        State(SESSION_ID_STORE, "data")
     ],
     prevent_initial_call=True,
     background=get_config().use_background_llm_callbacks,
     manager=get_background_callback_manager(celery_app=get_celery_app())
 )
 def interact_with_metadata_agent(
-    submit_clicks, clear_clicks, start_clicks, init_clicks, user_input, metadata, chat_history, credentials
+    submit_clicks, clear_clicks, start_clicks, init_clicks, user_input, metadata, chat_history, credentials, token_usage, session_id
 ):
+    token_counter = TokenCounterStore.model_validate(token_usage)
     # Initialize metadata agent
-    agent_executor = initialize_metadata_agent(credentials)
+    agent = initialize_metadata_agent(credentials)
+    # agent_executor = initialize_metadata_agent(credentials)
     try:
         # Handle clear chat
         if ctx.triggered_id == "metadata-clear-btn":
-            return reset_metadata_chat()
+            return reset_metadata_chat(), token_counter.model_dump()
 
         # Handle start over
         elif ctx.triggered_id == "metadata-start-btn":
             try:
-                response = process_metadata_chat(agent_executor, None, [])
+                response, token_count = process_metadata_chat(agent, None, [])
+                token_counter.update(session_id, agent.llm_name, token_count)
                 chat_history_obj = [AIMessage(content=response)]
                 # Format the response for visual display
                 formatted_response = format_agent_response(response)
@@ -219,6 +226,7 @@ Always return the final information that was stored in the narrative at the end 
                 current_history,
                 True,
                 {},
+                token_counter.model_dump()
             )
 
         # Process the user input
@@ -233,9 +241,10 @@ Always return the final information that was stored in the narrative at the end 
             else:
                 chat_history_obj = []
 
-            response = process_metadata_chat(
-                agent_executor, user_input, chat_history_obj
+            response, token_count = process_metadata_chat(
+                agent, user_input, chat_history_obj
             )
+            token_counter.update(session_id, agent.llm_name, token_count)
 
             # Update chat history
             chat_history_obj.append(HumanMessage(content=user_input))
@@ -285,6 +294,7 @@ Always return the final information that was stored in the narrative at the end 
                 visual_history,
                 not metadata_complete,
                 collected_data,
+                token_counter.model_dump()
             )
             return return_val
 
@@ -296,6 +306,7 @@ Always return the final information that was stored in the narrative at the end 
                 [],
                 True,
                 {},
+                token_counter.model_dump()
             )
 
     except Exception as e:
