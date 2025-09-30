@@ -173,21 +173,35 @@ class AnalystAgent(KBaseAgent):
             except ServerError:
                 return False
             return True
-
         @tool("kg_retrieval_tool")
         def KGretrieval_tool(input: str):
-           """This tool has the KBase app Knowledge Graph. Useful for when you need to confirm the existance of KBase applications and their appid, tooltip, version, category and data objects.
-           This tool can also be used for finding total number of apps or which data objects are shared between apps.
-           It is also useful for finding accurate app_id for a KBase app.
-           The input should always be a KBase app name or data object name and should not include any special characters or version number.
-           Do not use this tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead
-           """
+            """This tool has the KBase app Knowledge Graph. Useful for when you need to confirm the existance of KBase applications and their appid, tooltip, version, category and data objects.
+            This tool can also be used for finding total number of apps or which data objects are shared between apps.
+            It is also useful for finding accurate app_id for a KBase app.
+            The input should always be a KBase app name or data object name and should not include any special characters or version number.
+            Do not use this tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead
+            """
+            try:
+                # Call get_information directly
+                get_information = InformationTool(uri=os.environ.get('NEO4J_URI'), user=os.environ.get('NEO4J_USERNAME'), password=os.environ.get('NEO4J_PASSWORD'))
+                result = get_information.run({'entity':input, 'entity_type':'AppCatalog'})
+                return result
+            except Exception as e:
+                return f"Error querying Knowledge Graph: {str(e)}"
+        # @tool("kg_retrieval_tool")
+        # def KGretrieval_tool(input: str):
+        #    """This tool has the KBase app Knowledge Graph. Useful for when you need to confirm the existance of KBase applications and their appid, tooltip, version, category and data objects.
+        #    This tool can also be used for finding total number of apps or which data objects are shared between apps.
+        #    It is also useful for finding accurate app_id for a KBase app.
+        #    The input should always be a KBase app name or data object name and should not include any special characters or version number.
+        #    Do not use this tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead
+        #    """
 
-           response = self._create_KG_agent().invoke({"input": input})
-           #Ensure that the response is properly formatted for the agent to use
-           if 'output' in response:
-                return response['output']
-           return "No response from the tool"
+        #    response = self._create_KG_agent().invoke({"input": input})
+        #    #Ensure that the response is properly formatted for the agent to use
+        #    if 'output' in response:
+        #         return response['output']
+        #    return "No response from the tool"
 
         tools = [
             kbase_docs_retrieval_tool,
@@ -222,13 +236,9 @@ class AnalystAgent(KBaseAgent):
         Final Answer: the final answer to the original input question.
         Always follow these:
         -Stop after you arrive at the Final Answer.
-
-        - Before proceeding, validate that your output conforms to the required format:
-            -Each `Thought:` must be followed by an `Action:` or lead to a `Final Answer:`.
-            -Never skip required fields or mix them together.
-        -When suggesting apps to user for performing analysis make sure to review the associated meta data and select analysis steps or apps accordingly.
+        -When suggesting apps to user for performing analysis make sure to review the associated meta data and select analysis steps or apps accordingly. 
+        If it is an isolates genome, make sure to select apps that are suitable for this genome type. If its metagenome, select apps that are suitable for metagenomes.
         -When generating detailed multi step analysis plans, be precise suggesting one app per step.
-        -Make sure to make recommendations of apps that exist in KBase.
         -Always use the KBase Documentation tool to find relevant KBase apps then check the Knowledge Graph to find the full app name, appid, tooltip, version, category and data objects.
         -Do not use the Knowledge Graph tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead.
 
@@ -250,12 +260,10 @@ class AnalystAgent(KBaseAgent):
                 model=self._llm,
                 tools=tools,
                 prompt=prompt,
+                debug=True,
                 response_format=AnalysisPlan,
-                checkpointer=InMemorySaver(),
             )
             print("Created the agent successfully")
-            print(f"Agent type: {type(self.agent)}")
-            print(f"Agent has invoke: {hasattr(self.agent, 'invoke')}")
 
             # self.agent = AgentExecutor(
             #     agent=agent,
