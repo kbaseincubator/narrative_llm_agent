@@ -139,7 +139,10 @@ def turn_on_metadata(n_clicks):
 def interact_with_metadata_agent(
     submit_clicks, clear_clicks, start_clicks, init_clicks, user_input, metadata, chat_history, credentials, token_usage, session_id
 ):
-    token_counter = TokenCounterStore.model_validate(token_usage)
+    if token_usage is not None:
+        token_counter = TokenCounterStore.model_validate(token_usage)
+    else:
+        token_counter = TokenCounterStore(sessions={})
     # Initialize metadata agent
     agent = initialize_metadata_agent(credentials)
     # agent_executor = initialize_metadata_agent(credentials)

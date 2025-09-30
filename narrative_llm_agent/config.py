@@ -13,6 +13,7 @@ from configparser import ConfigParser
 import os
 from typing import Any, Dict, Optional
 from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from crewai import LLM
 from urllib.parse import urlparse
 
@@ -182,6 +183,13 @@ class AgentConfig:
                     model=model_config["model_name"],
                     api_key=api_key,
                     base_url=provider_config.get("api_base"),
+                )
+            elif provider == "cborg-anthropic":
+                return ChatAnthropic(
+                    model=model_config["model_name"],
+                    api_key=api_key,
+                    base_url=provider_config.get("api_base"),
+                    max_tokens = 8000,
                 )
             else:
                 raise ValueError(f"Unsupported provider: {provider}")
