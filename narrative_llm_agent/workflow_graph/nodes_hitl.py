@@ -127,7 +127,8 @@ class WorkflowNodes:
 
                     Based on the metadata, devise a detailed step-by-step analysis workflow, the apps and app_ids should be from the app graph.
                     """
-            config = {"configurable": {"thread_id": "1"}}
+            #config = {"configurable": {"thread_id": "1",}}
+            config = {"recursion_limit": 50 }
 
             output = analyst_expert.agent.invoke({"messages": [{"role": "user", "content": description_complete}]},config)
             # Extract the JSON from the output

@@ -1,5 +1,5 @@
 from typing import Optional, Type, List, Tuple
-from langchain.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
+from langchain_core.callbacks import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 from pydantic import BaseModel, Field, PrivateAttr
 from langchain.tools import BaseTool
 from sklearn.feature_extraction.text import TfidfVectorizer
