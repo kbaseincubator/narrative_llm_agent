@@ -20,7 +20,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
 
         if provider == "cborg":
             api_key = credentials.get("cborg_api_key")
-            used_llm = "gpt-5-cborg"
+            used_llm = "claude-sonnet-cborg"
         else:
             api_key = credentials.get("openai_api_key")
             used_llm = "gpt-4o-openai"
