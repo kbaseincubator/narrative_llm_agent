@@ -46,7 +46,7 @@ DEFAULT_TUTORIAL_DB_DIR: Path = Path(__file__).parent / "Nomic_tutorials_db"
 
 class AnalystAgent(KBaseAgent):
     role = "KBase Analyst and Information Provider"
-    goal = "Provide information about KBase, its apps, and its documentation to any who ask."
+    goal = "Provide information about KBase, its apps, and its documentation to any who ask and design detailed multi step analysis plans to achieve scientific goals using KBase apps."
     backstory = """You are a KBase analyst. You have deep knowledge and experience working with
     KBase tools and applications. You have easy access to the KBase documentation and app catalog knowledge graph.
     Use kbase_docs_retrieval_tool for designing the analysis plan. Use the KGretrieval tool to get app_id for apps in the analysis plan."""
@@ -214,33 +214,16 @@ class AnalystAgent(KBaseAgent):
         Your personal goal is: {self.goal}"""
 
         HUMAN_PROMPT_TEMPLATE = """
-        Answer the following questions accurately and concisely.
-        You have access tools.
-
-        Use the following format:
-
-        Question: the input question you must answer
-
-        Thought: you should always think about what to do
-
-        Action: the action to take, should be one of tools
-
-        Action Input: the input to the action
-
-        Observation: the result of the action
-
-        ... (this Thought/Action/Action Input/Observation can repeat N times)
-
-        Thought: I now know the final answer
-
-        Final Answer: the final answer to the original input question.
-        Always follow these:
-        -Stop after you arrive at the Final Answer.
+        You have access to tools. Ensure that the analysis plan is feasible and can be executed in KBase.
+        Make sure to follow these instructions strictly while designing the analysis plan:
         -When suggesting apps to user for performing analysis make sure to review the associated meta data and select analysis steps or apps accordingly. 
-        If it is an isolates genome, make sure to select apps that are suitable for this genome type. If its metagenome, select apps that are suitable for metagenomes.
+            Example: If it is an isolates genome, make sure to select apps that are suitable for this genome type. If it is metagenome, select apps that are suitable for metagenomes.
         -When generating detailed multi step analysis plans, be precise suggesting one app per step.
         -Always use the KBase Documentation tool to find relevant KBase apps then check the Knowledge Graph to find the full app name, appid, tooltip, version, category and data objects.
         -Do not use the Knowledge Graph tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead.
+        -IMPORTANT: Some apps need specific data objects as input. Make sure that the output data object is converted to the required input data object using appropriate apps. You can find this information by using the Knowledge Graph tool.
+            example: If an app needs a genome assembly as input and you have a reads object, you need to first run an assembly app to convert the reads to an assembly.
+            GTDB-Tk requires a GenomeSet as input, not an Assembly. 
 
         Thought:{agent_scratchpad}
         """
