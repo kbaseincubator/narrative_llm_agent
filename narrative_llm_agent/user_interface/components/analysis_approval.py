@@ -34,11 +34,11 @@ def create_approval_interface(workflow_state: dict, session_id):
     table_data = []
     for step in steps:
         table_data.append({
-            "Step": step.get("Step", "Unknown"),
-            "Name": step.get("Name", "Unnamed Step"),
-            "App": step.get("App", "Unknown App"),
+            "Step": step.get("step", "Unknown"),
+            "Name": step.get("name", "Unnamed Step"),
+            "App": step.get("app", "Unknown App"),
             "App ID": step.get("app_id", "Unknown ID"),
-            "Description": step.get("Description", "No description"),
+            "Description": step.get("description", "No description"),
             "Creates Object": "Yes" if step.get("expect_new_object", False) else "No",
         })
 
