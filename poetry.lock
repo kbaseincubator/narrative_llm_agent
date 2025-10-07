@@ -281,14 +281,14 @@ test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "anthropic"
-version = "0.68.0"
+version = "0.69.0"
 description = "The official Python library for the anthropic API"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "anthropic-0.68.0-py3-none-any.whl", hash = "sha256:ac579ea5eca22a7165b1042e6af57c4bf556e51afae3ca80e24768d4756b78c0"},
-    {file = "anthropic-0.68.0.tar.gz", hash = "sha256:507e9b5f627d1b249128ff15b21855e718fa4ed8dabc787d0e68860a4b32a7a8"},
+    {file = "anthropic-0.69.0-py3-none-any.whl", hash = "sha256:1f73193040f33f11e27c2cd6ec25f24fe7c3f193dc1c5cde6b7a08b18a16bcc5"},
+    {file = "anthropic-0.69.0.tar.gz", hash = "sha256:c604d287f4d73640f40bd2c0f3265a2eb6ce034217ead0608f6b07a8bc5ae5f2"},
 ]
 
 [package.dependencies]
@@ -3375,6 +3375,23 @@ openai = ["langchain-openai"]
 perplexity = ["langchain-perplexity"]
 together = ["langchain-together"]
 xai = ["langchain-xai"]
+
+[[package]]
+name = "langchain-anthropic"
+version = "0.3.21"
+description = "An integration package connecting Anthropic and LangChain"
+optional = false
+python-versions = "<4.0.0,>=3.9.0"
+groups = ["main"]
+files = [
+    {file = "langchain_anthropic-0.3.21-py3-none-any.whl", hash = "sha256:459102b1bf223595d6ace70b771816c18f0adc29131151c789c1ea08f67d65e1"},
+    {file = "langchain_anthropic-0.3.21.tar.gz", hash = "sha256:c6372fbc933171b2707d856215bb88e48bc480fbc8a23b3ff9652acd5646ad3e"},
+]
+
+[package.dependencies]
+anthropic = ">=0.69.0,<1.0.0"
+langchain-core = ">=0.3.76,<2.0.0"
+pydantic = ">=2.7.4,<3.0.0"
 
 [[package]]
 name = "langchain-chroma"
@@ -9553,4 +9570,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "8da96d003d8ec44452ab05195e3967baa753dbe065976f3b734181de12e1610b"
+content-hash = "8f7eb22c4ef962069d295ce9ede58daffe2be64fdc2d70456cb9f89ad5b11062"

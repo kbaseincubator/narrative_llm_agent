@@ -51,6 +51,12 @@ class InformationTool(BaseTool):
         with self._driver.session() as session:
             result = session.run(query)
             return [record["name"] for record in result]
+        
+    def fetch_app_id(self,app_name) -> List[str]:
+        query = "MATCH (app:App) WHERE app.name CONTAINS $app_name RETURN app.appid AS id"
+        with self._driver.session() as session:
+            result = session.run(query, app_name=app_name)
+            return [record["id"] for record in result]
 
     def fetch_app_description(self,entity:str) -> str:
         with self._driver.session() as session:

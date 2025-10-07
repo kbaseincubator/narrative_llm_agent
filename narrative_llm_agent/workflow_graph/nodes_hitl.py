@@ -107,7 +107,7 @@ class WorkflowNodes:
         try:
             # Get the existing description from the state
             description = state.description
-
+            workflow_logger.info(f"Descriptio for the analyst agent: {description}")
             # Initialize the analyst agent
             llm = get_llm(self._analyst_llm, api_key=self._analyst_token)
             print(f"Using LLM: {self._analyst_llm} with llm: {llm}")
@@ -334,58 +334,33 @@ class WorkflowNodes:
                 If this is the first step, i.e. Last step executed is None, then the input object for this step should be paired-end reads object with id {state.reads_id}.
                 IMPORTANT: For the input_object_upa field, you MUST use the actual UPA from the previous step's output or the {state.reads_id} for the paired-end reads object.
                 A valid UPA has the format "workspace_id/object_id/version_id" (like "12345/6/1").UPA fields must be numbers. DO NOT make up UPA values - they must be actual reference IDs extracted from the previous step's output or the initial state.
-
-                Based on the outcome of the last step, evaluate if the next step is still appropriate or needs to be modified.
-                Keep in mind that the output object from the last step will be used as input for the next step.
-                Consider these factors:
-                1. Did the last step complete successfully?
-                2. Did it produce the expected output objects if any were expected?
-                3. Are there any warnings or errors that suggest we should take a different approach?
-                4. Is the next step still scientifically appropriate given the results we've seen?
-
-                Return your decision as a JSON with this structure:
-                ```json
-                {{
-                    "continue_as_planned": true/false,
-                    "reasoning": "Your explanation for the decision",
-                    "input_object_upa": "upa of the input object for the next step",
-                    "modified_next_steps": [] // If modifications are needed, include the modified steps here
-                }}
-                ```
                 """
-
-            output = validator.agent.invoke({"input": description})
-
-            # Extract JSON from the result text
-            decision_json = extract_json_from_string_curly(output['output'])
-            if not decision_json:
-                # Fallback if JSON extraction fails
-                decision_json = {
-                    "continue_as_planned": True,
-                    "reasoning": "Unable to parse decision, continuing with original plan as a fallback."
-                }
+            output = validator.agent.invoke({"messages": [{"role": "user", "content": description}]})
+            # Extract the JSON from the output
+            decision_json =  output['structured_response']
+            workflow_logger.info(f"Validator node: {decision_json}")
 
             # Update the state based on the decision
-            if decision_json.get("continue_as_planned", True):
+            if decision_json.continue_as_planned:
                 return state.model_copy(update={
-                    "input_object_upa": decision_json.get("input_object_upa", state.input_object_upa),
-                    "validation_reasoning": decision_json.get("reasoning", ""),
+                    "input_object_upa": decision_json.input_object_upa or state.input_object_upa,
+                    "validation_reasoning": decision_json.reasoning,
                     "error": None
                 })
             else:
                 # temp until refactor to include structured output
-                new_next_steps = decision_json.get("modified_next_steps", [])
+                new_next_steps = decision_json.modified_next_steps
                 if len(new_next_steps) == 0:
                     updated_steps = remaining_steps
                 if len(new_next_steps) == 1:
-                    updated_steps = [new_next_steps[0]] + remaining_steps[1:]
+                    updated_steps = [new_next_steps[0].dict()] + remaining_steps[1:]
                 else:
-                    updated_steps = new_next_steps
+                    updated_steps = [step.dict() for step in new_next_steps]
 
                 return state.model_copy(update={
                     "steps_to_run": updated_steps,
-                    "input_object_upa": decision_json.get("input_object_upa", state.input_object_upa),
-                    "validation_reasoning": decision_json.get("reasoning", ""),
+                    "input_object_upa": decision_json.input_object_upa or state.input_object_upa,
+                    "validation_reasoning": decision_json.reasoning,
                     "error": None
                 })
         except Exception as e:

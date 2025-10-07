@@ -7,6 +7,27 @@ import json
 from langchain.tools import tool
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.util.tool import process_tool_input
+from langgraph.prebuilt import create_react_agent
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class DecisionResponse(BaseModel):
+    continue_as_planned: bool = Field(
+        ..., 
+        description="Whether to continue with the plan as originally outlined"
+    )
+    reasoning: str = Field(
+        ..., 
+        description="Explanation for the decision made"
+    )
+    input_object_upa: str = Field(
+        ..., 
+        description="UPA (Unique Process Address) of the input object for the next step"
+    )
+    modified_next_steps: Optional[list[str]] = Field(
+        default_factory=list,
+        description="If modifications are needed, include the modified steps here"
+    )
 
 class WorkflowValidatorAgent(KBaseAgent):
     role: str = "You are a workflow validator, responsible for analyzing app run results and determining next steps."
@@ -19,6 +40,8 @@ class WorkflowValidatorAgent(KBaseAgent):
     def __init__(self: "WorkflowValidatorAgent", llm, token: str = None):
         self._llm = llm
         self._token = token
+        self.__init_agent()
+    def __init_agent(self: "WorkflowValidatorAgent"):
         @tool("list_objects")
         def list_objects_tool(narrative_id: int) -> str:
             """Fetch a list of objects available in a KBase Narrative. This returns a JSON-formatted
@@ -33,59 +56,42 @@ class WorkflowValidatorAgent(KBaseAgent):
         @tool("kg_retrieval_tool")
         def KGretrieval_tool(input: str):
             """This tool has the KBase app Knowledge Graph. Useful for when you need to confirm the existance of KBase applications and their appid, tooltip, version, category and data objects.
+            This tool can also be used for finding total number of apps or which data objects are shared between apps.
             It is also useful for finding accurate app_id for a KBase app.
             The input should always be a KBase app name or data object name and should not include any special characters or version number.
             Do not use this tool if you do not have an app or data object name to search with use the KBase Documentation or Tutorial tools instead
             """
-
-            response = self._create_KG_agent().invoke({"input": input})
-            # Ensure that the response is properly formatted for the agent to use
-            if "output" in response:
-                return response["output"]
-            return "No response from the tool"
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", f"{self.backstory}"),
-                ("user", "{input}"),
-                MessagesPlaceholder(variable_name="agent_scratchpad"),
-            ]
-        )
+            try:
+                # Call get_information directly
+                get_information = InformationTool(uri=os.environ.get('NEO4J_URI'), user=os.environ.get('NEO4J_USERNAME'), password=os.environ.get('NEO4J_PASSWORD'))
+                result = get_information.run({'entity':input, 'entity_type':'AppCatalog'})
+                return result
+            except Exception as e:
+                return f"Error querying Knowledge Graph: {str(e)}"
         tools = [KGretrieval_tool, list_objects_tool]
-        agent = create_tool_calling_agent(
-            llm=self._llm,
-            tools=tools,
-            prompt=prompt,
-        )
 
-        self.agent = AgentExecutor(
-            agent=agent,
-            tools=tools,
-            verbose=True,
-        )
-
-    def _create_KG_agent(self):
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                (
-                    "system",
-                    "You are a helpful tool that finds information about KBase applications in the Knowledge Graph "
-                    "Use the tools provided to you to find KBase apps and related properties."
-                    "Do only the things the user specifically requested. ",
-                ),
-                ("user", "{input}"),
-                MessagesPlaceholder(variable_name="agent_scratchpad"),
-            ]
-        )
-
-        tools = [
-            InformationTool(
-                uri=os.environ.get("NEO4J_URI"),
-                user=os.environ.get("NEO4J_USERNAME"),
-                password=os.environ.get("NEO4J_PASSWORD"),
+        SYSTEM_PROMPT_TEMPLATE = f"""You are {self.role}.
+        {self.backstory}
+        Your personal goal is: {self.goal}"""
+        HUMAN_PROMPT_TEMPLATE = """ Based on the outcome of the last step, evaluate if the next step is still appropriate or needs to be modified.
+                Keep in mind that the output object from the last step will be used as input for the next step.
+                Consider these factors:
+                1. Did the last step complete successfully?
+                2. Did it produce the expected output objects if any were expected?
+                3. Are there any warnings or errors that suggest we should take a different approach?
+                4. Is the next step still scientifically appropriate given the results we've seen?
+                """
+        
+        prompt = SYSTEM_PROMPT_TEMPLATE + HUMAN_PROMPT_TEMPLATE
+        try:
+            self.agent = create_react_agent(
+                model=self._llm,
+                tools=tools,
+                prompt=prompt,
+                debug = True,
+                response_format=DecisionResponse,
             )
-        ]
+        except Exception as e:
+            print("Error creating agent:", str(e))
+            raise e
 
-        agent = create_tool_calling_agent(self._llm, tools, prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-        return agent_executor
