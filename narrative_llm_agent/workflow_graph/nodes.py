@@ -116,10 +116,10 @@ class WorkflowNodes:
                     Based on the metadata, devise a detailed step-by-step analysis workflow, the apps and app_ids should be from the app graph.
                     The analysis plan should be a json with schema as:
 
-                    {{"Step": "Integer number indicating the step",
-                    "Name": "Name of the step",
-                    "Description": "Describe the step",
-                    "App": "Name of the app",
+                    {{"step": "Integer number indicating the step",
+                    "name": "Name of the step",
+                    "description": "Describe the step",
+                    "app": "Name of the app",
                     "expect_new_object": boolean indicating if this step creates a new data object,
                     "app_id": "Id of the KBase app"}}
 

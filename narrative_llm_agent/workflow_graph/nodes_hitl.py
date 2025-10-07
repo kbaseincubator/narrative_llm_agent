@@ -132,7 +132,7 @@ class WorkflowNodes:
 
             output = analyst_expert.agent.invoke({"messages": [{"role": "user", "content": description_complete}]},config)
             # Extract the JSON from the output
-            analysis_plan = [step.dict() for step in output['structured_response'].steps_to_run]
+            analysis_plan = [step.model_dump() for step in output["structured_response"].steps_to_run]
             workflow_logger.info(f"Analysis plan: {analysis_plan}")
             #Mock analysis plan for testing purposes
             #read from json file
@@ -221,15 +221,15 @@ class WorkflowNodes:
 
         formatted_steps = []
         for i, step in enumerate(steps, 1):
-            step_info = f"Step {i}: {step.get('Name', 'Unnamed Step')}\n"
-            step_info += f"   App: {step.get('App', 'Unknown App')}\n"
+            step_info = f"Step {i}: {step.get('name', 'Unnamed Step')}\n"
+            step_info += f"   App: {step.get('app', 'Unknown App')}\n"
             step_info += f"   App ID: {step.get('app_id', 'Unknown ID')}\n"
-            step_info += f"   Description: {step.get('Description', 'No description')}\n"
+            step_info += f"   Description: {step.get('description', 'No description')}\n"
             step_info += f"   Creates new object: {'Yes' if step.get('expect_new_object', False) else 'No'}\n"
             formatted_steps.append(step_info)
 
         return "\n".join(formatted_steps)
-    
+
     def app_runner_node(self, state: WorkflowState) -> WorkflowState:
         """
         Node function for running an app in a single step.
