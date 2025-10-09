@@ -1,7 +1,5 @@
 from datetime import datetime
 from narrative_llm_agent.kbase.service_client import ServiceClient
-import requests
-import uuid
 from typing import Any
 from narrative_llm_agent.config import get_kbase_auth_token, get_config
 
