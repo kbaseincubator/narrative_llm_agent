@@ -20,7 +20,7 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
 
         if provider == "cborg":
             api_key = credentials.get("cborg_api_key")
-            used_llm = "claude-sonnet-cborg"
+            used_llm = "claude-sonnet-cborg-high"
         else:
             api_key = credentials.get("openai_api_key")
             used_llm = "gpt-4o-openai"
@@ -104,7 +104,7 @@ def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
     provider = credentials.get("provider")
     if provider == "cborg":
         api_key = credentials.get("cborg_api_key")
-        writer_llm = "gpt-o1-cborg"
+        writer_llm = "gpt-5-cborg"
     else:
         api_key = credentials.get("openai_api_key")
         writer_llm = "gpt-o1-openai"
@@ -120,13 +120,12 @@ def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
         ExecutionEngine = result["ExecutionEngine"]
 
         # Create KBase clients
-        ws_client = Workspace()
-        ee_client = ExecutionEngine()
+        ws_client = Workspace(kbase_token)
+        ee_client = ExecutionEngine(kbase_token)
 
         # Create MRA writer
         mra_writer = MraWriterGraph(
-            ws_client, ee_client, writer_llm, writer_token=api_key, kbase_token=kbase_token
-        )
+            ws_client, ee_client, writer_llm)
 
         # Run the MRA workflow
         mra_writer.run_workflow(narrative_id)
@@ -212,12 +211,12 @@ def initialize_metadata_agent(credentials) -> MetadataAgent:
 
     if provider == "cborg":
         api_key = credentials.get("cborg_api_key")
-        used_llm = "gpt-4.1-cborg"
+        used_llm = "gpt-5-cborg"
     else:
         api_key = credentials.get("openai_api_key")
         used_llm = "gpt-4o-openai"
 
-    llm = get_llm(used_llm, api_key=api_key)
+    llm = get_llm(used_llm,api_key=api_key)
     return MetadataAgent(llm=llm, llm_name=used_llm, token=kb_auth_token)
     # metadata_agent = MetadataAgent(llm=llm, token=kb_auth_token)
     # return metadata_agent.agent_executor
