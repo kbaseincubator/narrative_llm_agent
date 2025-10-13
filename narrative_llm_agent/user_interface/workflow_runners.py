@@ -3,10 +3,14 @@ import os
 
 from narrative_llm_agent.config import get_llm
 from narrative_llm_agent.user_interface.constants import WORKFLOW_INSTANCES
-from narrative_llm_agent.user_interface.kbase_loader import load_kbase_classes
 from narrative_llm_agent.workflow_graph.graph_hitl import (
+    AnalysisWorkflow,
     ExecutionWorkflow,
 )
+from narrative_llm_agent.writer_graph.mra_graph import MraWriterGraph
+from narrative_llm_agent.writer_graph.summary_graph import SummaryWriterGraph
+from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.clients.execution_engine import ExecutionEngine
 from narrative_llm_agent.util.json_util import make_json_serializable
 from narrative_llm_agent.agents.metadata_lang import MetadataAgent
 
@@ -41,21 +45,6 @@ def run_analysis_planning(narrative_id, reads_id, description, credentials):
             os.environ["NEO4J_USERNAME"] = neo4j_username
         if neo4j_password:
             os.environ["NEO4J_PASSWORD"] = neo4j_password
-
-        # Load the KBase classes
-        success, result = load_kbase_classes()
-        if not success:
-            print(f"Error loading KBase classes: {result}")
-            return {
-                "narrative_id": narrative_id,
-                "reads_id": reads_id,
-                "description": description,
-                "workflow_state": None,
-                "error": result,
-                "status": "error",
-            }
-
-        AnalysisWorkflow = result["AnalysisWorkflow"]
 
         # Create workflow instance
         workflow = AnalysisWorkflow(
@@ -109,24 +98,15 @@ def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
         api_key = credentials.get("openai_api_key")
         writer_llm = "gpt-o1-openai"
 
+    # Create KBase clients
+    ws_client = Workspace(token=kbase_token)
+    ee_client = ExecutionEngine(token=kbase_token)
+
+    # Create MRA writer
+    mra_writer = MraWriterGraph(
+        ws_client, ee_client, writer_llm, writer_token=api_key
+    )
     try:
-        # Load the KBase classes
-        success, result = load_kbase_classes()
-        if not success:
-            return {"mra_draft": None, "error": result}
-
-        MraWriterGraph = result["MraWriterGraph"]
-        Workspace = result["Workspace"]
-        ExecutionEngine = result["ExecutionEngine"]
-
-        # Create KBase clients
-        ws_client = Workspace(kbase_token)
-        ee_client = ExecutionEngine(kbase_token)
-
-        # Create MRA writer
-        mra_writer = MraWriterGraph(
-            ws_client, ee_client, writer_llm)
-
         # Run the MRA workflow
         mra_writer.run_workflow(narrative_id)
 
@@ -134,7 +114,6 @@ def generate_mra_draft(narrative_id: int, credentials: dict[str, str]):
             "mra_draft": "The MRA draft has been successfully generated.",
             "error": None,
         }
-
     except Exception as e:
         return {"mra_draft": None, "error": str(e)}
 

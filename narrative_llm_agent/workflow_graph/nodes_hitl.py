@@ -1,6 +1,9 @@
+import logging
 from narrative_llm_agent.crews.job_crew import JobCrew
 from narrative_llm_agent.agents.validator import WorkflowValidatorAgent
 from narrative_llm_agent.agents.analyst_lang import AnalystAgent
+from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
+from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.tools.job_tools import CompletedJob
 from narrative_llm_agent.util.json_util import extract_json_from_string, extract_json_from_string_curly
 from pydantic import BaseModel
@@ -129,7 +132,7 @@ class WorkflowNodes:
 
             output = analyst_expert.agent.invoke({"messages": [{"role": "user", "content": description_complete}]},config)
             # Extract the JSON from the output
-            analysis_plan = [step.dict() for step in output['structured_response'].steps_to_run]
+            analysis_plan = [step.model_dump() for step in output["structured_response"].steps_to_run]
             workflow_logger.info(f"Analysis plan: {analysis_plan}")
             #Mock analysis plan for testing purposes
             #read from json file
@@ -139,6 +142,9 @@ class WorkflowNodes:
             # analysis_plan = workflow_data.get("steps", [])[:1]
             # print(f"Analysis plan: {analysis_plan}")
             # Return updated state with analysis plan and awaiting approval flag
+
+            analysis_plan = validate_analysis_plan(analysis_plan)
+
             return state.model_copy(update={
                 "steps_to_run": analysis_plan,
                 "error": None,
@@ -215,15 +221,15 @@ class WorkflowNodes:
 
         formatted_steps = []
         for i, step in enumerate(steps, 1):
-            step_info = f"Step {i}: {step.get('Name', 'Unnamed Step')}\n"
-            step_info += f"   App: {step.get('App', 'Unknown App')}\n"
+            step_info = f"Step {i}: {step.get('name', 'Unnamed Step')}\n"
+            step_info += f"   App: {step.get('app', 'Unknown App')}\n"
             step_info += f"   App ID: {step.get('app_id', 'Unknown ID')}\n"
-            step_info += f"   Description: {step.get('Description', 'No description')}\n"
+            step_info += f"   Description: {step.get('description', 'No description')}\n"
             step_info += f"   Creates new object: {'Yes' if step.get('expect_new_object', False) else 'No'}\n"
             formatted_steps.append(step_info)
 
         return "\n".join(formatted_steps)
-    
+
     def app_runner_node(self, state: WorkflowState) -> WorkflowState:
         """
         Node function for running an app in a single step.

@@ -52,7 +52,7 @@ class ServiceClient:
         return self.make_kbase_jsonrpc_1_call(f"{self._service}.{method}", [params])[0]
 
     def make_kbase_jsonrpc_1_call(
-        self: "ServiceClient", method: str, params: Any
+        self: "ServiceClient", method: str, params: Any, endpoint: str = None
     ) -> Any:
         """
         A very simple JSON-RPC 1 request maker for KBase services.
@@ -60,6 +60,8 @@ class ServiceClient:
         If a failure happens, it prints the message from an expected error packet, and
         raises the requests.HTTPError.
         """
+        if endpoint is None:
+            endpoint = self._endpoint
         call_id = str(uuid.uuid4())
         json_rpc_package = {
             "params": params,
@@ -68,7 +70,7 @@ class ServiceClient:
             "id": call_id,
         }
         resp = requests.post(
-            self._endpoint,
+            endpoint,
             json=json_rpc_package,
             headers=self._headers,
             timeout=self._timeout,
