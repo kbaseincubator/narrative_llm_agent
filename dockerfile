@@ -35,8 +35,8 @@ ENV PYTHONPATH=/app
 RUN mkdir -p /home/agent_runner && \
     useradd agent_runner -u96921 -d/home/agent_runner && \
     chown -R agent_runner:agent_runner /home/agent_runner && \
-    chown -R agent_runner:agent_runner /app/narrative_llm_agent/agents/ && \
-    chmod -R 775 /app/narrative_llm_agent/agents/
+    chown -R agent_runner:agent_runner /app && \
+    chmod -R 775 /app
 
 # Create and copy the entrypoint script
 COPY entrypoint.sh /app/entrypoint.sh
