@@ -143,7 +143,7 @@ class WorkflowNodes:
             # print(f"Analysis plan: {analysis_plan}")
             # Return updated state with analysis plan and awaiting approval flag
 
-            analysis_plan = validate_analysis_plan(analysis_plan)
+            # analysis_plan = validate_analysis_plan(analysis_plan)
 
             return state.model_copy(update={
                 "steps_to_run": analysis_plan,
@@ -322,7 +322,7 @@ class WorkflowNodes:
                 Next planned step:
                 {json.dumps(next_step)}
                 IMPORTANT INPUT OBJECT INFORMATION:
-                - If this is the first step i.e. last step executed is None, use the paired-end reads object with id {state.reads_id}. Otherwise, the current input object UPA is: {state.input_object_upa}.
+                - If this is the first step i.e. last step executed is None, use the data object with id {state.reads_id}. Otherwise, the current input object UPA is: {state.input_object_upa}.
                 - The last data object UPA (which should be used if the previous step didn't produce a new object) is: {state.last_data_object_upa}
                 - The narrative ID is: {state.narrative_id}
 

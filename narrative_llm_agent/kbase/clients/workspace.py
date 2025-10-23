@@ -62,3 +62,15 @@ class Workspace(ServiceClient):
         self: "Workspace", ws_id: int, objects: list[Any]
     ) -> list[list[Any]]:
         return self.simple_call("save_objects", {"id": ws_id, "objects": objects})
+
+    def copy_object_to_workspace(
+        self, target_ws_id: int, source_ref: str
+    ) -> ObjectInfo:
+        source_info = self.get_object_info(source_ref)
+        result = self.simple_call(
+            "copy_object", {
+                "from": {"ref": source_ref},
+                "to": {"wsid": target_ws_id, "name": source_info.name}
+            }
+        )
+        return ObjectInfo.model_validate(result)

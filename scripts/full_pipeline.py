@@ -11,7 +11,7 @@ Given the full file path and data type (and other params needed for import)
 """
 import logging
 
-from typing import Any
+from typing import Any, Optional
 from pydantic import BaseModel
 import argparse
 import json
@@ -27,16 +27,33 @@ from narrative_llm_agent.workflow_graph.graph_hitl import AnalysisWorkflow, Exec
 from narrative_llm_agent.workflow_graph.nodes_hitl import WorkflowState
 from narrative_llm_agent.writer_graph.mra_graph import MraWriterGraph
 
+ASSEMBLY = "assembly"
+PE_READS_INT = "pe_reads_interleaved"
+PE_READS_NON_INT = "pe_reads_noninterleaved"
+SE_READS = "se_reads"
+
+DATA_TYPES = {ASSEMBLY, PE_READS_INT, PE_READS_NON_INT, SE_READS}
+
 class PipelineConfig(BaseModel):
     kbase_token: str
     llm_provider: str
     llm_token: str
     narrative_name: str
-    input_file_path: str
+    input_file_path: Optional[str] = None
+    input_file_path2: Optional[str] = None
     input_data_type: str
-    input_data_params: dict
+    input_data_params: Optional[dict] = None
+    input_upa: Optional[str]
 
 def parse_args() -> PipelineConfig:
+    """
+    Some groups of options.
+    Input files are used (along with data type and some parameters) to import a data file from
+    the user's staging area.
+    UPAs are used to copy an existing data object to the new Narrative.
+    These are mutually exclusive! One and only one must be used, this will
+    raise a ValueError otherwise.
+    """
     parser = argparse.ArgumentParser(description="Run full KBase LLM Annotation Agent pipeline")
     parser.add_argument(
         "-k", "--kbase_token", help="KBase Auth Token", required=True
@@ -47,30 +64,61 @@ def parse_args() -> PipelineConfig:
     parser.add_argument(
         "-l", "--llm_token", help="LLM API key", required=True
     )
-    parser.add_argument(
-        "-f", "--input_file_path", help="staging area file path to data object", required=True
+    data_input_group = parser.add_mutually_exclusive_group(required=True)
+
+    data_input_group.add_argument(
+        "-f", "--input_file_path", help="staging area file path to data object"
     )
+
     parser.add_argument(
-        "-t", "--input_data_type", help="staging area file data type to import as", required=True
+        "-f2", "--input_file_path2", help="staging area file path to second data object - only for non-interleaved paired-end reads"
+    )
+
+    parser.add_argument(
+        "-t", "--data_type", help="staging area file data type to import as", required=True
+    )
+    data_input_group.add_argument(
+        "-u", "--upa", help="data object to copy as initial data input"
     )
     args = parser.parse_args()
 
-    file_name = args.input_file_path.split('/')[-1]
-    input_params = data_type_to_params(args.input_data_type, args.input_file_path, file_name)
-    narrative_name = f"LLM Agent Annotation for {file_name}"
+    input_params = None
+    obj_name = None
+
+    data_type = args.data_type.lower()
+    if data_type not in DATA_TYPES:
+        raise ValueError(f"-t/--data_type must be one of {DATA_TYPES}")
+
+    if args.input_file_path2:
+        if not args.input_file_path:
+            raise ValueError("-f/-input_file_path must be provided first with a second file path")
+        if data_type != PE_READS_NON_INT:
+            raise ValueError("-f2/--input_file_path2 must only be provided with paired-end non-interleaved reads")
+
+    if args.input_file_path:
+        obj_name = args.input_file_path.split('/')[-1]
+        input_params = data_type_to_params(data_type, args.input_file_path, args.input_file_path2, obj_name)
+
+    if obj_name is None and args.upa is not None:
+        ws = Workspace(token=args.kbase_token)
+        obj_name = ws.get_object_info(args.upa).name
+
+    narrative_name = f"LLM Agent Annotation for {obj_name}"
+
     config = PipelineConfig(
         kbase_token=args.kbase_token,
         llm_provider=args.llm_provider,
         llm_token=args.llm_token,
         narrative_name=narrative_name,
         input_file_path=args.input_file_path,
-        input_data_type=args.input_data_type,
-        input_data_params=input_params
+        input_data_type=data_type,
+        input_data_params=input_params,
+        input_upa=args.upa
     )
     return config
 
-def data_type_to_params(data_type: str, file_path: str, file_name: str) -> dict[str, Any]:
-    if data_type == "assembly":
+def data_type_to_params(data_type: str, file_path: str, file_path2: str|None, file_name: str) -> dict[str, Any]:
+    if data_type == ASSEMBLY:
         return {
             "app_id": "kb_uploadmethods/import_fasta_as_assembly_from_staging",
             "params": {
@@ -80,8 +128,52 @@ def data_type_to_params(data_type: str, file_path: str, file_name: str) -> dict[
                 "min_contig_length": 500
             }
         }
+    elif data_type == PE_READS_INT:
+        return {
+            "app_id": "kb_uploadmethods/import_fastq_interleaved_as_reads_from_staging",
+            "params": {
+                "fastq_fwd_staging_file_name": file_path,
+                "sequencing_tech": "Unknown",
+                "name": file_name + "_reads",
+                "single_genome": 1,
+                "read_orientation_outward": 0,
+                "insert_size_std_dev": None,
+                "insert_size_mean": None
+            }
+        }
+    elif data_type == PE_READS_NON_INT:
+        if not file_path2:
+            raise ValueError("a second file path must be provided for paired-end-non-interleaved reads")
+        return {
+            "app_id": "kb_uploadmethods/import_fastq_noninterleaved_as_reads_from_staging",
+            "params": {
+                "fastq_fwd_staging_file_name": file_path,
+                "fastq_rev_staging_file_name": file_path2,
+                "sequencing_tech": "Unknown",
+                "name": file_name + "_reads",
+                "single_genome": 1,
+                "read_orientation_outward": 0,
+                "insert_size_std_dev": None,
+                "insert_size_mean": None
+            }
+        }
     else:
         raise ValueError(f"Unsupported data type '{data_type}'")
+
+def import_data(narr_id: int, config: PipelineConfig) -> str:
+    if config.input_file_path:
+        if not config.input_data_params:
+            raise ValueError("When importing a data file, input_data_params must be present and contain `app_id` and `params` fields")
+        return import_data_file(narr_id, config.input_data_params["app_id"], config.input_data_params["params"], config.kbase_token)
+    elif config.input_upa:
+        return copy_data_object(narr_id, config.input_upa, config.kbase_token)
+    else:
+        raise ValueError("Importing data requires either input_file_path or input_upa to be non null in the config")
+
+def copy_data_object(narr_id: int, input_upa: str, token: str) -> str:
+    ws = Workspace(token=token)
+    result = ws.copy_object_to_workspace(narr_id, input_upa)
+    return result.upa
 
 def import_data_file(narr_id: int, app_id: str, app_params: dict[str, Any], token: str) -> str:
     """
@@ -116,7 +208,7 @@ The data was gathered from soil samples. I have no other information about the d
 to generate it (i.e. sequencing machine, protocol, etc.)
 """
     if config.llm_provider == "cborg":
-        used_llm = "gpt-4.1-cborg"
+        used_llm = "gpt-5-cborg"
     else:
         used_llm = "gpt-4o-openai"
 
@@ -136,7 +228,7 @@ def run_analysis_workflow(narr_id: int, obj_upa: str, meta_context: str, config:
 
     # Get credentials and set environment variables
     if config.llm_provider == "cborg":
-        used_llm = "gpt-4.1-cborg"
+        used_llm = "claude-sonnet-cborg-high"
     else:
         used_llm = "gpt-4o-openai"
 
@@ -192,7 +284,7 @@ def write_draft_mra(narr_id: int, config: PipelineConfig):
     ws_client = Workspace(token=config.kbase_token)
     ee_client = ExecutionEngine(token=config.kbase_token)
     if config.llm_provider == "cborg":
-        writer_llm = "gpt-o1-cborg"
+        writer_llm = "gpt-5-cborg"
     else:
         writer_llm = "gpt-o1-openai"
 
@@ -219,7 +311,8 @@ def run_pipeline(config: PipelineConfig):
 
     # 2. Import the data to it
     logging.info("Importing data object")
-    obj_upa = import_data_file(narr_id, config.input_data_params["app_id"], config.input_data_params["params"], config.kbase_token)
+    obj_upa = import_data(narr_id, config)
+    # obj_upa = import_data(narr_id, config.input_data_params["app_id"], config.input_data_params["params"], config.kbase_token)
     logging.info(f"done got UPA {obj_upa}")
 
     # 3. Metadata process.
