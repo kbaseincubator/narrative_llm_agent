@@ -32,7 +32,12 @@ PE_READS_INT = "pe_reads_interleaved"
 PE_READS_NON_INT = "pe_reads_noninterleaved"
 SE_READS = "se_reads"
 
-DATA_TYPES = {ASSEMBLY, PE_READS_INT, PE_READS_NON_INT, SE_READS}
+DATA_TYPES = {
+    ASSEMBLY: ASSEMBLY,
+    PE_READS_INT: "paired-end reads",
+    PE_READS_NON_INT: "paired-end reads",
+    SE_READS: "single-end reads"
+}
 
 class PipelineConfig(BaseModel):
     kbase_token: str
@@ -241,8 +246,8 @@ def run_analysis_workflow(narr_id: int, obj_upa: str, meta_context: str, config:
     )
 
     description = f"""
-The user has uploaded assembly data into the narrative.
-I want you to generate an analysis plan for annotating the uploaded assembly into genome using KBase apps.
+The user has uploaded {DATA_TYPES[config.input_data_type]} data into the narrative.
+I want you to generate an analysis plan for processing the uploaded {DATA_TYPES[config.input_data_type]} into an annotated genome using KBase apps.
 The goal is to have a complete annotated genome and classify the microbe.
 
 NEVER suggest an app from the NarrativeViewers module. This includes any app with "NarrativeViewers" in its app_id.
