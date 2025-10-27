@@ -29,17 +29,29 @@ def mock_state_graph():
 
 def test_analysis_workflow_init(mock_workflow_nodes):
     """Test that AnalysisWorkflow initializes correctly"""
-    workflow = AnalysisWorkflow(token="test_token")
+    workflow = AnalysisWorkflow(kbase_token="test_token")
 
     # Check that WorkflowNodes was initialized with the token
-    mock_workflow_nodes.assert_called_once_with("gpt-4.1-mini-cborg", "gpt-4.1-mini-cborg", "gpt-4.1-mini-cborg", "gpt-4.1-mini-cborg", "cborg", token="test_token")
+    mock_workflow_nodes.assert_called_once_with(
+        "gpt-4.1-mini-cborg",
+        "gpt-4.1-mini-cborg",
+        "gpt-4.1-mini-cborg",
+        "gpt-4.1-mini-cborg",
+        "cborg",
+        token="test_token",
+        analyst_token=None,
+        validator_token=None,
+        app_flow_token=None,
+        writer_token=None,
+        embedding_token=None
+    )
 
     # Check that the graph was built
     assert workflow.graph is not None
 
 def test_build_graph(mock_workflow_nodes, mock_state_graph):
     """Test the graph building process"""
-    workflow = AnalysisWorkflow(token="test_token")
+    workflow = AnalysisWorkflow(kbase_token="test_token")
 
     # Verify that StateGraph was created with WorkflowState
     mock_state_graph.assert_called_once_with(WorkflowState)
@@ -74,7 +86,7 @@ def test_run_workflow(mock_state_graph, mock_workflow_nodes):
     mock_compiled_graph.invoke.return_value = {"results": "Test results"}
 
     # Create workflow and run it
-    workflow = AnalysisWorkflow(token="test_token")
+    workflow = AnalysisWorkflow(kbase_token="test_token")
     result = workflow.run(narrative_id=123, reads_id="45/67/8", description="Test workflow")
 
     # Check that invoke was called with the right initial state
@@ -136,7 +148,7 @@ def test_workflow_end_to_end():
         mock_nodes.return_value.workflow_end = mock_workflow_end
 
         # Create a real StateGraph but with mocked nodes
-        workflow = AnalysisWorkflow(token="test_token")
+        workflow = AnalysisWorkflow(kbase_token="test_token")
 
         # Run the workflow
         result = workflow.run(

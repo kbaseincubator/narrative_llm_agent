@@ -42,6 +42,8 @@ class DynamicServiceClient(ServiceClient):
             self.service_endpoint = resp["url"]
         return self.service_endpoint
 
-    def simple_call(self, method: str, params: Any) -> Any:
+    def simple_call(self, method: str, params: Any, no_list: bool=False) -> Any:
         endpoint = self._get_service_endpoint()
-        return self.make_kbase_jsonrpc_1_call(f"{self._service}.{method}", [params], endpoint=endpoint)[0]
+        if not no_list:
+            params = [params]
+        return self.make_kbase_jsonrpc_1_call(f"{self._service}.{method}", params, endpoint=endpoint)[0]
