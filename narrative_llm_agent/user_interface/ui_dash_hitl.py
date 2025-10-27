@@ -31,6 +31,18 @@ from datetime import datetime
 from narrative_llm_agent.user_interface.components.redis_streaming import get_background_callback_manager, get_celery_app, get_logs_from_redis, get_redis_client, RedisStreamRedirector
 from narrative_llm_agent.config import get_config
 
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('ui_dash_hitl.log')
+    ]
+)
+
 celery_app = get_celery_app()
 background_callback_manager = get_background_callback_manager(celery_app = celery_app)
 redis_client = get_redis_client()
