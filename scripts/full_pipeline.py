@@ -39,6 +39,17 @@ DATA_TYPES = {
     SE_READS: "single-end reads"
 }
 
+SALTERNS_PROMPT = """
+The data object is a MAG assembly.
+
+My goal is to perform any relevant quality control on the assembly, then annotate it using a KBase
+assembly tool that is useful for MAG data. Quality assurance and control should be done at each step.
+I want to end with a taxonomic analysis and prediction for the annotated genome.
+
+The data was gathered from soil samples. I have no other information about the data source or techonology used
+to generate it (i.e. sequencing machine, protocol, etc.)
+"""
+
 class PipelineConfig(BaseModel):
     kbase_token: str
     llm_provider: str
@@ -49,6 +60,7 @@ class PipelineConfig(BaseModel):
     input_data_type: str
     input_data_params: Optional[dict] = None
     input_upa: Optional[str]
+    is_salterns: Optional[bool] = False
 
 def parse_args() -> PipelineConfig:
     """
@@ -85,6 +97,10 @@ def parse_args() -> PipelineConfig:
     data_input_group.add_argument(
         "-u", "--upa", help="data object to copy as initial data input"
     )
+
+    parser.add_argument(
+        "--salterns", action="store_true", help="treat as salterns MAG input"
+    )
     args = parser.parse_args()
 
     input_params = None
@@ -118,7 +134,8 @@ def parse_args() -> PipelineConfig:
         input_file_path=args.input_file_path,
         input_data_type=data_type,
         input_data_params=input_params,
-        input_upa=args.upa
+        input_upa=args.upa,
+        is_salterns=args.salterns
     )
     return config
 
@@ -166,18 +183,25 @@ def data_type_to_params(data_type: str, file_path: str, file_path2: str|None, fi
         raise ValueError(f"Unsupported data type '{data_type}'")
 
 def import_data(narr_id: int, config: PipelineConfig) -> str:
+    logging.info(f"Starting data import to narrative {narr_id}")
     if config.input_file_path:
         if not config.input_data_params:
-            raise ValueError("When importing a data file, input_data_params must be present and contain `app_id` and `params` fields")
+            err = "When importing a data file, input_data_params must be present and contain `app_id` and `params` fields"
+            logging.error(err)
+            raise ValueError(err)
+        logging.info("Found data file path - importing data from staging area")
         return import_data_file(narr_id, config.input_data_params["app_id"], config.input_data_params["params"], config.kbase_token)
     elif config.input_upa:
+        logging.info("Found existing UPA, copying data object")
         return copy_data_object(narr_id, config.input_upa, config.kbase_token)
     else:
         raise ValueError("Importing data requires either input_file_path or input_upa to be non null in the config")
 
 def copy_data_object(narr_id: int, input_upa: str, token: str) -> str:
     ws = Workspace(token=token)
+    logging.info(f"Copying data object {input_upa} to narrative {narr_id}")
     result = ws.copy_object_to_workspace(narr_id, input_upa)
+    logging.info(f"Done - created object {result.upa}")
     return result.upa
 
 def import_data_file(narr_id: int, app_id: str, app_params: dict[str, Any], token: str) -> str:
@@ -189,6 +213,7 @@ def import_data_file(narr_id: int, app_id: str, app_params: dict[str, Any], toke
     ee = ExecutionEngine(token=token)
     nms = NarrativeMethodStore()
     ws = Workspace(token=token)
+    logging.info(f"Starting file import job in narrative {narr_id}: {app_id} with params {json.dumps(app_params)}")
     result = run_job(narr_id, app_id, app_params, ee, nms, ws)
     if result.job_error:
         logging.error(result.job_error)
@@ -197,21 +222,25 @@ def import_data_file(narr_id: int, app_id: str, app_params: dict[str, Any], toke
     if len(result.created_objects) > 1:
         logging.error(result.model_dump_json(indent=4))
         raise RuntimeError(f"Unexpected import results: {result}")
-    return result.created_objects[0].object_upa
+    new_upa = result.created_objects[0].object_upa
+    logging.info(f"Done - created object {new_upa}")
+    return new_upa
 
 def process_metadata(narr_id: int, obj_upa: str, config: PipelineConfig):
     ws = Workspace(token=config.kbase_token)
     obj_info = ws.get_object_info(obj_upa)
     meta_prompt = f"""I am working with narrative id {narr_id} and object UPA {obj_upa}.
-This object has the registered metadata dictionary: {obj_info.metadata}. It is a MAG assembly.
-
-My goal is to perform any relevant quality control on the assembly, then annotate it using a KBase
-assembly tool that is useful for MAG data. quality assurance and control should be done at each step.
-I want to end with a taxonomic analysis and prediction for the annotated genome.
-
-The data was gathered from soil samples. I have no other information about the data source or techonology used
-to generate it (i.e. sequencing machine, protocol, etc.)
+This object has the registered metadata dictionary: {obj_info.metadata}.
 """
+
+    if config.is_salterns:
+        meta_prompt += SALTERNS_PROMPT
+
+    meta_prompt += """
+Infer any other metadata that you can from the given metadata dictionary. If none is available,
+that is fine, too. You must not ask questions of a human user.
+"""
+
     if config.llm_provider == "cborg":
         used_llm = "gpt-5-cborg"
     else:
@@ -251,6 +280,9 @@ I want you to generate an analysis plan for processing the uploaded {DATA_TYPES[
 The goal is to have a complete annotated genome and classify the microbe.
 
 NEVER suggest an app from the NarrativeViewers module. This includes any app with "NarrativeViewers" in its app_id.
+
+NEVER suggest the app with id "RAST_SDK/annotate_contigset". If you want to suggest a RAST app for assembly annotation, suggest
+"RAST_SDK/annotate_genome_assembly" instead.
 
 Here is additional context: {meta_context}
 """
@@ -347,7 +379,7 @@ def run_pipeline(config: PipelineConfig):
 if __name__ == "__main__":
     config = parse_args()
     logging.basicConfig(
-        filename=f"llm_annotation_salterns_{config.input_file_path.split('/')[-1]}.log",
+        filename="llm_genome_annotation.log",
         level=logging.INFO,
         format="%(levelname)s:%(name)s:%(message)s"
     )
@@ -360,5 +392,14 @@ poetry run python scripts/full_pipeline.py \
 -p cborg \
 -l $CBORG_API_KEY \
 -f salterns_MAGs/Salt_Pond_MetaGSF2_C_D2_MG_DASTool_bins_concoct_out.17.contigs.fa \
+-t assembly
+"""
+
+"""
+poetry run python scripts/full_pipeline.py \
+-k $KB_AUTH_TOKEN \
+-p cborg \
+-l $CBORG_API_KEY \
+-u 232591/2/1 \
 -t assembly
 """
