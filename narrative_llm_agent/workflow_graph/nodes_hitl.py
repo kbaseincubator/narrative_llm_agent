@@ -107,7 +107,7 @@ class WorkflowNodes:
         try:
             # Get the existing description from the state
             description = state.description
-            workflow_logger.info(f"Descriptio for the analyst agent: {description}")
+            workflow_logger.info(f"Description for the analyst agent: {description}")
             # Initialize the analyst agent
             llm = get_llm(self._analyst_llm, api_key=self._analyst_token)
             print(f"Using LLM: {self._analyst_llm} with llm: {llm}")
@@ -127,12 +127,12 @@ class WorkflowNodes:
 
                     Based on the metadata, devise a detailed step-by-step analysis workflow, the apps and app_ids should be from the app graph.
                     """
-            #config = {"configurable": {"thread_id": "1",}}
             config = {"recursion_limit": 50 }
 
             output = analyst_expert.agent.invoke({"messages": [{"role": "user", "content": description_complete}]},config)
             # Extract the JSON from the output
-            analysis_plan = [step.model_dump() for step in output["structured_response"].steps_to_run]
+            # analysis_plan = [step.model_dump() for step in output["structured_response"].steps_to_run]
+            analysis_plan = self._process_analysis_result(output["structured_response"].steps_to_run)
             workflow_logger.info(f"Analysis plan: {analysis_plan}")
             #Mock analysis plan for testing purposes
             #read from json file
@@ -143,7 +143,7 @@ class WorkflowNodes:
             # print(f"Analysis plan: {analysis_plan}")
             # Return updated state with analysis plan and awaiting approval flag
 
-            analysis_plan = validate_analysis_plan(analysis_plan)
+            # analysis_plan = validate_analysis_plan(analysis_plan)
 
             return state.model_copy(update={
                 "steps_to_run": analysis_plan,
@@ -152,6 +152,18 @@ class WorkflowNodes:
             })
         except Exception as e:
             return state.model_copy(update={"steps_to_run": None, "error": str(e)})
+
+    def _process_analysis_result(self, result: List[AnalysisStep]) -> List[AnalysisStep]:
+        nms = NarrativeMethodStore()
+        for step in result:
+            app_spec = AppSpec(**nms.get_app_spec(step.app_id))
+            creates_object = False
+            for param in app_spec.parameters:
+                if param.text_options is not None and param.text_options.is_output_name != 0:
+                    creates_object = True
+                    break
+            step.expect_new_object = creates_object
+        return [step.model_dump() for step in result]
 
     def human_approval_node(self, state: WorkflowState):
         """
@@ -322,7 +334,7 @@ class WorkflowNodes:
                 Next planned step:
                 {json.dumps(next_step)}
                 IMPORTANT INPUT OBJECT INFORMATION:
-                - If this is the first step i.e. last step executed is None, use the paired-end reads object with id {state.reads_id}. Otherwise, the current input object UPA is: {state.input_object_upa}.
+                - If this is the first step i.e. last step executed is None, use the data object with id {state.reads_id}. Otherwise, the current input object UPA is: {state.input_object_upa}.
                 - The last data object UPA (which should be used if the previous step didn't produce a new object) is: {state.last_data_object_upa}
                 - The narrative ID is: {state.narrative_id}
 
