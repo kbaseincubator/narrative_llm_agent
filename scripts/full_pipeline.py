@@ -11,6 +11,7 @@ Given the full file path and data type (and other params needed for import)
 """
 import logging
 
+import sys
 from typing import Any, Optional
 from pydantic import BaseModel
 import argparse
@@ -49,6 +50,22 @@ I want to end with a taxonomic analysis and prediction for the annotated genome.
 The data was gathered from soil samples. I have no other information about the data source or techonology used
 to generate it (i.e. sequencing machine, protocol, etc.)
 """
+
+logger = logging.getLogger("anno_pipeline")
+
+class StreamToLogger:
+    def __init__(self, logger: logging.Logger, level: Any):
+        self.logger = logger
+        self.level = level
+        self.linebuf = ''
+
+    def write(self, buf: str):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.level, line.rstrip())
+
+    def flush(self):
+        pass
+
 
 class PipelineConfig(BaseModel):
     kbase_token: str
@@ -126,6 +143,12 @@ def parse_args() -> PipelineConfig:
 
     narrative_name = f"LLM Agent Annotation for {obj_name}"
 
+    logging.basicConfig(
+        filename=f"llm_genome_annotation_{obj_name}.log",
+        level=logging.INFO,
+        format="%(asctime)s-%(levelname)s:%(name)s:%(message)s"
+    )
+
     config = PipelineConfig(
         kbase_token=args.kbase_token,
         llm_provider=args.llm_provider,
@@ -183,25 +206,25 @@ def data_type_to_params(data_type: str, file_path: str, file_path2: str|None, fi
         raise ValueError(f"Unsupported data type '{data_type}'")
 
 def import_data(narr_id: int, config: PipelineConfig) -> str:
-    logging.info(f"Starting data import to narrative {narr_id}")
+    logger.info(f"Starting data import to narrative {narr_id}")
     if config.input_file_path:
         if not config.input_data_params:
             err = "When importing a data file, input_data_params must be present and contain `app_id` and `params` fields"
-            logging.error(err)
+            logger.error(err)
             raise ValueError(err)
-        logging.info("Found data file path - importing data from staging area")
+        logger.info("Found data file path - importing data from staging area")
         return import_data_file(narr_id, config.input_data_params["app_id"], config.input_data_params["params"], config.kbase_token)
     elif config.input_upa:
-        logging.info("Found existing UPA, copying data object")
+        logger.info("Found existing UPA, copying data object")
         return copy_data_object(narr_id, config.input_upa, config.kbase_token)
     else:
         raise ValueError("Importing data requires either input_file_path or input_upa to be non null in the config")
 
 def copy_data_object(narr_id: int, input_upa: str, token: str) -> str:
     ws = Workspace(token=token)
-    logging.info(f"Copying data object {input_upa} to narrative {narr_id}")
+    logger.info(f"Copying data object {input_upa} to narrative {narr_id}")
     result = ws.copy_object_to_workspace(narr_id, input_upa)
-    logging.info(f"Done - created object {result.upa}")
+    logger.info(f"Done - created object {result.upa}")
     return result.upa
 
 def import_data_file(narr_id: int, app_id: str, app_params: dict[str, Any], token: str) -> str:
@@ -213,17 +236,17 @@ def import_data_file(narr_id: int, app_id: str, app_params: dict[str, Any], toke
     ee = ExecutionEngine(token=token)
     nms = NarrativeMethodStore()
     ws = Workspace(token=token)
-    logging.info(f"Starting file import job in narrative {narr_id}: {app_id} with params {json.dumps(app_params)}")
+    logger.info(f"Starting file import job in narrative {narr_id}: {app_id} with params {json.dumps(app_params)}")
     result = run_job(narr_id, app_id, app_params, ee, nms, ws)
     if result.job_error:
-        logging.error(result.job_error)
-        logging.error(result.model_dump_json(indent=4))
+        logger.error(result.job_error)
+        logger.error(result.model_dump_json(indent=4))
         raise RuntimeError(result.job_error)
     if len(result.created_objects) > 1:
-        logging.error(result.model_dump_json(indent=4))
+        logger.error(result.model_dump_json(indent=4))
         raise RuntimeError(f"Unexpected import results: {result}")
     new_upa = result.created_objects[0].object_upa
-    logging.info(f"Done - created object {new_upa}")
+    logger.info(f"Done - created object {new_upa}")
     return new_upa
 
 def process_metadata(narr_id: int, obj_upa: str, config: PipelineConfig):
@@ -252,8 +275,8 @@ that is fine, too. You must not ask questions of a human user.
         "input": meta_prompt,
         "chat_history": []
     })
-    logging.info(f"response: {response}")
-    logging.info(f"token count: {token_count}")
+    logger.info(f"response: {response}")
+    logger.info(f"token count: {token_count}")
     return response
 
 
@@ -336,54 +359,58 @@ def write_draft_mra(narr_id: int, config: PipelineConfig):
 
 
 def run_pipeline(config: PipelineConfig):
-    logging.info(f"provider: {config.llm_provider}")
-    logging.info(f"input file: {config.input_file_path}")
-    logging.info(f"input data type: {config.input_data_type}")
+    logger.info(f"provider: {config.llm_provider}")
+    logger.info(f"input file: {config.input_file_path}")
+    logger.info(f"input data type: {config.input_data_type}")
 
     # 1. Make a new narrative
-    logging.info("making a new narrative")
+    logger.info("making a new narrative")
     ns = NarrativeService(token=config.kbase_token)
     narr_id = ns.create_new_narrative(config.narrative_name)
-    logging.info(f"done - created narrative with id {narr_id}")
+    logger.info(f"done - created narrative with id {narr_id}")
 
     # 2. Import the data to it
-    logging.info("Importing data object")
+    logger.info("Importing data object")
     obj_upa = import_data(narr_id, config)
     # obj_upa = import_data(narr_id, config.input_data_params["app_id"], config.input_data_params["params"], config.kbase_token)
-    logging.info(f"done got UPA {obj_upa}")
+    logger.info(f"done got UPA {obj_upa}")
 
     # 3. Metadata process.
-    logging.info("Starting metadata processing")
+    logger.info("Starting metadata processing")
     meta_context = process_metadata(narr_id, obj_upa, config).get("output")
-    logging.info("Done processing metadata and storing abstract cell")
-    logging.info(f"Metadata context: {json.dumps(meta_context, indent=4)}")
+    logger.info("Done processing metadata and storing abstract cell")
+    logger.info(f"Metadata context: {json.dumps(meta_context, indent=4)}")
 
     # 4. Analysis process.
-    logging.info("Starting analysis step")
+    logger.info("Starting analysis step")
     analysis_result_state = run_analysis_workflow(narr_id, obj_upa, meta_context, config)
-    logging.info("Done with analysis step")
-    logging.info(f"Final steps to run: {json.dumps(analysis_result_state, indent=4)}")
+    logger.info("Done with analysis step")
+    logger.info(f"Final steps to run: {json.dumps(analysis_result_state, indent=4)}")
 
     # 5. Crew graph.
-    logging.info("Starting app workflow")
+    logger.info("Starting app workflow")
     execution_result_state = run_execution_workflow(analysis_result_state, config)
-    logging.info("Done with app workflow")
-    logging.info(f"Final execution result state: {execution_result_state}")
+    logger.info("Done with app workflow")
+    logger.info(f"Final execution result state: {execution_result_state}")
 
     # 6. Writeup graph.
-    logging.info("Starting writeup process")
+    logger.info("Starting writeup process")
     write_draft_mra(narr_id, config)
-    logging.info("Done with writeup")
-
+    logger.info("Done with writeup")
 
 if __name__ == "__main__":
-    config = parse_args()
-    logging.basicConfig(
-        filename="llm_genome_annotation.log",
-        level=logging.INFO,
-        format="%(levelname)s:%(name)s:%(message)s"
-    )
-    run_pipeline(config)
+    stdout_bak = sys.stdout
+    stderr_bak = sys.stderr
+    sys.stdout = StreamToLogger(logger, logging.INFO)
+    sys.stderr = StreamToLogger(logger, logging.ERROR)
+    try:
+        config = parse_args()
+        run_pipeline(config)
+    finally:
+        sys.stdout = stdout_bak
+        sys.stderr = stderr_bak
+
+
 
 
 """

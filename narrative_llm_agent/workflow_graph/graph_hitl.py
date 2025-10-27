@@ -4,16 +4,6 @@ from narrative_llm_agent.workflow_graph.routers_hitl import next_step_router, an
 import logging
 from typing import Dict, Any
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('workflow.log')
-    ]
-)
-
 # Create workflow-specific logger
 workflow_logger = logging.getLogger('WorkflowExecution')
 
