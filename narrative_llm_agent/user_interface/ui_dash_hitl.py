@@ -134,7 +134,6 @@ def create_main_layout():
             dcc.Store(id=CREDENTIALS_STORE),
             dcc.Store(id="workflow-state-store"),
             dcc.Store(id="execution-state-store"),
-            dcc.Store(id="token-usage-store"),
             dcc.Store(id="analysis-history-store", data=[]),
             dcc.Store(id=SESSION_ID_STORE, data=session_id),
             dcc.Store(id=CREDENTIALS_LOCAL_STORE, storage_type="local"),

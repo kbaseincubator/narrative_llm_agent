@@ -8,7 +8,8 @@ from neo4j import GraphDatabase
 
 description_query = """
 MATCH (m:App|DataObject)
-WHERE m.name CONTAINS $candidate
+WHERE (m.hidden IS NULL OR m.hidden = false)
+AND m.name CONTAINS $candidate
 OPTIONAL MATCH (m)-[r]-(t)
 WITH m, type(r) as rel_type, collect(t.name) as names
 WITH m, rel_type + ": " + reduce(s="", n IN names | s + n + ", ") as contexts
