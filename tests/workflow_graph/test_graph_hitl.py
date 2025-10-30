@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from narrative_llm_agent.tools.job_tools import CompletedJob
-from narrative_llm_agent.workflow_graph.graph_hitl import AnalysisWorkflow, WorkflowCallback
+from narrative_llm_agent.workflow_graph.graph_hitl import AnalysisWorkflow, ExecutionWorkflow, WorkflowCallback
 from narrative_llm_agent.workflow_graph.nodes_hitl import WorkflowState
 
 @pytest.fixture
@@ -84,7 +84,7 @@ class TestAnalysisWorkflow:
         # Check that the graph was built
         assert workflow.graph is not None
 
-    def test_build_graph(self, mock_workflow_nodes, mock_state_graph):
+    def test_build_analysis_graph(self, mock_workflow_nodes, mock_state_graph):
         """Test the graph building process"""
         workflow = AnalysisWorkflow(kbase_token="test_token")
 
@@ -151,7 +151,7 @@ class TestAnalysisWorkflow:
         with patch("narrative_llm_agent.workflow_graph.graph_hitl.WorkflowNodes") as mock_nodes:
             def mock_analyst(state):
                 return state.model_copy(update={
-                    "steps_to_run": [{"Step": 1, "Name": "Test Step"}],
+                    "steps_to_run": [{"step": 1, "name": "Test Step"}],
                     "error": None
                 })
 
@@ -181,7 +181,7 @@ class TestAnalysisWorkflow:
             )
 
             expected_state = {
-                "steps_to_run": [{"Step": 1, "Name": "Test Step"}],
+                "steps_to_run": [{"step": 1, "name": "Test Step"}],
                 "error": None,
                 "awaiting_approval": False,
                 "human_feedback": "looks good!",
@@ -197,67 +197,144 @@ class TestAnalysisWorkflow:
             # Verify the workflow completed successfully
             assert result == expected_state
 
+class TestExecutionWorkflow:
+    def test_execution_workflow_init(self, mock_workflow_nodes):
+        """Test that ExecutionWorkflow initializes correctly"""
+        workflow = ExecutionWorkflow(kbase_token="test_token")
 
-
-def test_execution_workflow_end_to_end():
-    """Test an end-to-end workflow with mocked components"""
-    with patch('narrative_llm_agent.workflow_graph.graph_hitl.WorkflowNodes') as mock_nodes:
-        # Mock the node functions to modify state in predictable ways
-        def mock_analyst(state):
-            return state.model_copy(update={
-                "steps_to_run": [{"Step": 1, "Name": "Test Step"}],
-                "error": None
-            })
-
-        def mock_human_approval(state):
-            return state.model_copy(update={
-                "awaiting_approval": False,
-                "human_feedback": "looks good!",
-                "error": None
-            })
-
-        def mock_validator(state):
-            return state.model_copy(update={
-                "error": None
-            })
-
-        def mock_runner(state):
-            # Consume a step and return updated state
-            steps = state.steps_to_run
-            current = steps[0]
-            remaining = steps[1:] if len(steps) > 1 else []
-            return state.model_copy(update={
-                "steps_to_run": remaining,
-                "last_executed_step": current,
-                "step_result": CompletedJob(
-                    narrative_id=123,
-                    job_id="foo",
-                    job_status="completed",
-                    created_objects=[]
-                ),
-                "error": None
-            })
-
-        def mock_workflow_end(state):
-            return state.model_copy(update={"results": "✅ Workflow complete."})
-
-        # Assign mocks to the node functions
-        mock_nodes.return_value.analyst_node = mock_analyst
-        mock_nodes.return_value.workflow_validator_node = mock_validator
-        mock_nodes.return_value.human_approval_node = mock_human_approval
-        mock_nodes.return_value.app_runner_node = mock_runner
-        mock_nodes.return_value.workflow_end = mock_workflow_end
-
-        # Create a real StateGraph but with mocked nodes
-        workflow = AnalysisWorkflow(kbase_token="test_token")
-
-        # Run the workflow
-        result = workflow.run(
-            narrative_id=123,
-            reads_id="test_reads",
-            description="Test workflow description"
+        # Check that WorkflowNodes was initialized with the token
+        mock_workflow_nodes.assert_called_once_with(
+            "gpt-4.1-mini-cborg",
+            "gpt-4.1-mini-cborg",
+            "gpt-4.1-mini-cborg",
+            "gpt-4.1-mini-cborg",
+            "cborg",
+            token="test_token",
+            analyst_token=None,
+            validator_token=None,
+            app_flow_token=None,
+            writer_token=None,
+            embedding_token=None
         )
 
-        # Verify the workflow completed successfully
-        assert result["results"] == "✅ Workflow complete."
-        assert "error" in result and result["error"] is None
+        # Check that the graph was built
+        assert workflow.graph is not None
+
+    def test_build_execution_graph(self, mock_workflow_nodes, mock_state_graph):
+        """Test the graph building process"""
+        workflow = ExecutionWorkflow(kbase_token="test_token")
+
+        # Verify that StateGraph was created with WorkflowState
+        mock_state_graph.assert_called_once_with(WorkflowState)
+
+        # Verify that nodes were added
+        mock_graph_instance = mock_state_graph.return_value
+        assert mock_graph_instance.add_node.call_count == 4
+
+        # Verify that conditional edges were added
+        assert mock_graph_instance.add_conditional_edges.call_count == 2
+
+        # Verify that direct edges were added
+        assert mock_graph_instance.add_edge.call_count == 2
+
+        # Verify that entry point was set
+        mock_graph_instance.set_entry_point.assert_called_once_with("validate_step")
+
+        # Verify that graph was compiled
+        mock_graph_instance.compile.assert_called_once()
+
+    def test_run_execution_workflow(self, mock_workflow_nodes, mock_state_graph):
+        """Test running a workflow with parameters"""
+        # Setup mock compiled graph
+        mock_compiled_graph = Mock()
+        mock_state_graph.return_value.compile.return_value = mock_compiled_graph
+        mock_compiled_graph.invoke.return_value = {"results": "Test results"}
+
+        # Create workflow and run it
+        workflow = AnalysisWorkflow(kbase_token="test_token")
+        narrative_id = 123
+        reads_id = "45/67/8"
+        description = "test workflow"
+        result = workflow.run(narrative_id=narrative_id, reads_id=reads_id, description=description)
+
+        expected_state = {
+            "narrative_id": narrative_id,
+            "reads_id": reads_id,
+            "description": description,
+            "steps_to_run": [],
+            "completed_steps": [],
+            "results": None,
+            "error": None,
+            "last_executed_step": {},
+            "awaiting_approval": False,
+            "human_approval_status": None,
+            "human_feedback": None,
+        }
+        mock_compiled_graph.invoke.assert_called_once_with(expected_state)
+
+        # Check that the result was returned correctly
+        assert result == {"results": "Test results"}
+
+
+
+    def test_execution_workflow_end_to_end(self):
+        """Test an end-to-end workflow with mocked components"""
+        with patch('narrative_llm_agent.workflow_graph.graph_hitl.WorkflowNodes') as mock_nodes:
+            # Mock the node functions to modify state in predictable ways
+            def mock_validator(state):
+                return state.model_copy(update={
+                    "error": None
+                })
+
+            def mock_runner(state):
+                # Consume a step and return updated state
+                steps = state.steps_to_run
+                current = steps[0]
+                remaining = steps[1:] if len(steps) > 1 else []
+                return state.model_copy(update={
+                    "steps_to_run": remaining,
+                    "last_executed_step": current,
+                    "step_result": CompletedJob(
+                        narrative_id=123,
+                        job_id="foo",
+                        job_status="completed",
+                        created_objects=[]
+                    ),
+                    "error": None
+                })
+
+            def mock_handle_error(state):
+                return state
+
+            def mock_workflow_end(state):
+                return state.model_copy(update={"results": "✅ Workflow complete."})
+
+            # Assign mocks to the node functions
+            mock_nodes.return_value.workflow_validator_node = mock_validator
+            mock_nodes.return_value.app_runner_node = mock_runner
+            mock_nodes.return_value.handle_error = mock_handle_error
+            mock_nodes.return_value.workflow_end = mock_workflow_end
+
+            # Create a real StateGraph but with mocked nodes
+            workflow = ExecutionWorkflow(kbase_token="test_token")
+
+            initial_state = {
+                "steps_to_run": [{"step": 1, "name": "Test Step"}],
+                "error": None,
+                "awaiting_approval": False,
+                "human_feedback": "looks good!",
+                "description": "Test workflow description",
+                "last_executed_step": {},
+                "completed_steps": [],
+                "narrative_id": 123,
+                "reads_id": "45/67/8",
+                "results": None,
+                "human_approval_status": None
+            }
+
+            # Run the workflow
+            result = workflow.run(initial_state)
+
+            # Verify the workflow completed successfully
+            assert result["results"] == "✅ Workflow complete."
+            assert "error" in result and result["error"] is None
