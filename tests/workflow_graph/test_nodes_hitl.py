@@ -9,7 +9,7 @@ VALID_LLM_NAME = "gpt-4.1-mini-cborg"
 @pytest.fixture
 def mock_llm_factory():
     """Mock the LLM factory function."""
-    with patch('narrative_llm_agent.workflow_graph.nodes.get_llm') as mock_get_llm:
+    with patch('narrative_llm_agent.workflow_graph.nodes_hitl.get_llm') as mock_get_llm:
         mock_get_llm.return_value = Mock()
         yield mock_get_llm
 
