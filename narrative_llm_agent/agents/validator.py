@@ -1,6 +1,5 @@
+from narrative_llm_agent.agents.analyst_lang import AnalysisSteps
 from narrative_llm_agent.agents.kbase_agent import KBaseAgent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.agents import Tool, AgentExecutor, create_tool_calling_agent
 from narrative_llm_agent.tools.kgtool_cosine_sim import InformationTool
 import os
 import json
@@ -9,22 +8,21 @@ from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.util.tool import process_tool_input
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field
-from typing import Optional
 
 class DecisionResponse(BaseModel):
     continue_as_planned: bool = Field(
-        ..., 
+        ...,
         description="Whether to continue with the plan as originally outlined"
     )
     reasoning: str = Field(
-        ..., 
+        ...,
         description="Explanation for the decision made"
     )
     input_object_upa: str = Field(
-        ..., 
+        ...,
         description="UPA (Unique Process Address) of the input object for the next step"
     )
-    modified_next_steps: Optional[list[str]] = Field(
+    modified_next_steps: list[AnalysisSteps] = Field(
         default_factory=list,
         description="If modifications are needed, include the modified steps here"
     )
@@ -81,7 +79,7 @@ class WorkflowValidatorAgent(KBaseAgent):
                 3. Are there any warnings or errors that suggest we should take a different approach?
                 4. Is the next step still scientifically appropriate given the results we've seen?
                 """
-        
+
         prompt = SYSTEM_PROMPT_TEMPLATE + HUMAN_PROMPT_TEMPLATE
         try:
             self.agent = create_react_agent(

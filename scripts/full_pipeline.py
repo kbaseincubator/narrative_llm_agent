@@ -24,7 +24,6 @@ from narrative_llm_agent.kbase.clients.narrative_service import NarrativeService
 from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.tools.job_tools import run_job
 from narrative_llm_agent.workflow_graph.graph_hitl import AnalysisWorkflow, ExecutionWorkflow
-from narrative_llm_agent.workflow_graph.nodes_hitl import WorkflowState
 from narrative_llm_agent.writer_graph.mra_graph import MraWriterGraph
 
 ASSEMBLY = "assembly"
@@ -293,7 +292,7 @@ Here is additional context: {meta_context}
     )
 
 
-def run_execution_workflow(analysis_state: WorkflowState, config: PipelineConfig) -> WorkflowState:
+def run_execution_workflow(analysis_state: dict[str, Any], config: PipelineConfig) -> dict[str, Any]:
     # Get credentials and set environment variables
     if config.llm_provider == "cborg":
         used_llm = "gpt-4.1-cborg"
@@ -391,7 +390,7 @@ poetry run python scripts/full_pipeline.py \
 -k $KB_AUTH_TOKEN \
 -p cborg \
 -l $CBORG_API_KEY \
--f salterns_MAGs/Salt_Pond_MetaGSF2_C_D2_MG_DASTool_bins_concoct_out.17.contigs.fa \
+-f salterns_MAGs/Salt_Pond_MetaG_R2A_A_D2_MG_DASTool_bins_concoct_out.10.contigs.fa \
 -t assembly
 """
 
@@ -402,4 +401,14 @@ poetry run python scripts/full_pipeline.py \
 -l $CBORG_API_KEY \
 -u 232591/2/1 \
 -t assembly
+"""
+
+
+"""
+poetry run python scripts/full_pipeline.py \
+-k $KB_AUTH_TOKEN \
+-p cborg \
+-l $CBORG_API_KEY \
+-u 172257/37/1 \
+-t pe_reads_interleaved
 """

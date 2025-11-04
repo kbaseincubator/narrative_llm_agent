@@ -125,7 +125,7 @@ class AnalysisWorkflow:
 
         return planning_graph.compile()
 
-    def run(self, narrative_id, reads_id, description):
+    def run(self, narrative_id: int, reads_id: str, description: str) -> dict[str, Any]:
         """Run analysis workflow with logging."""
         workflow_logger.info("🚀 STARTING ANALYSIS WORKFLOW")
         workflow_logger.info(f"   📊 Narrative ID: {narrative_id}")
@@ -256,7 +256,7 @@ class ExecutionWorkflow:
 
         return genome_graph.compile()
 
-    def run(self, state: WorkflowState):
+    def run(self, state: dict[str, Any]) -> dict[str, Any]:
         """Run execution workflow with logging."""
         workflow_logger.info("STARTING EXECUTION WORKFLOW")
         workflow_logger.info(f"Initial Steps: {len(state.get('steps_to_run', []))}")
