@@ -357,7 +357,7 @@ class MockValidatorAgent:
         # Create a mock agent with invoke method
         self.agent = Mock()
         if raise_exception:
-            self.agent.invoke = Mock(side_effect=ValueError("Some stuff failed with the LLM!"))
+            self.agent.invoke = Mock(return_value={}, side_effect=ValueError("Some stuff failed with the LLM!"))
         else:
             self.agent.invoke = Mock(
                 return_value={"structured_response": self._decision_response}

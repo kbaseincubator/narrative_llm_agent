@@ -61,6 +61,9 @@ def test_init_wf_nodes_token_fail():
 
 
 class TestWorkflowValidatorNode:
+    narrative_id = 123
+    obj_upa = "11/22/33"
+
     def _validate_prompt(self, prompt: str):
         pass
 
@@ -111,27 +114,23 @@ class TestWorkflowValidatorNode:
         assert next_state.results == "Workflow complete. All steps were successfully executed."
         assert next_state.error is None
 
-    def test_workflow_validator_node_continue(self, mocker, workflow_nodes: WorkflowNodes, base_wf_state: WorkflowState, mock_validator_agent):
-        obj_upa = "11/22/33"
-        narrative_id = 123
 
+    def test_workflow_validator_node_continue(self, mocker, workflow_nodes: WorkflowNodes, base_wf_state: WorkflowState, mock_validator_agent):
         # Patch the WorkflowValidatorAgent with our mock
         mocker.patch(
             "narrative_llm_agent.workflow_graph.nodes_hitl.WorkflowValidatorAgent",
             return_value=mock_validator_agent
         )
 
-        state = self._make_current_state(base_wf_state, obj_upa, narrative_id)
+        state = self._make_current_state(base_wf_state, self.obj_upa, self.narrative_id)
 
         next_state = workflow_nodes.workflow_validator_node(state)
         assert next_state.validation_reasoning == "Test validation passed"
-        assert next_state.input_object_upa == obj_upa
+        assert next_state.input_object_upa == self.obj_upa
 
 
     def test_workflow_validator_node_revise(self, mocker, workflow_nodes: WorkflowNodes, base_wf_state: WorkflowState, mock_validator_agent_factory):
         """Test when the validator revises the workflow steps."""
-        obj_upa = "11/22/33"
-        narrative_id = 123
 
         # Create a revised step to be returned by the validator
         revised_step = AnalysisSteps(
@@ -147,7 +146,7 @@ class TestWorkflowValidatorNode:
         mock_agent = mock_validator_agent_factory(
             continue_as_planned=False,
             reasoning="Original approach not suitable, revised steps provided",
-            input_object_upa=obj_upa,
+            input_object_upa=self.obj_upa,
             modified_next_steps=[revised_step]
         )
 
@@ -156,7 +155,7 @@ class TestWorkflowValidatorNode:
             return_value=mock_agent
         )
 
-        state = self._make_current_state(base_wf_state, obj_upa, narrative_id)
+        state = self._make_current_state(base_wf_state, self.obj_upa, self.narrative_id)
 
         next_state = workflow_nodes.workflow_validator_node(state)
         assert next_state.steps_to_run[0]["name"] == "Alternative Analysis Step"
@@ -164,14 +163,12 @@ class TestWorkflowValidatorNode:
 
     def test_workflow_validator_node_end(self, mocker, mock_validator_agent_factory, workflow_nodes: WorkflowNodes, base_wf_state: WorkflowState):
         """Test when the validator says the run should end."""
-        obj_upa = "11/22/33"
-        narrative_id = 123
 
         # Create a mock validator that revises the steps
         mock_agent = mock_validator_agent_factory(
             continue_as_planned=False,
             reasoning="Key app unavailable, stop running",
-            input_object_upa=obj_upa,
+            input_object_upa=self.obj_upa,
             modified_next_steps=[]
         )
 
@@ -179,47 +176,14 @@ class TestWorkflowValidatorNode:
             "narrative_llm_agent.workflow_graph.nodes_hitl.WorkflowValidatorAgent",
             return_value=mock_agent
         )
+        state = self._make_current_state(base_wf_state, self.obj_upa, self.narrative_id)
 
-        state = base_wf_state.model_copy(
-            update={
-                "steps_to_run": [{
-                    "step": 2,
-                    "name": "Assess Genome Quality with CheckM",
-                    "app": "Assess Genome Quality with CheckM - v1.0.18",
-                    "description": "Original assessment approach",
-                    "expect_new_object": False,
-                    "app_id": "kb_Msuite/run_checkM_lineage_wf"
-                }],
-                "last_executed_step": {
-                    "step": 1,
-                    "name": "Assess Quality of Assemblies with QUAST",
-                    "app": "Assess Quality of Assemblies with QUAST - v4.4",
-                    "description": "Assembly QC",
-                    "expect_new_object": False,
-                    "app_id": "kb_quast/run_QUAST_app"
-                },
-                "completed_steps": [],
-                "input_object_upa": obj_upa,
-                "last_data_object_upa": obj_upa,
-                "reads_id": obj_upa,
-                "step_result": {
-                    "job_id": "12345",
-                    "job_status": "success",
-                    "job_error": None,
-                    "created_objects": [],
-                    "narrative_id": narrative_id
-                },
-                "narrative_id": narrative_id
-            }
-        )
         next_state = workflow_nodes.workflow_validator_node(state)
         assert next_state.steps_to_run == []
         assert next_state.validation_reasoning == "Key app unavailable, stop running"
 
     def test_workflow_validator_node_error(self, mocker, mock_validator_agent_factory, workflow_nodes: WorkflowNodes, base_wf_state: WorkflowState):
         """Test when the validator encounters an error."""
-        obj_upa = "11/22/33"
-        narrative_id = 123
 
         # Create a mock validator that revises the steps
         mock_agent = mock_validator_agent_factory(
@@ -231,37 +195,7 @@ class TestWorkflowValidatorNode:
             return_value=mock_agent
         )
 
-        state = base_wf_state.model_copy(
-            update={
-                "steps_to_run": [{
-                    "step": 2,
-                    "name": "Assess Genome Quality with CheckM",
-                    "app": "Assess Genome Quality with CheckM - v1.0.18",
-                    "description": "Original assessment approach",
-                    "expect_new_object": False,
-                    "app_id": "kb_Msuite/run_checkM_lineage_wf"
-                }],
-                "last_executed_step": {
-                    "step": 1,
-                    "name": "Assess Quality of Assemblies with QUAST",
-                    "app": "Assess Quality of Assemblies with QUAST - v4.4",
-                    "description": "Assembly QC",
-                    "expect_new_object": False,
-                    "app_id": "kb_quast/run_QUAST_app"
-                },
-                "completed_steps": [],
-                "input_object_upa": obj_upa,
-                "last_data_object_upa": obj_upa,
-                "reads_id": obj_upa,
-                "step_result": {
-                    "job_id": "12345",
-                    "job_status": "success",
-                    "job_error": None,
-                    "created_objects": [],
-                    "narrative_id": narrative_id
-                },
-                "narrative_id": narrative_id
-            }
-        )
+        state = self._make_current_state(base_wf_state, self.obj_upa, self.narrative_id)
+
         next_state = workflow_nodes.workflow_validator_node(state)
         assert "Some stuff failed with the LLM!" in next_state.error
