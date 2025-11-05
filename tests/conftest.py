@@ -295,3 +295,153 @@ def test_data_path() -> Path:
     Returns an absolute path to the test data directory.
     """
     return Path(__file__).parent / "test_data"
+
+
+# ============================================================================
+# WorkflowValidatorAgent Mocking Utilities
+# ============================================================================
+
+class MockValidatorAgent:
+    """
+    A mock WorkflowValidatorAgent that allows controlled responses for testing.
+
+    This class simulates the WorkflowValidatorAgent interface, allowing you to
+    specify exactly what the agent.invoke() method should return without actually
+    calling an LLM.
+
+    Usage:
+        # Create a mock agent with default response
+        mock_agent = MockValidatorAgent(
+            continue_as_planned=True,
+            reasoning="Looks good to continue",
+            input_object_upa="11/22/33"
+        )
+
+        # Use in a test with mocker
+        mocker.patch(
+            "narrative_llm_agent.workflow_graph.nodes_hitl.WorkflowValidatorAgent",
+            return_value=mock_agent
+        )
+    """
+
+    def __init__(
+        self,
+        continue_as_planned: bool = True,
+        reasoning: str = "Test validation passed",
+        input_object_upa: str = "11/22/33",
+        modified_next_steps: list = None,
+        raise_exception: bool = False
+    ):
+        """
+        Initialize the mock validator agent with a controlled response.
+
+        Args:
+            continue_as_planned: Whether the validator should continue with original plan
+            reasoning: The reasoning explanation for the decision
+            input_object_upa: The UPA (Unique Process Address) for the next step input
+            modified_next_steps: List of modified steps if not continuing as planned
+        """
+        from narrative_llm_agent.agents.validator import DecisionResponse
+
+        self.continue_as_planned = continue_as_planned
+        self.reasoning = reasoning
+        self.input_object_upa = input_object_upa
+        self.modified_next_steps = modified_next_steps or []
+        self._decision_response = DecisionResponse(
+            continue_as_planned=continue_as_planned,
+            reasoning=reasoning,
+            input_object_upa=input_object_upa,
+            modified_next_steps=self.modified_next_steps,
+        )
+
+        # Create a mock agent with invoke method
+        self.agent = Mock()
+        if raise_exception:
+            self.agent.invoke = Mock(return_value={}, side_effect=ValueError("Some stuff failed with the LLM!"))
+        else:
+            self.agent.invoke = Mock(
+                return_value={"structured_response": self._decision_response}
+            )
+
+    def set_decision(
+        self,
+        continue_as_planned: bool = None,
+        reasoning: str = None,
+        input_object_upa: str = None,
+        modified_next_steps: list = None,
+    ):
+        """
+        Update the decision that will be returned by invoke().
+
+        Use this to change the mock response after instantiation.
+
+        Args:
+            continue_as_planned: Whether to continue as planned
+            reasoning: Explanation for the decision
+            input_object_upa: Input object UPA for next step
+            modified_next_steps: List of modified steps
+        """
+        from narrative_llm_agent.agents.validator import DecisionResponse
+
+        if continue_as_planned is not None:
+            self.continue_as_planned = continue_as_planned
+        if reasoning is not None:
+            self.reasoning = reasoning
+        if input_object_upa is not None:
+            self.input_object_upa = input_object_upa
+        if modified_next_steps is not None:
+            self.modified_next_steps = modified_next_steps
+
+        self._decision_response = DecisionResponse(
+            continue_as_planned=self.continue_as_planned,
+            reasoning=self.reasoning,
+            input_object_upa=self.input_object_upa,
+            modified_next_steps=self.modified_next_steps,
+        )
+        self.agent.invoke = Mock(
+            return_value={"structured_response": self._decision_response}
+        )
+
+
+@pytest.fixture
+def mock_validator_agent():
+    """
+    Pytest fixture that provides a MockValidatorAgent instance.
+
+    This fixture creates a basic mock validator agent that can be used
+    directly or patched into the WorkflowNodes class.
+
+    Returns:
+        MockValidatorAgent: A mock agent with default continue=True settings
+
+    Example:
+        def test_validator_continues(mocker, mock_validator_agent):
+            mocker.patch(
+                "narrative_llm_agent.workflow_graph.nodes_hitl.WorkflowValidatorAgent",
+                return_value=mock_validator_agent
+            )
+            # ... rest of test
+    """
+    return MockValidatorAgent()
+
+
+@pytest.fixture
+def mock_validator_agent_factory():
+    """
+    Pytest fixture that provides a factory function for creating custom MockValidatorAgent instances.
+
+    This is useful when you need multiple validators with different configurations in a single test.
+
+    Returns:
+        callable: A function that takes the same arguments as MockValidatorAgent.__init__
+
+    Example:
+        def test_multiple_validators(mocker, mock_validator_agent_factory):
+            agent1 = mock_validator_agent_factory(continue_as_planned=True)
+            agent2 = mock_validator_agent_factory(continue_as_planned=False)
+            # ... use both agents
+    """
+    def _make_mock_agent(**kwargs):
+        return MockValidatorAgent(**kwargs)
+
+    return _make_mock_agent
