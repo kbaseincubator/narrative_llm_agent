@@ -1,19 +1,17 @@
 import logging
 from narrative_llm_agent.crews.job_crew import JobCrew
-from narrative_llm_agent.agents.validator import WorkflowValidatorAgent
+from narrative_llm_agent.agents.validator import DecisionResponse, WorkflowValidatorAgent
 from narrative_llm_agent.agents.analyst_lang import AnalystAgent
 from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
 from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.tools.job_tools import CompletedJob
-from narrative_llm_agent.util.json_util import extract_json_from_string, extract_json_from_string_curly
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from narrative_llm_agent.config import get_llm
 import json
-import time
-import logging
 
 workflow_logger = logging.getLogger("WorkflowExecution")
+
 # Define a model for each analysis step
 class AnalysisStep(BaseModel):
     step: int
@@ -56,6 +54,7 @@ class WorkflowState(BaseModel):
     error: Optional[str] = None
     results: Optional[str] = None
     last_data_object_upa: Optional[str] = None
+    validation_reasoning: Optional[str] = ""
     # Human approval fields
     human_approval_status: Optional[str] = None  # "approved", "rejected", "cancelled"
     awaiting_approval: bool = False
@@ -70,7 +69,10 @@ class WorkflowNodes:
     def __init__(self, analyst_llm: str, validator_llm: str, app_flow_llm: str, writer_llm: str, embedding_provider: str, token=None, analyst_token: str | None = None, validator_token: str | None = None, app_flow_token: str | None = None, writer_token: str | None = None, embedding_token: str | None = None):
         """
         Initialize the WorkflowNodes class.
-
+        TODO: This should ensure that llm names exist in config, and fail otherwise
+        TODO: This should ensure that llm api keys are real or accessible from config, and fail otherwise
+        TODO: Should test that embedding provider is real, and has api key if needed.
+        TODO: kbase token (token) should not a kwarg
         Args:
             analyst_llm (str): config name for LLM for the analyst
             validator_llm (str): config name for the LLM for the validator
@@ -218,6 +220,7 @@ class WorkflowNodes:
                 "awaiting_approval": True,
                 "error": None
             })
+
     def _format_analysis_plan(self, steps: List[Dict[str, Any]]) -> str:
         """
         Format the analysis plan for human-readable display.
@@ -286,7 +289,7 @@ class WorkflowNodes:
                 "error": str(e)
             })
 
-    def workflow_validator_node(self, state: WorkflowState):
+    def workflow_validator_node(self, state: WorkflowState) -> WorkflowState:
         """
         Node function for validating workflow results and determining next steps.
 
@@ -296,20 +299,20 @@ class WorkflowNodes:
         Returns:
             WorkflowState: Updated workflow state with validation results.
         """
+        # Extract the relevant information from the state
+        last_step_result = state.step_result or ""
+        last_executed_step = state.last_executed_step or {}
+        remaining_steps = state.steps_to_run or []
+        next_step = remaining_steps[0] if remaining_steps else None
+
+        # If there's no next step, we're done
+        if next_step is None:
+            return state.model_copy(update={
+                "results": "Workflow complete. All steps were successfully executed.",
+                "error": None
+            })
+
         try:
-            # Extract the relevant information from the state
-            last_step_result = state.step_result or ""
-            last_executed_step = state.last_executed_step or {}
-            remaining_steps = state.steps_to_run or []
-            next_step = remaining_steps[0] if remaining_steps else None
-
-            # If there's no next step, we're done
-            if next_step is None:
-                return state.model_copy(update={
-                    "results": "Workflow complete. All steps were successfully executed.",
-                    "error": None
-                })
-
             # Initialize the validator agent
             llm = get_llm(self._validator_llm, api_key=self._validator_token)
             validator = WorkflowValidatorAgent(llm, token=self.token)
@@ -341,42 +344,50 @@ class WorkflowNodes:
                 IMPORTANT: For the input_object_upa field in your response:
                 1. If the previous step created a new data object, use that UPA: {state.input_object_upa}
                 2. If the previous step did NOT create a new data object (e.g., it only created a report), use the last valid data object UPA: {state.last_data_object_upa}
-                3. If this is the first step, use the paired-end reads object id: {state.reads_id}
+                3. If this is the first step, use the initial object object id: {state.reads_id}
 
-                If this is the first step, i.e. Last step executed is None, then the input object for this step should be paired-end reads object with id {state.reads_id}.
-                IMPORTANT: For the input_object_upa field, you MUST use the actual UPA from the previous step's output or the {state.reads_id} for the paired-end reads object.
+                If this is the first step, i.e. Last step executed is None, then the input object for this step should be the object with id {state.reads_id}.
+                IMPORTANT: For the input_object_upa field, you MUST use the actual UPA from the previous step's output or the {state.reads_id} for the initial object.
                 A valid UPA has the format "workspace_id/object_id/version_id" (like "12345/6/1").UPA fields must be numbers. DO NOT make up UPA values - they must be actual reference IDs extracted from the previous step's output or the initial state.
                 """
             output = validator.agent.invoke({"messages": [{"role": "user", "content": description}]})
             # Extract the JSON from the output
-            decision_json =  output['structured_response']
-            workflow_logger.info(f"Validator node: {decision_json}")
+            decision: DecisionResponse = output["structured_response"]
+            workflow_logger.info(f"Validator node: {decision}")
+
+            # Some options as to what happens here.
+            # 1. if continue_as_planned, just return the model with validation reasoning and carry on.
+            # 2. if not:
+            #   A. and there is a single updated step, insert that as the next step and continue.
+            #   B. and there are multiple updated steps, these should replace the remaining workflow.
+            #   C. and there are no updated steps, execution should halt - remaining steps should be removed
 
             # Update the state based on the decision
-            if decision_json.continue_as_planned:
+            if decision.continue_as_planned:
                 return state.model_copy(update={
-                    "input_object_upa": decision_json.input_object_upa or state.input_object_upa,
-                    "validation_reasoning": decision_json.reasoning,
+                    "input_object_upa": decision.input_object_upa or state.input_object_upa,
+                    "validation_reasoning": decision.reasoning,
                     "error": None
                 })
+
             else:
                 # temp until refactor to include structured output
-                new_next_steps = decision_json.modified_next_steps
+                new_next_steps = decision.modified_next_steps
                 if len(new_next_steps) == 0:
-                    updated_steps = remaining_steps
-                if len(new_next_steps) == 1:
-                    updated_steps = [new_next_steps[0].dict()] + remaining_steps[1:]
+                    updated_steps = []
+                elif len(new_next_steps) == 1:
+                    updated_steps = [new_next_steps[0].model_dump()] + remaining_steps[1:]
                 else:
-                    updated_steps = [step.dict() for step in new_next_steps]
+                    updated_steps = [step.model_dump() for step in new_next_steps]
 
                 return state.model_copy(update={
                     "steps_to_run": updated_steps,
-                    "input_object_upa": decision_json.input_object_upa or state.input_object_upa,
-                    "validation_reasoning": decision_json.reasoning,
+                    "input_object_upa": decision.input_object_upa or state.input_object_upa,
+                    "validation_reasoning": decision.reasoning,
                     "error": None
                 })
         except Exception as e:
-            return state.model_copy(update={"error": str(e)})
+            return state.model_copy(update={"error": f"An error occurred while validating the workflow: {str(e)}"})
 
     def handle_error(self, state: WorkflowState):
         """

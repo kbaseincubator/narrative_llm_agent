@@ -191,7 +191,8 @@ class TestAnalysisWorkflow:
                 "narrative_id": 123,
                 "reads_id": "test_reads",
                 "results": None,
-                "human_approval_status": None
+                "human_approval_status": None,
+                "validation_reasoning": ""
             }
             print(result)
             # Verify the workflow completed successfully
