@@ -245,7 +245,7 @@ def main() -> None:
         judge_llm = get_llm(args.judge_llm)
         evaluator = create_llm_as_judge(
             prompt=PLANNING_CUSTOM_PROMPT,
-            choices=[0.0,0.1,0.2,0.3,0.4 0.5,0.6,0.7,0.8,0.9,1.0],
+            choices=[0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0],
             judge=judge_llm,
         )
         return evaluator(inputs=inputs, outputs=outputs, reference_outputs=reference_outputs)
