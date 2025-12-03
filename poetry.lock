@@ -4606,6 +4606,27 @@ realtime = ["websockets (>=13,<16)"]
 voice-helpers = ["numpy (>=2.0.2)", "sounddevice (>=0.5.1)"]
 
 [[package]]
+name = "openevals"
+version = "0.1.0"
+description = "Open-source evaluators for LLM applications"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "openevals-0.1.0-py3-none-any.whl", hash = "sha256:214b53197b1becff74279ea063c8752f8887a81afda700477639c19a0d683647"},
+    {file = "openevals-0.1.0.tar.gz", hash = "sha256:3dbb7cc4251ab7f6fcd5cbc8939b8538c5bf333e88ad01e5d8ac287f509891a4"},
+]
+
+[package.dependencies]
+langchain = ">=0.3.18"
+langchain-openai = ">=0.3.6"
+langsmith = ">=0.3.32"
+rich = ">=13.9.4"
+
+[package.extras]
+e2b-code-interpreter = ["e2b-code-interpreter (>=1.1.1)"]
+
+[[package]]
 name = "openpyxl"
 version = "3.1.5"
 description = "A Python library to read/write Excel 2010 xlsx/xlsm files"
@@ -9570,4 +9591,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.13"
-content-hash = "bd639e2935a70539c295f010ec8e6db54042b6371c4569920239970ef630f487"
+content-hash = "e52879b32ddf049b9e1e670e19099554e5b16710449c28460dc5e717b5bf9bff"
