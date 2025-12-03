@@ -41,7 +41,9 @@ def get_processed_app_spec_params(
         proc_param["optional"] = True if param.optional == 1 else False
 
         proc_param["default_value"] = process_default_values(param, param_type)
-
+        # Special rules / prompting for dynamic dropdown
+        if param_type == "dynamic_dropdown" and proc_param["optional"]:
+            proc_param["short_hint"] = "Set the value of this parameter as null for now"
         processed_params[proc_param["id"]] = proc_param
     processed_param_groups = {}
     if spec.parameter_groups is not None:
