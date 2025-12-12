@@ -1,0 +1,103 @@
+JGI sequencing project id	IMG genome id	File id	File name	Original upa	Generated narrative id	Narrative url	Species name
+1551573	8132720701	6835caf1e69ed90826268275	53127.1.597830.TGAGGTAAGA-CTCTGCAAGC.fastq.gz	239038/4/1	239697	https://narrative.kbase.us/narrative/239697	Ralstonia pickettii 133170061-1
+1352570	2952132578	6228c68de99caa81935ae628	52659.4.414109.CCAGTGTT-CCAGTGTT.fastq.gz	239038/5/1	239700	https://narrative.kbase.us/narrative/239700	Actinomycetota bacterium 88765
+1401606	8000287752	63a8dcc63b5d0133c7411b0c	52789.4.453124.TATCGGTC-TATCGGTC.fastq.gz	239038/7/1	239694	https://narrative.kbase.us/narrative/239694	Actinomycetota bacterium 099076_271_C02
+1025314	2563366738	52964be3067c0121bf0d621e	7479.7.74223.AGTTCC.fastq.gz	239038/8/1	239691	https://narrative.kbase.us/narrative/239691	Nocardia sp. CNS-044
+1352100	2945742113	62029526f9c444ffdffcb7e0	52647.2.412368.AGTTACGG-AGTTACGG.fastq.gz	239038/11/1	239696	https://narrative.kbase.us/narrative/239696	Actinomycetota bacterium 001534
+1340064	2946822228	62029171f9c444ffdffcb74a	52647.2.412368.CACAAGTC-CACAAGTC.fastq.gz	239038/12/1	239698	https://narrative.kbase.us/narrative/239698	Streptomyces sp. 6527
+1352135	2946338518	62029384f9c444ffdffcb7a1	52647.2.412368.TTGATCCG-TTGATCCG.fastq.gz	239038/13/1	239699	https://narrative.kbase.us/narrative/239699	Actinomycetota bacterium 087307
+1352244	2953085618	622f645fe99caa81935b477e	52664.1.415157.TTGGACGT-TTGGACGT.fastq.gz	239038/14/1	239692	https://narrative.kbase.us/narrative/239692	Brevundimonas sp. 003966
+1401421	2998578873	63a8dc6a3b5d0133c7411a11	52789.3.453034.TATGGCAG-TATGGCAG.fastq.gz	239038/15/1	239693	https://narrative.kbase.us/narrative/239693	Actinomycetota bacterium 096031_262_B08
+1340081	2946897372	620290c8f9c444ffdffcb730	52647.2.412368.TTAGGTCG-TTAGGTCG.fastq.gz	239038/20/1	239738	https://narrative.kbase.us/narrative/239738	Actinomycetota bacterium 5497
+1292578	2933449570	6086dda253a8c649b0cb36b8	52508.4.363682.GCCTTGTT-GCCTTGTT.fastq.gz	239038/21/1	239740	https://narrative.kbase.us/narrative/239740	Janibacter sp. 000076
+1413023	8013907530	63f8d6eade99bdbaa7ef2cf5	52807.3.457668.TTGTGTGC-TTGTGTGC.fastq.gz	239038/23/1	239736	https://narrative.kbase.us/narrative/239736	Actinomycetota bacterium 017676_257_F11
+1306885	2930642085	6099791a53a8c649b0cc08a3	52512.4.365108.TCATCACC-TCATCACC.fastq.gz	239038/28/1	239739	https://narrative.kbase.us/narrative/239739	Actinomycetota bacterium 001083
+1357722	2979531353	6269e082f21e5a14d08da48b	52682.2.418228.TCCGTATG-TCCGTATG.fastq.gz	239038/30/1	239741	https://narrative.kbase.us/narrative/239741	Actinomycetota bacterium 21294
+1030956	2571042346	53297fef49607a1be0059a93	7779.1.83549.TGGCGC.anqdp.fastq.gz	239038/31/1	239734	https://narrative.kbase.us/narrative/239734	Megalodesulfovibrio paquesii DSM 16681
+1292638	2933529240	6086de9853a8c649b0cb36f0	52508.4.363682.GTCTAGGT-GTCTAGGT.fastq.gz	239038/32/1	239742	https://narrative.kbase.us/narrative/239742	Enterococcus sp. 000385
+1381299	2975850084	63039c791a1c5f71256c5c1a	52734.2.432011.TCCTTAGC-TCCTTAGC.fastq.gz	239038/33/1	239735	https://narrative.kbase.us/narrative/239735	Actinomycetota bacterium 7872_181_H3
+1413639	8015093664	63f8d7f2de99bdbaa7ef2f51	52807.3.457668.ATCGGTGT-ATCGGTGT.fastq.gz	239038/34/1	239733	https://narrative.kbase.us/narrative/239733	Actinomycetota bacterium 101112_277_F01
+1381348	2975996935	63039c921a1c5f71256c5c68	52734.2.432011.AAGTGTCG-AAGTGTCG.fastq.gz	239038/38/1	239737	https://narrative.kbase.us/narrative/239737	Actinomycetota bacterium 90014_182_E11
+1357681	2959899013	6269e17cf21e5a14d08da4bd	52682.2.418228.GTTACGCA-GTTACGCA.fastq.gz	239038/41/1	239789	https://narrative.kbase.us/narrative/239789	Actinomycetota bacterium 2181
+1214814	2816332162	5c13125446d1e64a530fbfca	12774.2.284685.GAGGACTT-AAGTCCTC.fastq.gz	239038/42/1	239792	https://narrative.kbase.us/narrative/239792	Streptomyces coelicolor A3(2) TG1-mCherry-15
+1347379	2966371364	6247812fc6477704c332f18d	pbio-2531.24812.bc1017_BAK8B_OA--bc1017_BAK8B_OA.ccs.filter.fastq.gz	239038/43/1	239786	https://narrative.kbase.us/narrative/239786	Bradyrhizobium japonicum USDA 349
+1551314	8134002223	684b0e1589cc9f214d4f2f09	53130.3.601389.CACGGATCAG-CGGTTGAATG.fastq.gz	239038/45/1	239752	https://narrative.kbase.us/narrative/239752	Staphylococcus auricularis 153480033-3
+1340402	2945062052	61e8cd7cb0df7a8c0db819e5	52640.1.404944.CTGACACA-CTGACACA.fastq.gz	239038/46/1	239750	https://narrative.kbase.us/narrative/239750	Actinomycetota bacterium 20705
+1292660	2933560591	6086deed53a8c649b0cb3704	52508.4.363682.GCATGTCT-GCATGTCT.fastq.gz	239038/47/1	239751	https://narrative.kbase.us/narrative/239751	Agrobacterium sp. 051058
+1357828	2972590378	625487e7f21e5a14d08cb997	52677.4.417472.CTAGGCAT-CTAGGCAT.fastq.gz	239038/48/1	239746	https://narrative.kbase.us/narrative/239746	Actinomycetota bacterium 90200
+1401642	2998492895	63a8dce93b5d0133c7411b33	52789.4.453124.GCTGTAAG-GCTGTAAG.fastq.gz	239038/53/1	239787	https://narrative.kbase.us/narrative/239787	Actinomycetota bacterium 098657_271_F06
+1219219	2806311047	5bc8cd4e46d1e64cf8dacb4c	pbio-1966.17227.bc1016.fastq.gz	239038/55/1	239748	https://narrative.kbase.us/narrative/239748	Pseudomonas frederiksbergensis TE19159
+1551413	8132394565	6835caf3e69ed9082626827b	53127.6.598031.GAAAGGATAA-TCTGTTATCG.fastq.gz	239038/56/1	239753	https://narrative.kbase.us/narrative/239753	Cupriavidus metallidurans 101480065-2
+1351990	2952039033	6228cb00e99caa81935ae6fb	52659.4.414109.AGTCGCTT-AGTCGCTT.fastq.gz	239038/60/1	239791	https://narrative.kbase.us/narrative/239791	Actinomycetota bacterium 023799
+1385549	8000666131	63ea5cfcd22e9615ded867f2	52803.3.456525.AGCTAACC-AGCTAACC.fastq.gz	239038/62/1	239795	https://narrative.kbase.us/narrative/239795	Streptomyces sp. BV103
+1355818	2963766254	62763ca8945720fe92922506	pbio-2555.25261.bc1017_BAK8B_OA--bc1017_BAK8B_OA.ccs.filter.fastq.gz	239038/64/1	239793	https://narrative.kbase.us/narrative/239793	Pseudomonas viridiflava 626 TE3681
+1317087	2933998845	616739f99c1bd5d80c811cd8	52594.1.391947.TATCGGTC-TATCGGTC.fastq.gz	239038/68/1	239788	https://narrative.kbase.us/narrative/239788	Actinomycetota bacterium 051494
+1401521	8000220252	63c6bd62d22e9615ded31a57	52791.2.453314.GTGCTTAC-GTGCTTAC.fastq.gz	239038/69/1	239794	https://narrative.kbase.us/narrative/239794	Actinomycetota bacterium 016580_270_C11
+1352535	2951836751	6228c6a3e99caa81935ae62c	52659.4.414109.GGACTGTT-GGACTGTT.fastq.gz	239038/70/1	239790	https://narrative.kbase.us/narrative/239790	Actinomycetota bacterium 88755
+1352445	2947777090	62264248e99caa81935a968c	52655.2.412973.CGTGATCA-CGTGATCA.fastq.gz	239038/74/1	239850	https://narrative.kbase.us/narrative/239850	Actinobacteria bacterium 20780-1
+1401783	8013768619	63f8d700de99bdbaa7ef2d35	52807.1.457362.GTCATCGA-GTCATCGA.fastq.gz	239038/75/1	239858	https://narrative.kbase.us/narrative/239858	Actinomycetota bacterium 017448_273_B06
+1385585	8000791834	63ea5d41d22e9615ded8682c	52803.3.456525.GTTCAACC-GTTCAACC.fastq.gz	239038/76/1	239855	https://narrative.kbase.us/narrative/239855	Pseudomonas sp. TN301
+1357648	2959804859	6267f904f21e5a14d08d822f	52684.1.418857.CACCTTAC-CACCTTAC.fastq.gz	239038/78/1	239851	https://narrative.kbase.us/narrative/239851	Actinomycetota bacterium 7046
+1360769	2963297797	6267fd3ff21e5a14d08d82e6	52684.2.418964.AAGAGCCA-AAGAGCCA.fastq.gz	239038/79/1	239849	https://narrative.kbase.us/narrative/239849	Actinobacteria bacterium 20189
+1214796	2816332184	5c1311df46d1e64a530fbfa6	12774.2.284685.TCCGAGTT-AACTCGGA.fastq.gz	239038/80/1	239854	https://narrative.kbase.us/narrative/239854	Streptomyces coelicolor A3(2) VWB-mCherry-17
+1307022	2929560082	60e76f86c399d4ad32fe5bec	52546.2.379520.ACTGCTAG-ACTGCTAG.fastq.gz	239038/85/1	239853	https://narrative.kbase.us/narrative/239853	Actinomycetota bacterium 050580
+1413440	8012523975	63ea5c27d22e9615ded86740	52803.3.456525.TCGTGGAT-TCGTGGAT.fastq.gz	239038/87/1	239857	https://narrative.kbase.us/narrative/239857	Actinomycetota bacterium 014328_264_D05
+1413358	8015177938	63fccb65de99bdbaa7ef497e	52806.4.457240.GGCATACT-GGCATACT.fastq.gz	239038/89/1	239852	https://narrative.kbase.us/narrative/239852	Actinomycetota bacterium 096101_263_D10
+1361092	2967374974	62a7a1b5cde5d0c6d0ccd5f0	52705.1.422902.TGCTCATG-TGCTCATG.fastq.gz	239038/90/1	239856	https://narrative.kbase.us/narrative/239856	Actinobacteria bacterium 20917
+1401476	2998357381	63a8dcc43b5d0133c7411b04	52789.3.453034.CGATAGAG-CGATAGAG.fastq.gz	239038/93/1	239873	https://narrative.kbase.us/narrative/239873	Actinomycetota bacterium 013971_262_G10
+1340214	2942235908	61f4073db0df7a8c0db890e2	52643.2.406692.TATTCGCC-TATTCGCC.fastq.gz	239038/94/1	239865	https://narrative.kbase.us/narrative/239865	Actinobacteria sp. 50337
+1381315	2975311136	63039ca81a1c5f71256c5caa	52734.2.432011.GAGCAGTA-GAGCAGTA.fastq.gz	239038/95/1	239869	https://narrative.kbase.us/narrative/239869	Actinomycetota bacterium 89987_182_B04
+1340347	2945265676	61e8ce35b0df7a8c0db81a16	52640.1.404944.AGAATGCC-AGAATGCC.fastq.gz	239038/96/1	239867	https://narrative.kbase.us/narrative/239867	Actinomycetota bacterium 36083
+1361132	2963117254	6267fefbf21e5a14d08d8322	52684.2.418964.ACTCCATC-ACTCCATC.fastq.gz	239038/98/1	239872	https://narrative.kbase.us/narrative/239872	Actinomycetota bacterium 20543-1
+1413287	8013554601	63f4f519de99bdbaa7eee080	52809.3.458192.CAACACCT-CAACACCT.fastq.gz	239038/101/1	239868	https://narrative.kbase.us/narrative/239868	Actinomycetota bacterium 015416_261_F09
+1551102	8132983543	683335cde69ed90826265ce9	53125.5.597453.AAACGCCAGT-CGGGAGTGGG.fastq.gz	239038/103/1	239866	https://narrative.kbase.us/narrative/239866	Staphylococcus saprophyticus F11_3S_D3_EB2
+1381045	2976916591	630ccbc81a1c5f71256d59a2	52739.2.434151.TCAAGGAC-TCAAGGAC.fastq.gz	239038/108/1	239870	https://narrative.kbase.us/narrative/239870	Actinomycetota bacterium 93264_178_E07
+1551217	8134205257	685b2b10ff8db47f46f2781c	53131.1.601857.ACGAATTCCG-TATCCAAGTT.fastq.gz	239038/109/1	239874	https://narrative.kbase.us/narrative/239874	Staphylococcus edaphicus F11_7S_D4_P3
+1413237	8013301771	63f4f4e5de99bdbaa7eee01e	52809.3.458192.AATACGCG-AATACGCG.fastq.gz	239038/110/1	239871	https://narrative.kbase.us/narrative/239871	Actinomycetota bacterium 015124_261_B06
+1317170	2933683287	61673b5c9c1bd5d80c811d21	52594.1.391947.GCTCTGTA-GCTCTGTA.fastq.gz	239038/111/1	239900	https://narrative.kbase.us/narrative/239900	Micromonospora sp. 048893
+1270347	8069835120	6552d2341a840c1335436d29	52926.1.502412.GTCCACATAT-GTCCACATGT.fastq.gz	239038/112/1	239902	https://narrative.kbase.us/narrative/239902	Sphingomonas sp. UYEF30 (version 2)
+1413662	8015201395	63f8d7e8de99bdbaa7ef2f3d	52807.3.457668.TGGAGTTG-TGGAGTTG.fastq.gz	239038/113/1	239901	https://narrative.kbase.us/narrative/239901	Actinomycetota bacterium 101230_277_G12
+1551017	8133565075	684b0d3689cc9f214d4f2c4b	53130.3.601389.CCGCCCGGAC-GCGAACGCTC.fastq.gz	239038/116/1	239894	https://narrative.kbase.us/narrative/239894	Staphylococcus hominis F10_6S_D1_EB4B
+1352245	2956552612	625484a2f21e5a14d08cb903	52677.4.417472.TATTCGCC-TATTCGCC.fastq.gz	239038/122/1	239896	https://narrative.kbase.us/narrative/239896	Actinomycetota bacterium 001029
+1357514	2974199590	6269e225f21e5a14d08da4e4	52682.2.418228.ACTCCATC-ACTCCATC.fastq.gz	239038/123/1	239897	https://narrative.kbase.us/narrative/239897	Actinomycetota bacterium 23585
+1352195	2946287004	620293adf9c444ffdffcb7a6	52647.2.412368.ACTCGTTG-ACTCGTTG.fastq.gz	239038/125/1	240141	https://narrative.kbase.us/narrative/240141	Actinomycetota bacterium 087511
+1392052	2990366750	636d84ffbe000c239f76091d	pbio-2705.26950.bc1018_BAK8B_OA--bc1018_BAK8B_OA.ccs.filter.fastq.gz	239038/126/1	239898	https://narrative.kbase.us/narrative/239898	Bradyrhizobium elkanii USDA 495
+1307026	2931714059	613faa4bcc4ff44f36c85ac6	52582.3.388641.TTCCAAGG-TTCCAAGG.fastq.gz	239038/129/1	239895	https://narrative.kbase.us/narrative/239895	Actinomycetota bacterium 052276
+1134423	2791354856	5b247dce64d0b35952d8fc9d	pbio-1864.16453.fastq	239038/131/1	239899	https://narrative.kbase.us/narrative/239899	Clostridium beijerinckii DJ089
+1381670	2976941610	630cccf91a1c5f71256d5b9c	52739.2.434151.TCGTAGTC-TCGTAGTC.fastq.gz	239038/132/1	239945	https://narrative.kbase.us/narrative/239945	Actinomycetota bacterium 91983_195_D11
+1306932	2930470883	609979d753a8c649b0cc08cc	52512.4.365108.TAACCGGT-TAACCGGT.fastq.gz	239038/133/1	239949	https://narrative.kbase.us/narrative/239949	Actinomycetota bacterium 051170
+1551532	8132601599	6835ca95e69ed90826268135	53127.1.597830.ATTGAGATCG-TATACAACGA.fastq.gz	239038/137/1	239944	https://narrative.kbase.us/narrative/239944	Ralstonia insidiosa 130770013-1
+1292629	2931950510	6086de7853a8c649b0cb36e8	52508.4.363682.TAGTGACC-TAGTGACC.fastq.gz	239038/138/1	239952	https://narrative.kbase.us/narrative/239952	Streptomyces macrosporeus 000348
+1357471	2956644789	6254860cf21e5a14d08cb942	52677.4.417472.AGCAGATG-AGCAGATG.fastq.gz	239038/140/1	239951	https://narrative.kbase.us/narrative/239951	Actinobacteria bacterium 46858
+1352183	2946537723	620293a3f9c444ffdffcb7a5	52647.2.412368.CATGGCTA-CATGGCTA.fastq.gz	239038/141/1	239953	https://narrative.kbase.us/narrative/239953	Actinomycetota bacterium 087422
+1340084	2946915065	62029122f9c444ffdffcb73e	52647.2.412368.CTGAAGCT-CTGAAGCT.fastq.gz	239038/142/1	239948	https://narrative.kbase.us/narrative/239948	Actinomycetota bacterium 4311
+1551412	8132390241	6835caf1e69ed90826268273	53127.6.598031.CGGCGTACAC-TTGTATACGT.fastq.gz	239038/143/1	239950	https://narrative.kbase.us/narrative/239950	Sphingomonas sanguinis 101480065-1
+1392023	8013513609	636b91c9be000c239f755574	pbio-2705.26917.bc1021_BAK8B_OA--bc1021_BAK8B_OA.ccs.filter.fastq.gz	239038/144/1	239946	https://narrative.kbase.us/narrative/239946	Bradyrhizobium japonicum USDA 458
+1401299	8013167957	63ea5b17d22e9615ded8661c	52803.3.456525.TGCTTCCA-TGCTTCCA.fastq.gz	239038/148/1	239947	https://narrative.kbase.us/narrative/239947	Actinomycetota bacterium 097117_222_G07
+1352571	2952139495	6228c6d2e99caa81935ae635	52659.4.414109.TCCGAGTT-TCCGAGTT.fastq.gz	239038/151/1	239974	https://narrative.kbase.us/narrative/239974	Actinomycetota bacterium 88767
+1551334	8135352116	6887c9f25b874f5cc973ec1a	53146.6.605510.AAAGGTCTGG-GTAAACAGGC.fastq.gz	239038/152/1	239975	https://narrative.kbase.us/narrative/239975	Staphylococcus hominis 062690031-3
+1352097	2945632667	62029702f9c444ffdffcb846	52647.2.412368.AGGTCACT-AGGTCACT.fastq.gz	239038/156/1	239971	https://narrative.kbase.us/narrative/239971	Actinomycetota bacterium 001507
+1551451	8132448028	6835cb5ae69ed908262683cb	53127.1.597830.CTGACCCTTA-AAATACAGTT.fastq.gz	239038/158/1	239976	https://narrative.kbase.us/narrative/239976	Staphylococcus epidermidis 111540051-2
+1407839	8017098348	63c6b914d22e9615ded3194f	52790.4.453788.GCCTTGTT-GCCTTGTT.fastq.gz	239038/160/1	239969	https://narrative.kbase.us/narrative/239969	Sphingobacterium sp. Sphag1I
+1139671	2744054423	5967929e7ded5e5270ef55ef	pbio-1547.14177.fastq	239038/161/1	239977	https://narrative.kbase.us/narrative/239977	Clostridium beijerinckii DJ239
+1381328	2975914011	63039cbc1a1c5f71256c5ce6	52734.2.432011.GAAGTTGG-GAAGTTGG.fastq.gz	239038/162/1	239968	https://narrative.kbase.us/narrative/239968	Actinomycetota bacterium 90051_182_C08
+1381444	2975498854	630384a11a1c5f71256c566c	52733.2.431271.CGTAGGTT-CGTAGGTT.fastq.gz	239038/165/1	239973	https://narrative.kbase.us/narrative/239973	Actinomycetota bacterium 92111_190_B10
+1551015	8133560292	684b0d3289cc9f214d4f2c43	53130.3.601389.TTTCGCGTAG-TAACTCGGAC.fastq.gz	239038/168/1	239972	https://narrative.kbase.us/narrative/239972	Staphylococcus hominis F10_6S_D1_EB2B
+1551151	8134567692	685b2a7fff8db47f46f27792	53131.1.601857.ACTGGTGTGA-AGTGTATTCA.fastq.gz	239038/169/1	239970	https://narrative.kbase.us/narrative/239970	Staphylococcus cohnii F11_6S_D5_EP1
+1551289	8133343659	684b0ddc89cc9f214d4f2e65	53130.3.601389.TCAATCCGGT-CAGCCCAGTC.fastq.gz	239038/171/1	240036	https://narrative.kbase.us/narrative/240036	Staphylococcus saprophyticus 153480005-2
+1105609	2684622996	574a6be87ded5e3df1edfbcc	pbio-1177.10656.fastq	239038/173/1	240037	https://narrative.kbase.us/narrative/240037	Clostridium beijerinckii DJ019
+1357731	2960143596	6269e00af21e5a14d08da465	52682.2.418228.CCGACTAT-CCGACTAT.fastq.gz	239038/178/1	240035	https://narrative.kbase.us/narrative/240035	Actinobacteria bacterium 21339
+1401352	8028053998	6406a0c72674994eefd2c070	52816.4.459702.AAGGCTGA-AAGGCTGA.fastq.gz	239038/179/1	240029	https://narrative.kbase.us/narrative/240029	Pseudomonas sp. 096925_227_E09
+1401552	3008199715	63c6bdcfd22e9615ded31b27	52791.2.453314.GTGTCTGA-GTGTCTGA.fastq.gz	239038/181/1	240033	https://narrative.kbase.us/narrative/240033	Actinomycetota bacterium 016582_270_F07
+1269079	2981980479	633b08745bc59487d7e68d52	52753.1.439998.GACGATCT-GACGATCT.fastq.gz	239038/183/1	240031	https://narrative.kbase.us/narrative/240031	Paenibacillus sp. PvR018
+1586655	8135544668	68c812d3e8c9262024e499a0	53163.3.610169.AAATCCCGAA-GTGGATCCAC.fastq.gz	239038/184/1	240030	https://narrative.kbase.us/narrative/240030	Pantoea allii 1L-B-3-B-C3
+1352409	2947692693	6226423ae99caa81935a9684	52655.2.412973.CAAGTGCA-CAAGTGCA.fastq.gz	239038/186/1	240032	https://narrative.kbase.us/narrative/240032	Actinobacteria bacterium 20805-2
+1214714	2816332240	5c3a97ec46d1e66b9ba89490	12804.1.287316.AATACGCG-CGCGTATT.fastq.gz	239038/187/1	240034	https://narrative.kbase.us/narrative/240034	Streptomyces albus J1074 VWB-mCherry-12
+1340370	2944903374	61e8ce15b0df7a8c0db81a10	52640.1.404944.ACGATGAC-ACGATGAC.fastq.gz	239038/188/1	240028	https://narrative.kbase.us/narrative/240028	Actinomycetota bacterium 44427
+1248680	8130845799	67ae064768dd0c5de8e12ada	53090.2.581637.CCACTCGAGC-AGGACTCTTC.fastq.gz	239038/194/1	240173	https://narrative.kbase.us/narrative/240173	Streptosporangium nanhuense DSM 46674
+1053055	2596583657	545d5e010d87855284890b40	8465.8.102013.GACGAC.fastq.gz	239038/195/1	240172	https://narrative.kbase.us/narrative/240172	Xanthobacter autotrophicus DSM 432
+1030857	2574179732	5329352d49607a1be00599a1	7779.3.83550.AAGCGA.fastq.gz	239038/198/1	240175	https://narrative.kbase.us/narrative/240175	Vibrio porteresiae DSM 19223
+1186048	8130828393	67d0972fd72b25923552b524	53102.8.586047.TCGTTCGTAA-CTCGAACCGG.fastq.gz	239038/199/1	240176	https://narrative.kbase.us/narrative/240176	Streptosporangium shengliense DSM 45881 (version 2)
+1248546	8130794579	67d0973ed72b25923552b58d	53102.8.586047.ACGGGTGAGC-GTTTCCGTAC.fastq.gz	239038/202/1	240174	https://narrative.kbase.us/narrative/240174	Streptosporangium longisporum DSM 43180 (version 2)
+1347351	2990676009	6267f6a1f21e5a14d08d81ce	52684.1.418857.GGTATAGG-GGTATAGG.fastq.gz	239038/203/1	240171	https://narrative.kbase.us/narrative/240171	Bradyrhizobium elkanii USDA 319
+1352244	2953085618	622f645fe99caa81935b477e	52664.1.415157.TTGGACGT-TTGGACGT.fastq.gz	239038/2/1	239695	https://narrative.kbase.us/narrative/239695	Brevundimonas sp. 003966
