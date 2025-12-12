@@ -142,8 +142,12 @@ def parse_args() -> PipelineConfig:
 
     narrative_name = f"LLM Agent Annotation for {obj_name}"
 
+    logfile_name = "llm_genome_annotation_"
+    if args.upa:
+        logfile_name += f"{args.upa.replace("/", "_")}_"
+    logfile_name += f"{obj_name}.log"
     logging.basicConfig(
-        filename=f"llm_genome_annotation_{obj_name}.log",
+        filename=logfile_name,
         level=logging.INFO,
         format="%(asctime)s-%(levelname)s:%(name)s:%(message)s"
     )
@@ -159,6 +163,7 @@ def parse_args() -> PipelineConfig:
         input_upa=args.upa,
         is_salterns=args.salterns
     )
+    logger.info(config.model_dump_json(exclude=["kbase_token", "llm_token"]))
     return config
 
 def data_type_to_params(data_type: str, file_path: str, file_path2: str|None, file_name: str) -> dict[str, Any]:
@@ -436,6 +441,6 @@ poetry run python scripts/full_pipeline.py \
 -k $KB_AUTH_TOKEN \
 -p cborg \
 -l $CBORG_API_KEY \
--u 172257/37/1 \
+-u 239038/125/1 \
 -t pe_reads_interleaved
 """
