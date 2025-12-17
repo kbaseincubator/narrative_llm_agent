@@ -2,6 +2,14 @@
 """
 Batch process UPAs through full_pipeline.py
 Maintains a continuous pool of 10 running processes.
+
+Start by populating a "reads_upas.txt" file in the root of this repo with
+an UPA for a paired-end reads object (ideally of KBaseFile.PairedEndLibrary
+type). One UPA per line.
+
+Each will be copied into a new narrative, and the automated LLM agent
+pipeline will be applied to each one to do reads QC, assembly, annotation,
+and taxonomic classification.
 """
 
 import subprocess
