@@ -10,6 +10,9 @@ type). One UPA per line.
 Each will be copied into a new narrative, and the automated LLM agent
 pipeline will be applied to each one to do reads QC, assembly, annotation,
 and taxonomic classification.
+
+Note this also assumes the use of CBORG (see https://cborg.lbl.gov) as
+an LLM provider.
 """
 
 import subprocess
