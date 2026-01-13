@@ -20,8 +20,12 @@ from narrative_llm_agent.kbase.objects.app_spec import (
 )
 from narrative_llm_agent.tools.app_tools import (
     get_app_params,
-    app_params_pydantic
+    app_params_pydantic,
+    make_input_upa_validator
 )
+from narrative_llm_agent.kbase.clients.workspace import Workspace
+from narrative_llm_agent.kbase.service_client import ServerError
+from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
 from tests.test_data.test_data import load_test_data_json
 
 
@@ -59,7 +63,8 @@ def widget_spec():
 def behavior():
     return AppBehavior()
 
-def test_single_required_string_param(base_info, widget_spec, behavior):
+def test_single_required_string_param(base_info, widget_spec, behavior, mocker: MockerFixture):
+    mock_ws = mocker.Mock(spec=Workspace)
     param = AppParameter(
         id="param1",
         ui_name="Param 1",
@@ -80,11 +85,12 @@ def test_single_required_string_param(base_info, widget_spec, behavior):
         behavior=behavior,
         parameters=[param]
     )
-    model_cls = app_params_pydantic(app_spec)
+    model_cls = app_params_pydantic(app_spec, mock_ws)
     model = model_cls(param1="value")
     assert model.param1 == "value"
 
-def test_optional_int_with_default(base_info, widget_spec, behavior):
+def test_optional_int_with_default(base_info, widget_spec, behavior, mocker: MockerFixture):
+    mock_ws = mocker.Mock(spec=Workspace)
     param = AppParameter(
         id="int_param",
         ui_name="Int Param",
@@ -105,11 +111,12 @@ def test_optional_int_with_default(base_info, widget_spec, behavior):
         behavior=behavior,
         parameters=[param]
     )
-    model_cls = app_params_pydantic(app_spec)
+    model_cls = app_params_pydantic(app_spec, mock_ws)
     model = model_cls()
     assert model.int_param == 5
 
-def test_checkbox_param(base_info, widget_spec, behavior):
+def test_checkbox_param(base_info, widget_spec, behavior, mocker: MockerFixture):
+    mock_ws = mocker.Mock(spec=Workspace)
     param = AppParameter(
         id="check",
         ui_name="Checkbox Param",
@@ -130,11 +137,12 @@ def test_checkbox_param(base_info, widget_spec, behavior):
         behavior=behavior,
         parameters=[param]
     )
-    model_cls = app_params_pydantic(app_spec)
+    model_cls = app_params_pydantic(app_spec, mock_ws)
     model = model_cls(check=1)
     assert model.check == 1
 
-def test_dropdown_param(base_info, widget_spec, behavior):
+def test_dropdown_param(base_info, widget_spec, behavior, mocker: MockerFixture):
+    mock_ws = mocker.Mock(spec=Workspace)
     param = AppParameter(
         id="select",
         ui_name="Dropdown Param",
@@ -157,11 +165,12 @@ def test_dropdown_param(base_info, widget_spec, behavior):
         behavior=behavior,
         parameters=[param]
     )
-    model_cls = app_params_pydantic(app_spec)
+    model_cls = app_params_pydantic(app_spec, mock_ws)
     model = model_cls(select="opt1")
     assert model.select == "opt1"
 
-def test_parameter_group_optional_multiple(base_info, widget_spec, behavior):
+def test_parameter_group_optional_multiple(base_info, widget_spec, behavior, mocker: MockerFixture):
+    mock_ws = mocker.Mock(spec=Workspace)
     param1 = AppParameter(
         id="g1p1",
         ui_name="Group Param 1",
@@ -208,8 +217,124 @@ def test_parameter_group_optional_multiple(base_info, widget_spec, behavior):
         parameters=[param1, param2],
         parameter_groups=[group]
     )
-    model_cls = app_params_pydantic(app_spec)
+    model_cls = app_params_pydantic(app_spec, mock_ws)
     model = model_cls(group1=[{"g1p1": "A", "g1p2": "B"}])
     assert isinstance(model.group1, list)
     assert model.group1[0].g1p1 == "A"
     assert model.group1[0].g1p2 == "B"
+
+
+def test_input_upa_validator_successful(mocker: MockerFixture):
+    """Test successful UPA validation when object type matches"""
+    mock_ws = mocker.Mock(spec=Workspace)
+    mock_info = mocker.Mock(spec=ObjectInfo)
+    mock_info.type = "KBaseFetch.SingleEndLibrary"
+    mock_ws.get_object_info.return_value = mock_info
+
+    validator = make_input_upa_validator(mock_ws, ["KBaseFetch.SingleEndLibrary"])
+    result = validator("124/5/4")
+
+    assert result == "124/5/4"
+    mock_ws.get_object_info.assert_called_once_with("124/5/4")
+
+
+def test_input_upa_validator_bad_auth_token(mocker: MockerFixture):
+    """Test UPA validation fails with authentication error"""
+    mock_ws = mocker.Mock(spec=Workspace)
+    mock_ws.get_object_info.side_effect = ServerError("Unauthorized", 401, "Invalid authentication token")
+
+    validator = make_input_upa_validator(mock_ws, ["KBaseFetch.SingleEndLibrary"])
+
+    with pytest.raises(ValueError):
+        validator("124/5/4")
+
+
+def test_input_upa_validator_invalid_access(mocker: MockerFixture):
+    """Test UPA validation fails with access denied error"""
+    mock_ws = mocker.Mock(spec=Workspace)
+    mock_ws.get_object_info.side_effect = ServerError("AccessDenied", 403, "User does not have read access")
+
+    validator = make_input_upa_validator(mock_ws, ["KBaseFetch.SingleEndLibrary"])
+
+    with pytest.raises(ValueError):
+        validator("124/5/4")
+
+
+def test_input_upa_validator_wrong_type(mocker: MockerFixture):
+    """Test UPA validation fails when object type isn't in valid_types"""
+    mock_ws = mocker.Mock(spec=Workspace)
+    mock_info = mocker.Mock(spec=ObjectInfo)
+    mock_info.type = "KBaseGenomes.Genome"
+    mock_ws.get_object_info.return_value = mock_info
+
+    validator = make_input_upa_validator(mock_ws, ["KBaseFetch.SingleEndLibrary", "KBaseFetch.PairedEndLibrary"])
+
+    with pytest.raises(ValueError, match="Object .* is of type KBaseGenomes.Genome"):
+        validator("124/5/4")
+
+
+def test_input_upa_in_pydantic_model(mocker: MockerFixture, base_info, widget_spec, behavior):
+    """Test UPA validation integrated into Pydantic model"""
+    mock_ws = mocker.Mock(spec=Workspace)
+    mock_info = mocker.Mock(spec=ObjectInfo)
+    mock_info.type = "KBaseFetch.SingleEndLibrary"
+    mock_ws.get_object_info.return_value = mock_info
+
+    param = AppParameter(
+        id="input_reads",
+        ui_name="Input Reads",
+        short_hint="hint",
+        description="desc",
+        field_type="text",
+        allow_multiple=0,
+        optional=0,
+        advanced=0,
+        disabled=0,
+        default_values=[],
+        ui_class="input",
+        text_options=TextOptions(is_output_name=0, valid_ws_types=["KBaseFetch.SingleEndLibrary"])
+    )
+    app_spec = AppSpec(
+        info=base_info,
+        widgets=widget_spec,
+        behavior=behavior,
+        parameters=[param]
+    )
+    model_cls = app_params_pydantic(app_spec, mock_ws)
+    model = model_cls(input_reads="124/5/4")
+
+    assert model.input_reads == "124/5/4"
+    mock_ws.get_object_info.assert_called_once_with("124/5/4")
+
+
+def test_input_upa_invalid_format_rejected_before_validator(mocker: MockerFixture, base_info, widget_spec, behavior):
+    """Test that invalid UPA format is rejected by regex before hitting validator"""
+    mock_ws = mocker.Mock(spec=Workspace)
+
+    param = AppParameter(
+        id="input_reads",
+        ui_name="Input Reads",
+        short_hint="hint",
+        description="desc",
+        field_type="text",
+        allow_multiple=0,
+        optional=0,
+        advanced=0,
+        disabled=0,
+        default_values=[],
+        ui_class="input",
+        text_options=TextOptions(is_output_name=0, valid_ws_types=["KBaseFetch.SingleEndLibrary"])
+    )
+    app_spec = AppSpec(
+        info=base_info,
+        widgets=widget_spec,
+        behavior=behavior,
+        parameters=[param]
+    )
+    model_cls = app_params_pydantic(app_spec, mock_ws)
+
+    with pytest.raises(ValueError):
+        model_cls(input_reads="invalid-upa-format")
+
+    # validator should not be called since regex validation fails first
+    mock_ws.get_object_info.assert_not_called()
