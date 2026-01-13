@@ -1,5 +1,5 @@
 from typing import Annotated, Callable, Literal
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, create_model, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, create_model
 from narrative_llm_agent.kbase.clients.narrative_method_store import (
     NarrativeMethodStore,
 )
