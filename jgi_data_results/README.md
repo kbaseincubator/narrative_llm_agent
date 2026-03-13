@@ -68,10 +68,10 @@ Results show six categories of taxonomic prediction accuracy:
 |----------|-------|-----------------|
 | **EXACT MATCH** | 15 | IMG and GTDB predictions match at species level |
 | **MATCH - Phylum level** | 45 | Predictions align at phylum level (most common case) |
-| **PARTIAL - Same genus** | 14 | Same genus but different species prediction |
+| **PARTIAL - Same genus** | 16 | Same genus but different species prediction |
 | **UNCLASSIFIED** | 13 | GTDB assigned "Unclassified Bacteria" (insufficient confidence) |
 | **MISMATCH - Different genus** | 6 | IMG and GTDB predictions differ at genus level |
-| **MISSING GTDB DATA** | 7 | GTDB data unavailable for this IMG genome |
+| **MISSING GTDB DATA** | 5 | GTDB data unavailable for this IMG genome |
 
 ### `img_llm_annotations.tsv` (Supplementary File)
 
@@ -83,11 +83,11 @@ Contains the same 100 samples without GTDB annotations, showing only the origina
 
 2. **Species-Level Exact Matches**: Only 15% show exact species-level matches, reflecting both taxonomic annotation methodology differences and potential genuinely different organism identifications.
 
-3. **Genus-Level Partial Matches**: 14% of samples remain at the same genus but with different species predictions, suggesting fine-grained taxonomic differences.
+3. **Genus-Level Partial Matches**: 16% of samples remain at the same genus but with different species predictions, suggesting fine-grained taxonomic differences.
 
 4. **Unclassified Cases**: 13% received "Unclassified Bacteria" from GTDB, often indicating novel organisms or sequences with limited reference data.
 
-5. **Missing Data**: 7% of IMG genomes lack GTDB coverage, highlighting coverage gaps in the GTDB database.
+5. **Missing Data**: 5% of IMG genomes lack GTDB coverage, highlighting coverage gaps in the GTDB database.
 
 6. **Mismatches**: 6% show true genus-level mismatches, potentially indicating annotation errors or novel taxonomy.
 
