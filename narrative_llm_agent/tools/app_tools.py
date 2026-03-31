@@ -1,9 +1,11 @@
-from typing import Annotated, Literal
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from typing import Annotated, Callable, Literal
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, create_model
 from narrative_llm_agent.kbase.clients.narrative_method_store import (
     NarrativeMethodStore,
 )
+from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.kbase.objects.app_spec import AppParameter, AppSpec
+from narrative_llm_agent.kbase.service_client import ServerError
 from narrative_llm_agent.util.app import get_processed_app_spec_params
 
 
@@ -12,7 +14,20 @@ def get_app_params(app_id: str, nms: NarrativeMethodStore) -> dict:
     return get_processed_app_spec_params(AppSpec(**spec))
 
 
-def app_params_pydantic(app_spec: AppSpec) -> BaseModel:
+def make_input_upa_validator(ws_client: Workspace, valid_types: list[str]) -> Callable:
+    def validator(upa: str) -> str:
+        print(f"running input upa validator on {upa}")
+        try:
+            info = ws_client.get_object_info(upa)
+        except ServerError as e:
+            raise ValueError(e)
+        for obj_type in valid_types:
+            if info.type.lower().startswith(obj_type.lower()):
+                return upa
+        raise ValueError(f"Object {upa} is of type {info.type}, it must be one of types {valid_types}")
+    return validator
+
+def app_params_pydantic(app_spec: AppSpec, ws_client: Workspace) -> BaseModel:
     model_atts = {}
     proc = get_processed_app_spec_params(app_spec)
     params_dict = {}
@@ -28,7 +43,8 @@ def app_params_pydantic(app_spec: AppSpec) -> BaseModel:
             for param_id in param_group.parameter_ids:
                 group_model_atts[param_id] = _param_to_model_attribute(
                     params_dict[param_id],
-                    proc[param_group.id]["params"][param_id]["type"]
+                    proc[param_group.id]["params"][param_id]["type"],
+                    ws_client
                 )
             pg_model = create_model(
                 f"{param_group.id}Model",
@@ -44,7 +60,7 @@ def app_params_pydantic(app_spec: AppSpec) -> BaseModel:
 
     for param in app_spec.parameters:
         if param.id not in param_group_params:
-            model_atts[param.id] = _param_to_model_attribute(param, proc[param.id].get("type", "string"))
+            model_atts[param.id] = _param_to_model_attribute(param, proc[param.id].get("type", "string"), ws_client)
 
     model_atts = model_atts | param_group_model_atts
     return create_model(
@@ -53,7 +69,7 @@ def app_params_pydantic(app_spec: AppSpec) -> BaseModel:
         __config__=ConfigDict(regex_engine="python-re")
     )
 
-def _param_to_model_attribute(param: AppParameter, param_type: str):
+def _param_to_model_attribute(param: AppParameter, param_type: str, ws_client: Workspace):
     """
     `param_type` is figured out from the processed version - turns "text" into "data_object",
     for example.
@@ -109,6 +125,13 @@ def _param_to_model_attribute(param: AppParameter, param_type: str):
                 strict=True,
                 pattern=r"^(?!\d+$)[A-Za-z0-9|_\.-]+$"
             )
+        ]
+    elif param_type == "data_object" and param.text_options.is_output_name != 1:
+        # This is a data object input, and the parameter string must be an UPA.
+        param_attr = Annotated[
+            str,
+            Field(strict=True, pattern=r"^\d+/\d+/\d+$"),
+            AfterValidator(make_input_upa_validator(ws_client, param.text_options.valid_ws_types))
         ]
     if param.allow_multiple == 1:
         param_attr = list[param_attr]

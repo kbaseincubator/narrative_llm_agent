@@ -14,11 +14,11 @@ from narrative_llm_agent.kbase.objects.app_spec import AppSpec
 from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
 from narrative_llm_agent.tools.app_tools import app_params_pydantic, get_app_params
 from narrative_llm_agent.tools.job_tools import CompletedJob, CreatedObject
-import logging 
+import logging
 
 workflow_logger = logging.getLogger("WorkflowExecution")
 class JobCrew:
-    """
+    """ƒ
     Initializes and runs a CrewAI Crew that will run a single KBase job from start to finish,
     analyze, and interpret the results, saving a summary in a Narrative.
 
@@ -59,7 +59,7 @@ class JobCrew:
         """
         ws = Workspace(token=self._token)
         object_info = ws.get_object_info(input_object_upa)
-        self._tasks = self.build_tasks(app_id, narrative_id, object_info)
+        self._tasks = self.build_tasks(app_id, narrative_id, object_info, ws)
         crew = Crew(
             agents=self._agents,
             tasks=self._tasks,
@@ -130,33 +130,40 @@ class JobCrew:
         )
 
     def build_tasks(
-        self, app_id: str, narrative_id: int, object_info: ObjectInfo
+        self, app_id: str, narrative_id: int, object_info: ObjectInfo, ws: Workspace
     ) -> list[Task]:
         # TODO: make sure that input objects are ALWAYS UPAs
         param_template = get_app_params(app_id, self._nms)
         spec = AppSpec(**self._nms.get_app_spec(app_id))
-        param_model = app_params_pydantic(spec)
+        param_model = app_params_pydantic(spec, ws)
 
         build_params_task = Task(
             name=f"1. Build the parameters for {app_id}",
             description=f"""
-            From the given KBase app id, {app_id}, fetch the list of parameters needed to run it. Use the App and Job manager agent
-            for assistance. Using the data object with UPA "{object_info.upa}" and name "{object_info.name}", populate a dictionary
-            with the parameters where the keys are parameter ids, and values are the proper parameter values, or their
-            default values if no value can be found or calculated.
+            From the given KBase app id, {app_id}, fetch the list of parameters needed to run it.
+            Use the App and Job manager agent for assistance. Using the data object with UPA "{object_info.upa}"
+            and name "{object_info.name}", populate a dictionary with the parameters where the keys are parameter
+            ids, and values are the proper parameter values or their default values if no value can be found or
+            calculated.
+
             Here is the parameter information you must use: {param_template}
+
             Any input object parameter must be the input object UPA.
-            Be sure to make sure there is a non-null value for any parameter that is not optional.
+            Ensure there is a non-null value for any parameter that is not optional.
             Any parameter that has a true value for "is_output_object" must have a valid name for the new object.
-            The new object name should be based on the input object name, not its UPA. But it must NEVER be identical to the input object name,
-            always create a new name.
-            If the input object name is not available, the Workspace Manager can assist.
-            If the parameter type is 'dropdown', use the allowed 'name' option to determine what should be used, but only set the
-            'value' associated with that name, or the default value if any.
+            The new object name should be based on the input object name, not its UPA. It must NEVER be identical to the input object name;
+            always create a new name. If the input object name is not available, the Workspace Manager can assist.
+
+            If the parameter type is 'dropdown', use the allowed 'name' option to determine what should be used,
+            but only set the 'value' associated with that name, or the default value if any.
             Only alphanumeric characters and underscores are allowed in new object names.
-            Return the dictionary of inputs, the app id, and the
-            narrative id {narrative_id} for use in the next task. Do not add comments or other text. If the parameters are rejected, examine the reason why and
-            reform them. The dictionary of inputs and the app id must not be combined into a single dictionary.
+
+            After populating the dictionary, validate the parameters using the `validate_parameters()` tool.
+            If the parameters are incorrect, reform them accordingly and ensure that they comply with the specified requirements.
+
+            Return the dictionary of inputs, the app id, and the narrative id {narrative_id} for use in the next task.
+            Do not add comments or other text. If the parameters are rejected, examine the reason why and reform them.
+            The dictionary of inputs and the app id must not be combined into a single dictionary.
             """,
             expected_output="A dictionary of parameters used to run the app with the given id along with the narrative id.",
             output_pydantic=param_model,

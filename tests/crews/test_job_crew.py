@@ -1,6 +1,7 @@
 from pathlib import Path
 import pytest
 from narrative_llm_agent.crews.job_crew import JobCrew
+from narrative_llm_agent.kbase.clients.workspace import Workspace
 from narrative_llm_agent.tools.job_tools import CompletedJob
 from narrative_llm_agent.kbase.objects.workspace import ObjectInfo
 from narrative_llm_agent.kbase.clients.narrative_method_store import NarrativeMethodStore
@@ -33,8 +34,9 @@ def test_build_tasks_returns_list(job_crew, mocker):
     )
     job_crew._nms = mocker.Mock(spec=NarrativeMethodStore)
     job_crew._nms.get_app_spec.return_value = load_test_data_json(Path("app_spec_data") / "test_app_spec.json")
+    ws_client = mocker.Mock(spec=Workspace)
 
-    tasks = job_crew.build_tasks("prokka/annotate_contigs", 123, obj_info)
+    tasks = job_crew.build_tasks("prokka/annotate_contigs", 123, obj_info, ws_client)
     assert isinstance(tasks, list)
     assert all(isinstance(t, Task) for t in tasks)
 
